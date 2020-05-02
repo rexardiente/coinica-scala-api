@@ -1,4 +1,4 @@
-# eos-game-store-api
+### EOS GAME STORE - API
 
 # PostgreSQL DB command
 
