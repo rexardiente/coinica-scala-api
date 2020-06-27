@@ -4,12 +4,13 @@ import javax.inject.{ Inject, Singleton }
 import play.api.Logger
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.dao.user.UserDAO
-import models.dao.game.GameDAO
+import models.dao.game.{ GameDAO, GenreDAO }
 
 @Singleton
 class Generator @Inject()(
     userDAO: UserDAO,
     gameDAO: GameDAO,
+    genreDAO: GenreDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
@@ -17,7 +18,8 @@ class Generator @Inject()(
   def createDDLScript() = {
     val schemas = 
       userDAO.Query.schema ++
-      gameDAO.Query.schema
+      gameDAO.Query.schema ++
+      genreDAO.Query.schema
 
     val writer = new java.io.PrintWriter("target/schema.sql")
     writer.write("# --- !Ups\n\n")
