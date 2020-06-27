@@ -15,9 +15,11 @@ final class GameDAO @Inject()(
   protected class GameTable(tag: Tag) extends Table[Game](tag, "GAME") {
     def id = column[UUID] ("ID")
     def name = column[String] ("NAME")
+    def imgURl = column[String] ("IMG_URL")
+    def genre = column[UUID] ("GENRE")
     def description = column[Option[String]] ("DESCRIPTION")
 
-   def * = (id, name, description) <> ((Game.apply _).tupled, Game.unapply)
+   def * = (id, name, imgURl, genre, description) <> ((Game.apply _).tupled, Game.unapply)
   }
 
   object Query extends TableQuery(new GameTable(_)) {
