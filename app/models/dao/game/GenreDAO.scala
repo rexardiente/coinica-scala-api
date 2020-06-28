@@ -4,25 +4,23 @@ import java.util.UUID
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.game.Game
+import models.domain.game.Genre
 
 @Singleton
-final class GameDAO @Inject()(
+final class GenreDAO @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
-  protected class GameTable(tag: Tag) extends Table[Game](tag, "GAME") {
+  protected class GenreTable(tag: Tag) extends Table[Genre](tag, "GENRE") {
     def id = column[UUID] ("ID")
     def name = column[String] ("NAME")
-    def imgURl = column[String] ("IMG_URL")
-    def genre = column[UUID] ("GENRE")
     def description = column[Option[String]] ("DESCRIPTION")
 
-   def * = (id, name, imgURl, genre, description) <> ((Game.apply _).tupled, Game.unapply)
+   def * = (id, name, description) <> ((Genre.apply _).tupled, Genre.unapply)
   }
 
-  object Query extends TableQuery(new GameTable(_)) {
+  object Query extends TableQuery(new GenreTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
 }
