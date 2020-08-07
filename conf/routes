@@ -4,7 +4,21 @@
 # ~~~~
 
 # An example controller showing a sample home page
-GET     /                           controllers.HomeController.index
+GET     /                                        controllers.HomeController.index
+
+# Game API
+GET     /donut/api/v1/games                      controllers.HomeController.games
+GET     /donut/api/v1/game/find                  controllers.HomeController.findGameByID(id: UUID)
+POST    /donut/api/v1/game/add                   controllers.HomeController.addGame
+PUT     /donut/api/v1/game/update                controllers.HomeController.updateGame(id: UUID)
+POST    /donut/api/v1/game/remove                controllers.HomeController.removeGame(id: UUID)
+
+# Genre API
+GET     /donut/api/v1/genres                     controllers.HomeController.genres
+GET     /donut/api/v1/genre/find                 controllers.HomeController.findGenreByID(id: UUID)
+POST    /donut/api/v1/genre/add                  controllers.HomeController.addGenre
+PUT     /donut/api/v1/genre/update               controllers.HomeController.updateGenre(id: UUID)
+POST    /donut/api/v1/genre/remove               controllers.HomeController.removeGenre(id: UUID)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
