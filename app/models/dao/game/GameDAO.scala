@@ -13,7 +13,7 @@ final class GameDAO @Inject()(
   import profile.api._
 
   protected class GameTable(tag: Tag) extends Table[Game](tag, "GAME") {
-    def id = column[UUID] ("ID")
+    def id = column[UUID] ("ID", O.PrimaryKey)
     def name = column[String] ("NAME")
     def imgURl = column[String] ("IMG_URL")
     def genre = column[UUID] ("GENRE")
