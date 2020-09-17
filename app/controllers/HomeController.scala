@@ -30,8 +30,9 @@ class HomeController @Inject()(
   
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
-    "game" -> nonEmptyText,
+    "name" -> nonEmptyText,
     "imgURL" -> nonEmptyText,
+    "path" -> nonEmptyText,
     "genre" -> uuid,
     "description" -> optional(text),
   ))
@@ -54,17 +55,10 @@ class HomeController @Inject()(
   def addGame() = Action.async { implicit request: Request[AnyContent] =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (game, imgURL, genre, description)  =>
-        for {
-          isExist <- genreRepo.exist(genre)
-          result  <- {
-            if (isExist)
-              gameRepo
-                .add(Game(UUID.randomUUID, game, imgURL, genre, description))
-                .map(r => if(r < 0) InternalServerError else Created )
-            else Future.successful(InternalServerError)
-          }
-        } yield(result)
+      { case (name, imgURL, path, genre, description)  =>
+        gameRepo
+          .add(Game(UUID.randomUUID, name, imgURL, path, genre, description))
+          .map(r => if(r < 0) InternalServerError else Created )
       }
     )
   }
@@ -76,16 +70,16 @@ class HomeController @Inject()(
   def updateGame(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (game, imgURL, genre, description) =>
+      { case (name, imgURL, path, genre, description) =>
         for {
-          isExist <- genreRepo.exist(genre)
-           result <- {
-              if (isExist)
-                gameRepo
-                  .update(Game(id, game, imgURL, genre, description))
-                  .map(r => if(r < 0) NotFound else Ok)
-              else Future.successful(InternalServerError)
-           }
+          isExist <- gameRepo.exist(id)
+          result <- {
+            if (isExist)
+              gameRepo
+                .update(Game(id, name, imgURL, path, genre, description))
+                .map(r => if(r < 0) NotFound else Ok)
+            else Future.successful(InternalServerError)
+          }
         } yield(result)
         
       }
@@ -122,9 +116,16 @@ class HomeController @Inject()(
     genreForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description) =>
-        genreRepo
-          .update(Genre(id, name, description))
-          .map(r => if(r < 0) NotFound else Ok)
+        for {
+          isExist <- genreRepo.exist(id)
+          result <- {
+            if (isExist)
+              genreRepo
+                .update(Genre(id, name, description))
+                .map(r => if(r < 0) NotFound else Ok)
+            else Future.successful(InternalServerError)
+          }
+        } yield(result)
       }
     )
   }
