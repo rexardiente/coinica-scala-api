@@ -20,7 +20,6 @@ final class GameDAO @Inject()(
     def description = column[Option[String]] ("DESCRIPTION")
 
    def * = (id, name, imgURl, genre, description) <> ((Game.apply _).tupled, Game.unapply)
-  
   }
 
   object Query extends TableQuery(new GameTable(_)) {
