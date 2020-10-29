@@ -103,6 +103,9 @@ def removeDailychallenge(id: UUID) = Action.async { implicit request: Request[An
   def findDailytaskByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
     dailytaskRepo.findByID(id).map(dailytask => Ok(Json.toJson(dailytask)))
   }
+  def findDailytaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request: Request[AnyContent] =>
+    dailytaskRepo.findByDaily(id, currentdate).map(dailytask => Ok(Json.toJson(dailytask)))
+  }
   def findDailytaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request: Request[AnyContent] =>
     dailytaskRepo.findByWeekly(id, startdate, enddate).map(dailytask => Ok(Json.toJson(dailytask)))
   }
