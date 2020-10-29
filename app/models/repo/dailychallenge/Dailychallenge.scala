@@ -1,6 +1,8 @@
 package models.repo.dailychallenge
 
 import java.util.UUID
+import java.time.Instant
+
 import javax.inject.{ Inject, Singleton }
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
@@ -36,4 +38,8 @@ class DailychallengeRepo @Inject()(
     db.run(dao.Query.filter(r => r.gamename === gamename)
       .result
       .headOption)
+
+      def findByWeekly(id: UUID, startdate: Instant, enddate : Instant): Future[Seq[Dailychallenge]] =
+       db.run(dao.Query.filter(r => r.id === id && r.challengedate >= startdate && r.challengedate <= enddate ) 
+      .result)
 }

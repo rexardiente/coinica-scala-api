@@ -2,6 +2,7 @@ package models.dao.dailychallenge
 
 import java.util.UUID
 import java.time.Instant
+
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.dailychallenge.Dailychallenge
@@ -16,8 +17,10 @@ final class DailychallengeDAO @Inject()(
     def id = column[UUID] ("ID")
     def gamename = column[String] ("GAMENAME")   
     def rankname = column[Option[String]] ("RANKNAME")
+   def challengedate =column[Instant] ("CHALLENGEDATE")
+
     def rankreward = column[String] ("RANKREWARD")
-    def * = (id, gamename, rankname,  rankreward) <> ((Dailychallenge.apply _).tupled, Dailychallenge.unapply) 
+    def * = (id, gamename, rankname,  rankreward, challengedate) <> ((Dailychallenge.apply _).tupled, Dailychallenge.unapply) 
   }
 
   object Query extends TableQuery(new DailychallengeTable(_)) {

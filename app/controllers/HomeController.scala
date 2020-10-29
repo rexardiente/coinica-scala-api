@@ -62,6 +62,8 @@ private def dailytaskForm = Form(tuple(
   private def dailychallengeForm = Form(tuple(
      "gamename" -> nonEmptyText,
     "rankname" -> optional(text),
+    "challengedate" -> optional(date("yyyy-MM-dd")),
+   
     "rankreward" -> nonEmptyText,
   ))
   private def rankingForm = Form(tuple(
@@ -82,33 +84,11 @@ private def dailytaskForm = Form(tuple(
     def dailychallenges() = Action.async { implicit request: Request[AnyContent] =>
     dailychallengeRepo.all().map(dailychallenge => Ok(Json.toJson(dailychallenge)))
   }
-  
-   def addDailychallenge() = Action.async { implicit request: Request[AnyContent] =>
-    dailychallengeForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (gamename, rankname, rankreward)  =>
-        dailychallengeRepo
-          .add(Dailychallenge(UUID.randomUUID, gamename, rankname,  rankreward))
-          .map(r => if(r < 0) InternalServerError else Created )
-      }
-    )
+/*
+def findDailychallengeByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request: Request[AnyContent] =>
+    dailychallengeRepo.findByWeekly(id, startdate, enddate).map(dailychallenge => Ok(Json.toJson(dailychallenge)))
   }
- 
-  def findDailychallengeByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-    dailychallengeRepo.findByID(id).map(dailychallenge => Ok(Json.toJson(dailychallenge)))
-  }
-
-  def updateDailychallenge(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-    dailychallengeForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case ( gamename, rankname,  rankreward) =>
-        dailychallengeRepo
-          .update(Dailychallenge(id, gamename, rankname,  rankreward))
-          .map(r => if(r < 0) NotFound else Ok)
-      }
-    )
-  }
-
+  */
 def removeDailychallenge(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
     dailychallengeRepo
       .delete(id)
