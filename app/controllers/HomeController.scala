@@ -40,10 +40,10 @@ class HomeController @Inject()(
     "description" -> optional(text),
   ))
  
-private def taskForm = Form(tuple(
+  private def taskForm = Form(tuple(
     "gamename" -> nonEmptyText,
     "taskdate" -> optional(date("yyyy-MM-dd")),
-    "taskdescription" -> optional(text),
+    "description" -> optional(text),
   ))
  
   private def genreForm = Form(tuple(
@@ -52,41 +52,38 @@ private def taskForm = Form(tuple(
   ))
 
   /* MAIN API */
-  def index() = Action.async { implicit request: Request[AnyContent] =>
+  def index() = Action.async { implicit request =>
     Future.successful(Ok(views.html.index()))
   }
 
-
-/* Task API */
-   
-    def tasks() = Action.async { implicit request: Request[AnyContent] =>
+  /* Task API */
+  def tasks() = Action.async { implicit request =>
+    // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all().map(task => Ok(Json.toJson(task)))
   }
 
-  def findTaskByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def findTaskByID(id: UUID) = Action.async { implicit request =>
     taskRepo.findByID(id).map(task => Ok(Json.toJson(task)))
   }
-  def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request: Request[AnyContent] =>
+  
+  def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request =>
     taskRepo.findByDaily(id, currentdate).map(task => Ok(Json.toJson(task)))
   }
-  def findTaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request: Request[AnyContent] =>
+  
+  def findTaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request =>
     taskRepo.findByWeekly(id, startdate, enddate).map(task => Ok(Json.toJson(task)))
   }
 
-def removeTask(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-     taskRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
+  def removeTask(id: UUID) = Action.async { implicit request =>
+     taskRepo.delete(id).map(r => if(r < 0) NotFound else Ok)
   }
 
- 
-
   /* GAME API */
-  def games() = Action.async { implicit request: Request[AnyContent] =>
+  def games() = Action.async { implicit request =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
   }
   
-  def addGame() = Action.async { implicit request: Request[AnyContent] =>
+  def addGame() = Action.async { implicit request =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (game, imgURL, path, genre, description)  =>
@@ -104,11 +101,11 @@ def removeTask(id: UUID) = Action.async { implicit request: Request[AnyContent] 
     )
   }
 
-  def findGameByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def findGameByID(id: UUID) = Action.async { implicit request =>
     gameRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
 
-  def updateGame(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def updateGame(id: UUID) = Action.async { implicit request =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (game, imgURL, path, genre, description) =>
@@ -127,22 +124,22 @@ def removeTask(id: UUID) = Action.async { implicit request: Request[AnyContent] 
     )
   }
 
-  def removeGame(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def removeGame(id: UUID) = Action.async { implicit request =>
     gameRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
 
   /* GENRE API */
-  def genres() = Action.async { implicit request: Request[AnyContent] =>
+  def genres() = Action.async { implicit request =>
     genreRepo.all().map(genre => Ok(Json.toJson(genre)))
   }
 
-  def findGenreByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def findGenreByID(id: UUID) = Action.async { implicit request =>
     genreRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
 
-  def addGenre() = Action.async { implicit request: Request[AnyContent] =>
+  def addGenre() = Action.async { implicit request =>
     genreForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description)  =>
@@ -153,7 +150,7 @@ def removeTask(id: UUID) = Action.async { implicit request: Request[AnyContent] 
     )
   }
 
-  def updateGenre(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def updateGenre(id: UUID) = Action.async { implicit request =>
     genreForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description) =>
@@ -164,7 +161,7 @@ def removeTask(id: UUID) = Action.async { implicit request: Request[AnyContent] 
     )
   }
 
-  def removeGenre(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def removeGenre(id: UUID) = Action.async { implicit request =>
     genreRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)

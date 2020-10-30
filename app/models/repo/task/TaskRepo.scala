@@ -34,15 +34,15 @@ class TaskRepo @Inject()(
       .headOption)
 
   def findByDaily(id: UUID, currentdate: Instant): Future[Seq[Task]] =
-    db.run(dao.Query.filter(r => r.id === id && r.taskdate === currentdate ) 
+    db.run(dao.Query.filter(r => r.id === id && r.date === currentdate ) 
       .result)
 
-   def findByWeekly(id: UUID, startdate: Instant, enddate : Instant): Future[Seq[Task]] =
-    db.run(dao.Query.filter(r => r.id === id && r.taskdate >= startdate && r.taskdate <= enddate ) 
+  def findByWeekly(id: UUID, startdate: Instant, enddate : Instant): Future[Seq[Task]] =
+    db.run(dao.Query.filter(r => r.id === id && r.date >= startdate && r.date <= enddate ) 
       .result)
  
-   def findBygameName(gamename: String): Future[Option[Task]] =
-    db.run(dao.Query.filter(r => r.gamename === gamename)
+  def findBygameName(gameID: UUID): Future[Option[Task]] =
+    db.run(dao.Query.filter(r => r.gameID === gameID)
       .result
       .headOption)
 }

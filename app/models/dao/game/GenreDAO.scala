@@ -13,7 +13,7 @@ final class GenreDAO @Inject()(
   import profile.api._
 
   protected class GenreTable(tag: Tag) extends Table[Genre](tag, "GENRE") {
-    def id = column[UUID] ("ID")
+    def id = column[UUID] ("ID", O.PrimaryKey)
     def name = column[String] ("NAME")
     def description = column[Option[String]] ("DESCRIPTION")
 
