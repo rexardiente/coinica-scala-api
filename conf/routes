@@ -4,10 +4,11 @@
 # ~~~~
 
 # An example controller showing a sample home page
-GET     /                                        controllers.HomeController.index
-# Game API
-GET     /donut/api/v1/dailytasks                 controllers.HomeController.dailytasks
 
+GET     /                                        controllers.HomeController.index
+# Task API
+GET     /donut/api/v1/tasks                      controllers.HomeController.tasks
+GET     /donut/api/v1/task/find                  controllers.HomeController.findTaskByID(id: UUID)
 
 # Game API
 GET     /donut/api/v1/games                      controllers.HomeController.games

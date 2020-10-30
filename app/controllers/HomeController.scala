@@ -13,17 +13,11 @@ import play.api.data.Forms._
 import play.api.data.format.Formats._
 
 // model's import
-import models.domain.ranking.Ranking
-import models.domain.dailytask.Dailytask
-import models.domain.dailychallenge.Dailychallenge
-import models.domain.referral.Referral
+import models.domain.task.Task
 import models.domain.game.{Game, Genre}
 import models.repo.game.GameRepo
 import models.repo.game.GenreRepo
-import models.repo.dailytask.DailytaskRepo
-import models.repo.referral.ReferralRepo
-import models.repo.dailychallenge.DailychallengeRepo
-import models.repo.ranking.RankingRepo
+import models.repo.task.TaskRepo
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -31,13 +25,10 @@ import models.repo.ranking.RankingRepo
  */
 @Singleton
 class HomeController @Inject()(
-      rankingRepo: RankingRepo,
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
-      referralRepo: ReferralRepo,
-      dailytaskRepo: DailytaskRepo,
-      dailychallengeRepo: DailychallengeRepo,
-      val controllerComponents: ControllerComponents
+      taskRepo: TaskRepo,
+     val controllerComponents: ControllerComponents
     ) extends BaseController {
   
   /*  CUSTOM FORM VALIDATION */
@@ -48,28 +39,13 @@ class HomeController @Inject()(
     "genre" -> uuid,
     "description" -> optional(text),
   ))
-  private def referralForm = Form(tuple(
-    "name" -> nonEmptyText,
-    "imgURL" -> nonEmptyText,
-    "genre" -> uuid,
-    "description" -> optional(text),
-  ))
-private def dailytaskForm = Form(tuple(
+ 
+private def taskForm = Form(tuple(
     "gamename" -> nonEmptyText,
     "taskdate" -> optional(date("yyyy-MM-dd")),
     "taskdescription" -> optional(text),
   ))
-  private def dailychallengeForm = Form(tuple(
-     "gamename" -> nonEmptyText,
-    "rankname" -> optional(text),
-    "challengedate" -> optional(date("yyyy-MM-dd")),
-   
-    "rankreward" -> nonEmptyText,
-  ))
-  private def rankingForm = Form(tuple(
-    "rankname" -> optional(text),
-    "rankdesc" -> nonEmptyText,
-  ))
+ 
   private def genreForm = Form(tuple(
     "name" -> nonEmptyText,
     "description" -> optional(text),
@@ -79,77 +55,30 @@ private def dailytaskForm = Form(tuple(
   def index() = Action.async { implicit request: Request[AnyContent] =>
     Future.successful(Ok(views.html.index()))
   }
-  /* Dailychallenge API */
+
+
+/* Task API */
    
-    def dailychallenges() = Action.async { implicit request: Request[AnyContent] =>
-    dailychallengeRepo.all().map(dailychallenge => Ok(Json.toJson(dailychallenge)))
+    def tasks() = Action.async { implicit request: Request[AnyContent] =>
+    taskRepo.all().map(task => Ok(Json.toJson(task)))
   }
-/*
-def findDailychallengeByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request: Request[AnyContent] =>
-    dailychallengeRepo.findByWeekly(id, startdate, enddate).map(dailychallenge => Ok(Json.toJson(dailychallenge)))
+
+  def findTaskByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+    taskRepo.findByID(id).map(task => Ok(Json.toJson(task)))
   }
-  */
-def removeDailychallenge(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-    dailychallengeRepo
+  def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request: Request[AnyContent] =>
+    taskRepo.findByDaily(id, currentdate).map(task => Ok(Json.toJson(task)))
+  }
+  def findTaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request: Request[AnyContent] =>
+    taskRepo.findByWeekly(id, startdate, enddate).map(task => Ok(Json.toJson(task)))
+  }
+
+def removeTask(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+     taskRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-/* Dailytask API */
-   
-    def dailytasks() = Action.async { implicit request: Request[AnyContent] =>
-    dailytaskRepo.all().map(dailytask => Ok(Json.toJson(dailytask)))
-  }
 
-  def findDailytaskByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-    dailytaskRepo.findByID(id).map(dailytask => Ok(Json.toJson(dailytask)))
-  }
-  def findDailytaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request: Request[AnyContent] =>
-    dailytaskRepo.findByDaily(id, currentdate).map(dailytask => Ok(Json.toJson(dailytask)))
-  }
-  def findDailytaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request: Request[AnyContent] =>
-    dailytaskRepo.findByWeekly(id, startdate, enddate).map(dailytask => Ok(Json.toJson(dailytask)))
-  }
-
-def removeDailytask(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-    dailytaskRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
-  }
-   /* REFERRAL API */
-   
-    def referrals() = Action.async { implicit request: Request[AnyContent] =>
-    referralRepo.all().map(referral => Ok(Json.toJson(referral)))
-  }
- 
-  def addReferral() = Action.async { implicit request: Request[AnyContent] =>
-    referralForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name,imgURL, genre, description)  =>
-        referralRepo
-          .add(Referral(UUID.randomUUID, name, imgURL, genre, description))
-          .map(r => if(r < 0) InternalServerError else Created )
-      }
-    )
-  }
-  def findReferralByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-    referralRepo.findByID(id).map(referral => Ok(Json.toJson(referral)))
-  }
-  def updateReferral(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-    referralForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name,  imgURL, genre, description) =>
-        referralRepo
-          .update(Referral(id, name, imgURL, genre, description))
-          .map(r => if(r < 0) NotFound else Ok)
-      }
-    )
-  }
-
-def removeReferral(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
-    referralRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
-  }
  
 
   /* GAME API */
