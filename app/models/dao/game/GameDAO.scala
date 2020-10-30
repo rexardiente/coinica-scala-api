@@ -16,10 +16,11 @@ final class GameDAO @Inject()(
     def id = column[UUID] ("ID")
     def name = column[String] ("NAME")
     def imgURl = column[String] ("IMG_URL")
+    def path = column[String] ("PATH")
     def genre = column[UUID] ("GENRE")
     def description = column[Option[String]] ("DESCRIPTION")
 
-   def * = (id, name, imgURl, genre, description) <> ((Game.apply _).tupled, Game.unapply)
+   def * = (id, name, imgURl, path, genre, description) <> ((Game.apply _).tupled, Game.unapply)
   
   }
 

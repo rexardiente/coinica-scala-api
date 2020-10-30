@@ -5,6 +5,9 @@
 
 # An example controller showing a sample home page
 GET     /                                        controllers.HomeController.index
+# Game API
+GET     /donut/api/v1/dailytasks                 controllers.HomeController.dailytasks
+
 
 # Game API
 GET     /donut/api/v1/games                      controllers.HomeController.games
