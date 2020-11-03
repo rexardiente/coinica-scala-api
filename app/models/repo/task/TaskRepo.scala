@@ -27,18 +27,51 @@ class TaskRepo @Inject()(
     db.run(dao.Query.result)
 
   def exist(id: UUID): Future[Boolean] = db.run(dao.Query(id).exists.result)
+/*
+ def findAll(userId: Long, limit: Int, offset: Int) = db.run{
+  query.filter(_.creatorId === userId).drop(offset).take(limit).result
+  def findAll(userId: Long, limit: Int, offset: Int) = db.run {
+  for {
+    comments <- query.filter(_.creatorId === userId)
+                     .drop(offset).take(limit)
+                     .result
+    numberOfComments <- query.filter(_.creatorId === userId).length.result
+  } yield PaginatedResult(
+    totalCount = numberOfComments,
+    entities = comments.toList,
+    hasNextPage = numberOfComments - (offset + limit) > 0
+  )
+}
+} 
+  */
 
-  def findByID(id: UUID): Future[Option[Task]] =
+  def findByID(id: UUID, limit: Int, offset: Int): Future[Option[Task]] =
     db.run(dao.Query.filter(r => r.id === id  )
+      .drop(offset)
+      .take(limit)
       .result
       .headOption)
 
+/*
+def findAll(id: UUID, limit: Int, offset: Int) = db.run {
+  for {
+   task <- dao.Query.filter(r => r.id === id)
+                     .drop(offset).take(limit)
+                     .result
+    numberOfComments <- dao.Query.filter(r => r.id === id).length.result
+  } yield PaginatedResult(
+    totalCount = numberOfComments,
+    entities = comments.toList,
+    hasNextPage = numberOfComments - (offset + limit) > 0
+  )
+}
+*/
   def findByDaily(id: UUID, currentdate: Instant): Future[Seq[Task]] =
-    db.run(dao.Query.filter(r => r.id === id && r.date === currentdate ) 
+    db.run(dao.Query.filter(r => r.id === id && r.datecreated === currentdate ) 
       .result)
 
   def findByWeekly(id: UUID, startdate: Instant, enddate : Instant): Future[Seq[Task]] =
-    db.run(dao.Query.filter(r => r.id === id && r.date >= startdate && r.date <= enddate ) 
+    db.run(dao.Query.filter(r => r.id === id && r.datecreated >= startdate && r.datecreated <= enddate ) 
       .result)
  
   def findBygameName(gameID: UUID): Future[Option[Task]] =

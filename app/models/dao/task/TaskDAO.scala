@@ -21,12 +21,13 @@ final class TaskDAO @Inject()(
     def gameID = column[UUID] ("GAME_ID") 
     def info = column[JsValue] ("INFO")
     def isValid = column[Boolean] ("IS_VALID")
-    def date = column[Instant] ("DATE")
+    def datecreated = column[Instant] ("DATECREATED")
 
-    def * = (id, gameID, info, isValid, date) <> ((Task.apply _).tupled, Task.unapply) 
+    def * = (id, gameID, info, isValid, datecreated) <> ((Task.apply _).tupled, Task.unapply) 
   }
 
   object Query extends TableQuery(new TaskTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
+ 
 }

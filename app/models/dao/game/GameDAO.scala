@@ -27,5 +27,6 @@ final class GameDAO @Inject()(
   object Query extends TableQuery(new GameTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
+  
 }
 

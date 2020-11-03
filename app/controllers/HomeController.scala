@@ -12,6 +12,9 @@ import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.format.Formats._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
 // model's import
 import models.domain.task.Task
 import models.domain.game.{Game, Genre}
@@ -61,9 +64,9 @@ class HomeController @Inject()(
     // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all().map(task => Ok(Json.toJson(task)))
   }
-
-  def findTaskByID(id: UUID) = Action.async { implicit request =>
-    taskRepo.findByID(id).map(task => Ok(Json.toJson(task)))
+ 
+  def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
+    taskRepo.findByID(id, limit, offset).map(task => Ok(Json.toJson(task)))
   }
   
   def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request =>
