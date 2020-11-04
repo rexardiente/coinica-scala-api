@@ -7,7 +7,7 @@
 
 GET     /                                        controllers.HomeController.index
 # Task API
-GET     /donut/api/v1/tasks                      controllers.HomeController.tasks
+GET     /donut/api/v1/tasks                      controllers.HomeController.tasks( limit: Int, offset: Int)
 GET     /donut/api/v1/task/find                  controllers.HomeController.findTaskByID(id: UUID, limit: Int, offset: Int)
 
 # Game API

@@ -60,9 +60,9 @@ class HomeController @Inject()(
   }
 
   /* Task API */
-  def tasks() = Action.async { implicit request =>
+  def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
     // Future(Ok(Json.toJson("Test" -> "")))
-    taskRepo.all().map(task => Ok(Json.toJson(task)))
+    taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
  
   def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
