@@ -58,7 +58,14 @@ class HomeController @Inject()(
   def index() = Action.async { implicit request =>
     Future.successful(Ok(views.html.index()))
   }
-
+def page(page: Int, pageSize: Int, totalItems: Int) = {
+    val from = ((page - 1) * pageSize) + 1
+    var to = from + pageSize - 1
+    if (to > totalItems) to = totalItems
+    var totalPages: Int = totalItems / pageSize
+    if (totalItems % pageSize > 0) totalPages += 1
+    (from, to, totalPages)
+}
   /* Task API */
   def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
     // Future(Ok(Json.toJson("Test" -> "")))
