@@ -12,6 +12,12 @@ class TaskRepo @Inject()(
     dao: models.dao.task.TaskDAO,
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
+   case class PaginatedResult[T](
+  totalCount: Int, 
+  entities: List[T], 
+  hasNextPage: Boolean
+ 
+)
   import profile.api._
 
   def add(task: Task): Future[Int] =
@@ -23,11 +29,39 @@ class TaskRepo @Inject()(
   def update(task: Task): Future[Int] =
     db.run(dao.Query.filter(_.id ===task.id).update(task))
 
+/*
+def findAll( limit: Int, offset: Int) : Future[Seq[Task]]= db.run {
+  for {
+    comments <- dao.Query
+                     .drop(offset).take(limit)
+                     .result
+    numberOfComments <- dao.Query.length.result
+  } yield PaginatedResult(
+    totalCount = numberOfComments,
+    entities = comments.toList,
+    hasNextPage = numberOfComments - (offset + limit) > 0
+  )
+}
+*/
+/*
+def findall(page: Int = 0, numUrlsPerPage: Int = 50): Future[Seq[Task]] = db.run { implicit c =>
+    val offset = page * numUrlsPerPage
+    val q = SQL"""
+        select  id, gameID, info, isValid, datecreated
+        from Task
+        order by datecreated desc
+        limit $numUrlsPerPage
+        offset $offset
+    """
+    q.as(fullUrlRowParser *)
+}
+*/
   def all(limit: Int, offset: Int): Future[Seq[Task]] =
     db.run(dao.Query
         .drop(offset)
       .take(limit)
        .result)
+    
 
   def exist(id: UUID): Future[Boolean] = db.run(dao.Query(id).exists.result)
 
@@ -52,5 +86,5 @@ class TaskRepo @Inject()(
     db.run(dao.Query.filter(r => r.gameID === gameID)
       .result
       .headOption)
-      
+
 }

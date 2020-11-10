@@ -34,6 +34,7 @@ class HomeController @Inject()(
      val controllerComponents: ControllerComponents
     ) extends BaseController {
   
+
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
@@ -71,7 +72,16 @@ def page(page: Int, pageSize: Int, totalItems: Int) = {
     // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
+  def find(limit: Int, offset: Int) = Action.async { implicit request =>
+    // Future(Ok(Json.toJson("Test" -> "")))
+    taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
+  }
+  def findAll(limit: Int, offset: Int) = Action.async { implicit request =>
+    // Future(Ok(Json.toJson("Test" -> "")))
+    taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
+  }
  
+
   def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
     taskRepo.findByID(id, limit, offset).map(task => Ok(Json.toJson(task)))
   }
