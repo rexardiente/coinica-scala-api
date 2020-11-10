@@ -1,6 +1,9 @@
 package utils
 
 import javax.inject.{ Inject, Singleton }
+import java.time.Instant
+import java.sql.Timestamp
+import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
@@ -27,4 +30,13 @@ trait Implicits extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   implicit val actColumnMapper = MappedColumnType.base[Act, JsValue](
      s => s.toJson(),   
      i => i.as[Act])
+  implicit val jodaTimeMapping: BaseColumnType[DateTime] = MappedColumnType.base[DateTime, Timestamp](
+    dateTime => new Timestamp(dateTime.getMillis),
+    timeStamp => new DateTime(timeStamp.getTime)
+  )
+  implicit val instantColumnType: BaseColumnType[Instant] =
+    MappedColumnType.base[Instant, Timestamp](
+        instant => Timestamp.from(instant),
+        ts => ts.toInstant
+    )
 }
