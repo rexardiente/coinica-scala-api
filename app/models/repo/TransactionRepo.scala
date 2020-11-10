@@ -1,8 +1,10 @@
 package models.repo
 
 import java.util.UUID
+import java.time.Instant
 import javax.inject.{ Inject, Singleton }
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.Transaction
 
@@ -29,12 +31,13 @@ class TransactionRepo @Inject()(
     db.run(dao.Query(txID).exists.result)
 
   def findByID(id: UUID): Future[Option[Transaction]] =
-    db.run(dao.Query.filter(r => r.id === id)
-      .result
-      .headOption)
+    db.run(dao.Query(id).result.headOption)
 
-  def findTxID(txID: String): Future[Option[Transaction]] =
-    db.run(dao.Query.filter(_.txID === txID)
-      .result
-      .headOption)
+  def findTxID(id: String): Future[Option[Transaction]] = {
+    db.run(dao.Query(id).result.headOption)
+  }
+
+  def getByDate(start: Instant, end: Instant): Future[Seq[Transaction]] = {
+    db.run(dao.Query.filter(d => d.date >= start && d.date <= end).result) 
+  }
 }
