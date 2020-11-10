@@ -25,27 +25,28 @@ final class TransactionDAO @Inject()(
     def netUsage = column[Int] ("NET_USAGE")
     def scheduled = column[Boolean] ("SCHEDULED")
     def actTraces = column[Seq[Trace]] ("ACT_TRACES")
-    def accRamDelta = column[Option[String]] ("ACC_RAM_DELTA")
-    def except = column[Option[String]] ("EXCEPT")
-    def errCode = column[Option[String]] ("ERR_CODE")
+    def accRamDelta = column[String] ("ACC_RAM_DELTA")
+    def except = column[String] ("EXCEPT")
+    def errCode = column[String] ("ERR_CODE")
     def failedDtrxTrace = column[JsValue] ("FAILED_DTRX_TRACE")
-    def partial = column[Option[Partial]] ("PARTIAL")
+    def partial = column[Partial] ("PARTIAL")
+    def date = column[Instant] ("DATE") 
 
-   def * = (
-      id,
-     txID,
-     status,
-     cpuUsageUs,
-     netUsageWords,
-     elapsed,
-     netUsage,
-     scheduled,
-     actTraces,
-     accRamDelta,
-     except,
-     errCode,
-     failedDtrxTrace,
-     partial) <> (Transaction.tupled, Transaction.unapply)
+   def * = (id,
+            txID,
+            status,
+            cpuUsageUs,
+            netUsageWords,
+            elapsed,
+            netUsage,
+            scheduled,
+            actTraces,
+            accRamDelta.?,
+            except.?,
+            errCode.?,
+            failedDtrxTrace,
+            partial.?,
+            date) <> (Transaction.tupled, Transaction.unapply)
 
   }
 
