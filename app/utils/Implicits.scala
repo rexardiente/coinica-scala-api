@@ -15,9 +15,12 @@ trait Implicits extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
 
   implicit val jsValueMappedColumnType = MappedColumnType.base[JsValue, String](
     Json.stringify, Json.parse)
-  implicit val stringListMapper = MappedColumnType.base[Seq[Trace], JsValue](
+  implicit val traceColumnMapper = MappedColumnType.base[Trace, JsValue](
+     s => s.toJson(),   
+     i => i.as[Trace])
+  implicit val stringListMapper = MappedColumnType.base[Seq[ActionTrace], JsValue](
     list => JsArray(list.map(_.toJson())),
-    js => js.as[Seq[Trace]])
+    js => js.as[Seq[ActionTrace]])
   implicit val partialColumnMapper = MappedColumnType.base[Partial, JsValue](
      s => s.toJson(),   
      i => i.as[Partial])

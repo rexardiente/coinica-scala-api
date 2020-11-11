@@ -38,6 +38,6 @@ class TransactionRepo @Inject()(
   }
 
   def getByDate(start: Instant, end: Instant): Future[Seq[Transaction]] = {
-    db.run(dao.Query.filter(d => d.date >= start && d.date <= end).result) 
+    db.run(dao.Query.filter(d => d.blockTimestamp >= start && d.blockTimestamp <= end).result) 
   }
 }
