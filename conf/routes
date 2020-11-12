@@ -25,5 +25,8 @@ POST    /donut/api/v1/genre/add                  controllers.HomeController.addG
 PUT     /donut/api/v1/genre/update               controllers.HomeController.updateGenre(id: UUID)
 POST    /donut/api/v1/genre/remove               controllers.HomeController.removeGenre(id: UUID)
 
+# Transaction API
+GET    /donut/api/v1/txs               		controllers.HomeController.transactions(start: String, end: String ?= "", limit: Int ?= 10, offset: Int ?= 0)
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

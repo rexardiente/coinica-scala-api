@@ -1,10 +1,6 @@
 package models.domain
 
-import java.util.UUID
-import play.api.libs.json._
 
-case class Genre(id: UUID, name: String, description: Option[String])
+case class Genre(id: java.util.UUID, name: String, description: Option[String])
 
-object Genre {
-	implicit def implGenre = Json.format[Genre]
-}
+object Genre extends utils.CommonImplicits 
