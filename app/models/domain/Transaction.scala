@@ -17,12 +17,89 @@ object Act {
 object Partial {
 	implicit def implicitPartial = Json.format[Partial]
 }
-object Trace {
-	implicit def implicitTrace = Json.format[Trace]
+object ActionTrace {
+	implicit def implicitActionTrace = Json.format[ActionTrace]
 }
+object Trace {
+	val tupled = (apply _).tupled
+
+	implicit val findUserReads: Reads[Trace] = new Reads[Trace] {
+		override def reads(js: JsValue): JsResult[Trace] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(Trace(
+						(json \ "id").as[String],
+						(json \ "status").as[String],
+						(json \ "cpu_usage_us").as[Int],
+						(json \ "net_usage_words").as[Int],
+						(json \ "elapsed").as[Int],
+						(json \ "net_usage").as[Int],
+						(json \ "scheduled").as[Boolean],
+						(json \ "action_traces").as[Seq[ActionTrace]],
+						(json \ "account_ram_delta").asOpt[String],
+						(json \ "except").asOpt[String],
+						(json \ "error_code").asOpt[String],
+						(json \ "failed_dtrx_trace").as[JsValue],
+						(json \ "partial").asOpt[Partial],
+					 	// Instant.ofEpochSecond((json \ "date").as[Long])
+					 ))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+
+	implicit val locationWrites = new Writes[Trace] {
+	  def writes(tx: Trace) = Json.obj(
+		"id" -> tx.id,
+		"status" -> tx.status,
+		"cpu_usage_us" -> tx.cpuUsageUs,
+		"net_usage_words" -> tx.netUsageWords,
+		"elapsed" -> tx.elapsed,
+		"net_usage" -> tx.netUsage,
+		"scheduled" -> tx.scheduled,
+		"action_traces" -> tx.actTraces,
+		"account_ram_delta" -> tx.accRamDelta,
+		"except" -> tx.except,
+		"error_code" -> tx.errorCode,
+		"failed_dtrx_trace" -> tx.failedDtrxTrace,
+		"partial" -> tx.partial,
+	 	// "date" -> tx.date
+	 )
+	}
+}
+
 object Transaction {
 	val tupled = (apply _).tupled
-	implicit def implicitTransaction = Json.format[Transaction]
+
+	implicit val findUserReads: Reads[Transaction] = new Reads[Transaction] {
+		override def reads(js: JsValue): JsResult[Transaction] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(Transaction(
+						(json \ "id").as[UUID],
+						(json \ "trace_id").as[String],
+						(json \ "block_num").as[Long],
+						Instant.ofEpochSecond((json \ "block_timestamp").as[Long]),
+					 	(json \ "trace").as[Trace]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+
+	implicit val locationWrites = new Writes[Transaction] {
+	  def writes(tx: Transaction) = Json.obj(
+		"id" -> tx.id,
+		"trace_id" -> tx.traceId,
+		"block_num" -> tx.blockNum,
+		"block_timestamp" -> tx.blockTimestamp.getEpochSecond,
+		"trace" -> tx.trace)
+	}
 }
 
 case class Data(
@@ -33,7 +110,7 @@ case class Data(
 case class Receipt(
 		receiver: String,
 		act_digest: String,
-		global_sequence: Int,
+		global_sequence: Long,
 		recv_sequence: Int,
 		auth_sequence: JsArray,
 		code_sequence: Int,
@@ -53,7 +130,7 @@ case class Partial(
 		transaction_extensions: JsValue,
 		signatures: Seq[String],
 		context_free_data: JsValue) { def toJson() = Json.toJson(this) }
-case class Trace(
+case class ActionTrace(
 		action_ordinal: Int,
 		creator_action_ordinal: Int,
 		receipt: Receipt,
@@ -65,18 +142,23 @@ case class Trace(
 		account_ram_deltas: Option[JsValue],
 		except: Option[String],
 		error_code: Option[String]) { def toJson() = Json.toJson(this) }
+case class Trace(
+		id: String,
+		status: String,
+		cpuUsageUs: Int,
+		netUsageWords: Int,
+		elapsed: Int,
+		netUsage: Int,
+		scheduled: Boolean,
+		actTraces: Seq[ActionTrace],
+		accRamDelta: Option[String],
+		except: Option[String],
+		errorCode: Option[String],
+		failedDtrxTrace: JsValue,
+		partial: Option[Partial])  { def toJson() = Json.toJson(this) }
 case class Transaction(
 		id: UUID,
-		tx_id: String,
-		status: String,
-		cpu_usage_us: Int,
-		net_usage_words: Int,
-		elapsed: Int,
-		net_usage: Int,
-		scheduled: Boolean,
-		action_traces: Seq[Trace],
-		account_ram_delta: Option[String],
-		except: Option[String],
-		error_code: Option[String],
-		failed_dtrx_trace: JsValue,
-		partial: Option[Partial])  { def toJson() = Json.toJson(this) }
+		traceId: String,
+		blockNum: Long,
+		blockTimestamp: Instant, // Set to PK
+		trace: Trace) { def toJson() = Json.toJson(this) }
