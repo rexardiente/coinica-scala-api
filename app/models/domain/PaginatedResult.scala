@@ -3,8 +3,6 @@ package models.domain
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-case class PaginatedResult[T](totalCount: Int, entities: List[T], hasNextPage: Boolean)
-
 object PaginatedResult {
     implicit def paginatedResultReads[T](implicit fmt: Reads[T]): Reads[PaginatedResult[T]] = new Reads[PaginatedResult[T]] {
       override def reads(json: JsValue): JsResult[PaginatedResult[T]] = json match {
@@ -28,3 +26,5 @@ object PaginatedResult {
       "has_next_page" -> pgRes.hasNextPage)
   }
 }
+
+case class PaginatedResult[T](totalCount: Int, entities: List[T], hasNextPage: Boolean)
