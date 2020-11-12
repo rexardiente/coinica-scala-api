@@ -12,8 +12,8 @@ import models.repo.TaskRepo
 class TaskService @Inject()(taskRepo: TaskRepo ) {
   def paginatedResult[T >: Task](limit: Int, offset: Int): Future[PaginatedResult[T]] = 
     for {
-      task <- taskRepo.findAll(limit, offset)
+      tasks <- taskRepo.findAll(limit, offset)
       size <- taskRepo.getSize()
       hasNext <- Future(size - (offset + limit) > 0)
-    } yield PaginatedResult(size, task.toList, hasNext)
+    } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
 }
