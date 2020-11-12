@@ -1,25 +1,19 @@
 package controllers
 
-import javax.inject._
+import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import java.time.Instant
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import play.api._
 import play.api.mvc._
-import play.api.libs.json._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.format.Formats._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-
-// model's import
+import play.api.libs.json._
 import models.domain.task.Task
-import models.domain.game.{Game, Genre}
-import models.repo.game.GameRepo
-import models.repo.game.GenreRepo
+import models.domain.{ Game, Genre }
+import models.repo.{ GameRepo, GenreRepo }
 import models.repo.task.TaskRepo
 
 /**
@@ -31,10 +25,7 @@ class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       taskRepo: TaskRepo,
-     val controllerComponents: ControllerComponents
-    ) extends BaseController {
-  
-
+      val controllerComponents: ControllerComponents) extends BaseController {
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
@@ -59,30 +50,27 @@ class HomeController @Inject()(
   def index() = Action.async { implicit request =>
     Future.successful(Ok(views.html.index()))
   }
-def page(page: Int, pageSize: Int, totalItems: Int) = {
-    val from = ((page - 1) * pageSize) + 1
-    var to = from + pageSize - 1
-    if (to > totalItems) to = totalItems
-    var totalPages: Int = totalItems / pageSize
-    if (totalItems % pageSize > 0) totalPages += 1
-    (from, to, totalPages)
-}
+
+  def page(page: Int, pageSize: Int, totalItems: Int) = {
+      val from = ((page - 1) * pageSize) + 1
+      var to = from + pageSize - 1
+      if (to > totalItems) to = totalItems
+      var totalPages: Int = totalItems / pageSize
+      if (totalItems % pageSize > 0) totalPages += 1
+      (from, to, totalPages)
+  }
   /* Task API */
   def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
     // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
+
   def find(limit: Int, offset: Int) = Action.async { implicit request =>
     // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
-  /*
-  def findAll(limit: Int, offset: Int) = Action.async { implicit request =>
-    // Future(Ok(Json.toJson("Test" -> "")))
-    taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
-  }
-  */
- def paginatedRes(limit: Int, offset: Int) = Action.async { implicit request =>
+
+  def paginatedRes(limit: Int, offset: Int) = Action.async { implicit request =>
     // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
@@ -191,5 +179,4 @@ def page(page: Int, pageSize: Int, totalItems: Int) = {
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-  
 }

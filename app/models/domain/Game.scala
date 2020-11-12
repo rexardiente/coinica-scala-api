@@ -1,4 +1,4 @@
-package models.domain.game
+package models.domain
 
 import java.util.UUID
 import play.api.libs.json._

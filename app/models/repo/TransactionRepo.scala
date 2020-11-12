@@ -1,10 +1,10 @@
 package models.repo
 
+import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import java.time.Instant
-import javax.inject.{ Inject, Singleton }
-import scala.concurrent.{Future, ExecutionContext}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.Transaction
 
