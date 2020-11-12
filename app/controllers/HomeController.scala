@@ -76,11 +76,16 @@ def page(page: Int, pageSize: Int, totalItems: Int) = {
     // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
+  /*
   def findAll(limit: Int, offset: Int) = Action.async { implicit request =>
     // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
- 
+  */
+ def paginatedRes(limit: Int, offset: Int) = Action.async { implicit request =>
+    // Future(Ok(Json.toJson("Test" -> "")))
+    taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
+  }
 
   def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
     taskRepo.findByID(id, limit, offset).map(task => Ok(Json.toJson(task)))
