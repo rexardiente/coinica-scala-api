@@ -10,7 +10,7 @@ import models.repo.TaskRepo
 
 @Singleton 
 class TaskService @Inject()(taskRepo: TaskRepo ) {
-  def paginatedResult(limit: Int, offset: Int): Future[PaginatedResult[Task]] = 
+  def paginatedResult[T >: Task](limit: Int, offset: Int): Future[PaginatedResult[T]] = 
     for {
       task <- taskRepo.findAll(limit, offset)
       size <- taskRepo.getSize()
