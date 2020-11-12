@@ -1,38 +1,38 @@
-package models.repo.game
+package models.repo
 
 import java.util.UUID
 import javax.inject.{ Inject, Singleton }
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.game.Genre
+import models.domain.Game
 
 @Singleton
-class GenreRepo @Inject()(
-    dao: models.dao.game.GenreDAO,
+class GameRepo @Inject()(
+    dao: models.dao.GameDAO,
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
-  def add(genre: Genre): Future[Int] =
-    db.run(dao.Query += genre)
+  def add(game: Game): Future[Int] =
+    db.run(dao.Query += game)
 
   def delete(id: UUID): Future[Int] =
     db.run(dao.Query(id).delete)
 
-  def update(genre: Genre): Future[Int] =
-    db.run(dao.Query.filter(_.id === genre.id).update(genre))
+  def update(game: Game): Future[Int] =
+    db.run(dao.Query.filter(_.id === game.id).update(game))
 
-  def all(): Future[Seq[Genre]] =
+  def all(): Future[Seq[Game]] =
     db.run(dao.Query.result)
 
   def exist(id: UUID): Future[Boolean] = db.run(dao.Query(id).exists.result)
 
-  def findByID(id: UUID): Future[Option[Genre]] =
+  def findByID(id: UUID): Future[Option[Game]] =
     db.run(dao.Query.filter(r => r.id === id)
       .result
       .headOption)
 
-  def findByName(name: String): Future[Option[Genre]] =
+  def findByName(name: String): Future[Option[Game]] =
     db.run(dao.Query.filter(r => r.name === name)
       .result
       .headOption)

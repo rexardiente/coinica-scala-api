@@ -1,21 +1,19 @@
 package controllers
 
-import javax.inject._
+import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import scala.concurrent.Future
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import play.api._
 import play.api.mvc._
-import play.api.libs.json._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.format.Formats._
-
-// model's import
-import models.domain.game.Game
-import models.domain.game.Genre
-import models.repo.game.GameRepo
-import models.repo.game.GenreRepo
+import play.api.libs.json._
+import models.domain.{ Game, Genre, Task }
+import models.repo.{ GameRepo, GenreRepo, TaskRepo }
+import models.service.TaskService
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -25,42 +23,80 @@ import models.repo.game.GenreRepo
 class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
-      val controllerComponents: ControllerComponents
-    ) extends BaseController {
-  
+      taskRepo: TaskRepo,
+      taskService: TaskService,
+      val controllerComponents: ControllerComponents) extends BaseController {
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
     "imgURL" -> nonEmptyText,
+    "path" -> nonEmptyText,
     "genre" -> uuid,
     "description" -> optional(text),
   ))
-
+ 
+  private def taskForm = Form(tuple(
+    "gamename" -> nonEmptyText,
+    "taskdate" -> optional(date("yyyy-MM-dd")),
+    "description" -> optional(text),
+  ))
+ 
   private def genreForm = Form(tuple(
     "name" -> nonEmptyText,
     "description" -> optional(text),
   ))
 
   /* MAIN API */
-  def index() = Action.async { implicit request: Request[AnyContent] =>
+  def index() = Action.async { implicit request =>
     Future.successful(Ok(views.html.index()))
   }
 
+  def page(page: Int, pageSize: Int, totalItems: Int) = {
+      val from = ((page - 1) * pageSize) + 1
+      var to = from + pageSize - 1
+      if (to > totalItems) to = totalItems
+      var totalPages: Int = totalItems / pageSize
+      if (totalItems % pageSize > 0) totalPages += 1
+      (from, to, totalPages)
+  }
+  /* Task API */
+  def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
+    taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
+  }
+  // def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
+  //   taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
+  // }
+  // def find(limit: Int, offset: Int) = Action.async { implicit request =>
+  //   taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
+  // }
+  // def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
+  //   taskRepo.findByID(id, limit, offset).map(task => Ok(Json.toJson(task)))
+  // }
+  // def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request =>
+  //   taskRepo.findByDaily(id, currentdate).map(task => Ok(Json.toJson(task)))
+  // }
+  // def findTaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request =>
+  //   taskRepo.findByWeekly(id, startdate, enddate).map(task => Ok(Json.toJson(task)))
+  // }
+  // def removeTask(id: UUID) = Action.async { implicit request =>
+  //    taskRepo.delete(id).map(r => if(r < 0) NotFound else Ok)
+  // }
+
   /* GAME API */
-  def games() = Action.async { implicit request: Request[AnyContent] =>
+  def games() = Action.async { implicit request =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
   }
-
-  def addGame() = Action.async { implicit request: Request[AnyContent] =>
+  
+  def addGame() = Action.async { implicit request =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (game, imgURL, genre, description)  =>
+      { case (game, imgURL, path, genre, description)  =>
         for {
           isExist <- genreRepo.exist(genre)
           result  <- {
             if (isExist)
               gameRepo
-                .add(Game(UUID.randomUUID, game, imgURL, genre, description))
+                .add(Game(UUID.randomUUID, game, path, imgURL, genre, description))
                 .map(r => if(r < 0) InternalServerError else Created )
             else Future.successful(InternalServerError)
           }
@@ -69,20 +105,20 @@ class HomeController @Inject()(
     )
   }
 
-  def findGameByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def findGameByID(id: UUID) = Action.async { implicit request =>
     gameRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
 
-  def updateGame(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def updateGame(id: UUID) = Action.async { implicit request =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (game, imgURL, genre, description) =>
+      { case (game, imgURL, path, genre, description) =>
         for {
           isExist <- genreRepo.exist(genre)
            result <- {
               if (isExist)
                 gameRepo
-                  .update(Game(id, game, imgURL, genre, description))
+                  .update(Game(id, game, imgURL, path, genre, description))
                   .map(r => if(r < 0) NotFound else Ok)
               else Future.successful(InternalServerError)
            }
@@ -92,22 +128,22 @@ class HomeController @Inject()(
     )
   }
 
-  def removeGame(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def removeGame(id: UUID) = Action.async { implicit request =>
     gameRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
 
   /* GENRE API */
-  def genres() = Action.async { implicit request: Request[AnyContent] =>
+  def genres() = Action.async { implicit request =>
     genreRepo.all().map(genre => Ok(Json.toJson(genre)))
   }
 
-  def findGenreByID(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def findGenreByID(id: UUID) = Action.async { implicit request =>
     genreRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
 
-  def addGenre() = Action.async { implicit request: Request[AnyContent] =>
+  def addGenre() = Action.async { implicit request =>
     genreForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description)  =>
@@ -118,7 +154,7 @@ class HomeController @Inject()(
     )
   }
 
-  def updateGenre(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def updateGenre(id: UUID) = Action.async { implicit request =>
     genreForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description) =>
@@ -129,10 +165,9 @@ class HomeController @Inject()(
     )
   }
 
-  def removeGenre(id: UUID) = Action.async { implicit request: Request[AnyContent] =>
+  def removeGenre(id: UUID) = Action.async { implicit request =>
     genreRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-  
 }

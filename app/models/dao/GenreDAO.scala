@@ -1,10 +1,10 @@
-package models.dao.game
+package models.dao
 
 import java.util.UUID
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.game.Genre
+import models.domain.Genre
 
 @Singleton
 final class GenreDAO @Inject()(
@@ -13,7 +13,7 @@ final class GenreDAO @Inject()(
   import profile.api._
 
   protected class GenreTable(tag: Tag) extends Table[Genre](tag, "GENRE") {
-    def id = column[UUID] ("ID")
+    def id = column[UUID] ("ID", O.PrimaryKey)
     def name = column[String] ("NAME")
     def description = column[Option[String]] ("DESCRIPTION")
 
