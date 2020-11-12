@@ -10,14 +10,14 @@ import models.domain.{Transaction, Trace}
 @Singleton
 final class TransactionDAO @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider,
-  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.Implicits {
+  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
   protected class TransactionTable(tag: Tag) extends Table[Transaction](tag, "TRANSACTION") {
     def id = column[UUID] ("ID")
     def traceID = column[String] ("TRACE_ID")
     def blockNum = column[Long] ("BLOCK_NUM")
-    def blockTimestamp = column[Instant] ("BLOCK_TIMESTAMP")
+    def blockTimestamp = column[Long] ("BLOCK_TIMESTAMP")
     def trace = column[Trace] ("TRACE")
 
    def * = (id, traceID, blockNum, blockTimestamp, trace) <> (Transaction.tupled, Transaction.unapply)

@@ -37,7 +37,15 @@ class TransactionRepo @Inject()(
     db.run(dao.Query(id).result.headOption)
   }
 
-  def getByDate(start: Instant, end: Instant): Future[Seq[Transaction]] = {
-    db.run(dao.Query.filter(d => d.blockTimestamp >= start && d.blockTimestamp <= end).result) 
+  def getByDate(start: Long, end: Long, limit: Int, offset: Int): Future[Seq[Transaction]] = {
+    db.run(dao
+      .Query
+      .filter(d => d.blockTimestamp >= start && d.blockTimestamp <= end)
+      .drop(offset)
+      .take(limit)
+    .result)
   }
+
+  def getSize(): Future[Int] =  
+    db.run(dao.Query.length.result)
 }
