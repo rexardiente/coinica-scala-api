@@ -4,8 +4,7 @@ import javax.inject.{ Inject, Singleton }
 import play.api.Logger
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.dao.user.UserDAO
-import models.dao.task.TaskDAO
-import models.dao.{ GameDAO, GenreDAO, TransactionDAO }
+import models.dao.{ GameDAO, GenreDAO, TaskDAO, TransactionDAO }
 
 @Singleton
 class Generator @Inject()(

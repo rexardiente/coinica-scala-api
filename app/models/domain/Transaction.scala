@@ -21,8 +21,6 @@ object ActionTrace {
 	implicit def implicitActionTrace = Json.format[ActionTrace]
 }
 object Trace {
-	val tupled = (apply _).tupled
-
 	implicit val findUserReads: Reads[Trace] = new Reads[Trace] {
 		override def reads(js: JsValue): JsResult[Trace] = js match {
 			case json: JsValue => {

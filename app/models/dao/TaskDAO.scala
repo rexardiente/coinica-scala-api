@@ -1,11 +1,11 @@
-package models.dao.task
+package models.dao
 
+import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import java.time.Instant
-import javax.inject.{ Inject, Singleton }
 import play.api.libs.json._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.task.Task
+import models.domain.Task
 
 @Singleton
 final class TaskDAO @Inject()(

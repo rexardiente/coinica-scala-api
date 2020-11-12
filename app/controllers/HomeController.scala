@@ -11,10 +11,9 @@ import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.format.Formats._
 import play.api.libs.json._
-import models.domain.task.Task
-import models.domain.{ Game, Genre }
-import models.repo.{ GameRepo, GenreRepo }
-import models.repo.task.TaskRepo
+import models.domain.{ Game, Genre, Task }
+import models.repo.{ GameRepo, GenreRepo, TaskRepo }
+import models.service.TaskService
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -25,6 +24,7 @@ class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       taskRepo: TaskRepo,
+      taskService: TaskService,
       val controllerComponents: ControllerComponents) extends BaseController {
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
@@ -61,18 +61,15 @@ class HomeController @Inject()(
   }
   /* Task API */
   def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
-    // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
 
   def find(limit: Int, offset: Int) = Action.async { implicit request =>
-    // Future(Ok(Json.toJson("Test" -> "")))
     taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
   }
 
-  def paginatedRes(limit: Int, offset: Int) = Action.async { implicit request =>
-    // Future(Ok(Json.toJson("Test" -> "")))
-    taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
+  def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
+    taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
   }
 
   def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
