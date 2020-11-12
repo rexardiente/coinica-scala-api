@@ -60,33 +60,27 @@ class HomeController @Inject()(
       (from, to, totalPages)
   }
   /* Task API */
-  def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
-    taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
-  }
-
-  def find(limit: Int, offset: Int) = Action.async { implicit request =>
-    taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
-  }
-
   def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
   }
-
-  def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
-    taskRepo.findByID(id, limit, offset).map(task => Ok(Json.toJson(task)))
-  }
-  
-  def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request =>
-    taskRepo.findByDaily(id, currentdate).map(task => Ok(Json.toJson(task)))
-  }
-  
-  def findTaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request =>
-    taskRepo.findByWeekly(id, startdate, enddate).map(task => Ok(Json.toJson(task)))
-  }
-
-  def removeTask(id: UUID) = Action.async { implicit request =>
-     taskRepo.delete(id).map(r => if(r < 0) NotFound else Ok)
-  }
+  // def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
+  //   taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
+  // }
+  // def find(limit: Int, offset: Int) = Action.async { implicit request =>
+  //   taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
+  // }
+  // def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
+  //   taskRepo.findByID(id, limit, offset).map(task => Ok(Json.toJson(task)))
+  // }
+  // def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request =>
+  //   taskRepo.findByDaily(id, currentdate).map(task => Ok(Json.toJson(task)))
+  // }
+  // def findTaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request =>
+  //   taskRepo.findByWeekly(id, startdate, enddate).map(task => Ok(Json.toJson(task)))
+  // }
+  // def removeTask(id: UUID) = Action.async { implicit request =>
+  //    taskRepo.delete(id).map(r => if(r < 0) NotFound else Ok)
+  // }
 
   /* GAME API */
   def games() = Action.async { implicit request =>

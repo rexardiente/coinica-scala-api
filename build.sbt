@@ -19,4 +19,6 @@ libraryDependencies ++= Seq(
 )
 
 // Adds additional packages into conf/routes
-play.sbt.routes.RoutesKeys.routesImport += "java.util.UUID"
+play.sbt.routes.RoutesKeys.routesImport ++= Seq(
+	"java.util.UUID"
+)
