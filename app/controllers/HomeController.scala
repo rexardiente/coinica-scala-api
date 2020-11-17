@@ -52,6 +52,10 @@ class HomeController @Inject()(
     Future.successful(Ok(views.html.index()))
   }
 
+  def hello(sort: Instant, param: Instant) = Action.async { implicit request =>
+    Future.successful(Ok(sort.getEpochSecond.toString + param.getEpochSecond.toString))
+  }
+
   // def page(page: Int, pageSize: Int, totalItems: Int) = {
   //     val from = ((page - 1) * pageSize) + 1
   //     var to = from + pageSize - 1
@@ -172,7 +176,7 @@ class HomeController @Inject()(
       .map(r => if(r < 0) NotFound else Ok)
   }
 
-  def transactions(start: String, end: String, limit: Int, offset: Int) = Action.async { implicit request =>
+  def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     transactionService.paginatedResult(start, end, limit, offset).map(Ok(_))
   }
 }

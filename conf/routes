@@ -15,7 +15,7 @@ GET     /donut/api/v1/tasks                      controllers.HomeController.pagi
 GET     /donut/api/v1/games                      controllers.HomeController.games
 GET     /donut/api/v1/game/find                  controllers.HomeController.findGameByID(id: UUID)
 POST    /donut/api/v1/game/add                   controllers.HomeController.addGame
-PUT     /donut/api/v1/game/update                controllers.HomeController.updateGame(id: UUID)
+PUT     /donut/api/v1/game/update              	 controllers.HomeController.updateGame(id: UUID)
 POST    /donut/api/v1/game/remove                controllers.HomeController.removeGame(id: UUID)
 
 # Genre API
@@ -26,7 +26,7 @@ PUT     /donut/api/v1/genre/update               controllers.HomeController.upda
 POST    /donut/api/v1/genre/remove               controllers.HomeController.removeGenre(id: UUID)
 
 # Transaction API
-GET    /donut/api/v1/txs               		controllers.HomeController.transactions(start: String, end: String ?= "", limit: Int ?= 10, offset: Int ?= 0)
+GET    /donut/api/v1/txs               			 controllers.HomeController.transactions(start: java.time.Instant, end: Option[java.time.Instant], limit: Int ?= 10, offset: Int ?= 0)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
