@@ -19,14 +19,14 @@ class TransactionService @Inject()(transactionRepo: TransactionRepo) extends uti
   		for {
 	      txs <- transactionRepo.getByDate(
 	      	start.getEpochSecond, 
-	      	end.map(_.getEpochSecond).getOrElse(Instant.ofEpochSecond(start.getEpochSecond + 86400).getEpochSecond),  // Add 24hrs as default
+	      	end.map(_.getEpochSecond).getOrElse(start.getEpochSecond),  // Add 24hrs as default Instant.ofEpochSecond(start.getEpochSecond + 86400).getEpochSecond
 	      	limit, 
 	      	offset)
 	      size <- transactionRepo.getSize()
 	      hasNext <- Future(size - (offset + limit) > 0)
 	    } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
   	} catch {
-  		case e: Throwable => Future(Json.obj("err" -> "Invalid UNIX date format")) // need some upgrades
+  		case e: Throwable => Future(Json.obj("err" -> e.toString)) // need some upgrades
   	}
   }
 }
