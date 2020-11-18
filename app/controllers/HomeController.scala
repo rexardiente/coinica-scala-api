@@ -13,7 +13,7 @@ import play.api.data.format.Formats._
 import play.api.libs.json._
 import models.domain.{ Game, Genre, Task }
 import models.repo.{ GameRepo, GenreRepo, TaskRepo }
-import models.service.{ TaskService, TransactionService }
+import models.service.{ TaskService, TransactionService, TaskDateService }
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -26,6 +26,7 @@ class HomeController @Inject()(
       taskRepo: TaskRepo,
       taskService: TaskService,
       transactionService: TransactionService,
+      taskDateService:TaskDateService,
       val controllerComponents: ControllerComponents) extends BaseController {
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
@@ -178,5 +179,8 @@ class HomeController @Inject()(
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     transactionService.paginatedResult(start, end, limit, offset).map(Ok(_))
+  }
+  def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    taskDateService.paginatedResult(start, end, limit, offset).map(Ok(_))
   }
 }

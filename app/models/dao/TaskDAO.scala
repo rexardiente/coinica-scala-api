@@ -9,19 +9,19 @@ import models.domain.Task
 
 @Singleton
 final class TaskDAO @Inject()(
-    protected val dbConfigProvider: DatabaseConfigProvider
-  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
+    protected val dbConfigProvider: DatabaseConfigProvider,
+  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
-  private implicit val jsValueMappedColumnType: BaseColumnType[JsValue] =
-    MappedColumnType.base[JsValue, String](Json.stringify, Json.parse)
+ // private implicit val jsValueMappedColumnType: BaseColumnType[JsValue] =
+ //   MappedColumnType.base[JsValue, String](Json.stringify, Json.parse)
 
   protected class TaskTable(tag: Tag) extends Table[Task](tag, "TASK") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def gameID = column[UUID] ("GAME_ID") 
     def info = column[JsValue] ("INFO")
     def isValid = column[Boolean] ("IS_VALID")
-    def datecreated = column[Instant] ("DATECREATED")
+    def datecreated = column[Long] ("DATECREATED")
 
     def * = (id, gameID, info, isValid, datecreated) <> ((Task.apply _).tupled, Task.unapply) 
   }

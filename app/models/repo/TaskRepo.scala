@@ -40,13 +40,16 @@ class TaskRepo @Inject()(
       .result
       .headOption)
 
-  def findByDaily(id: UUID, currentdate: Instant): Future[Seq[Task]] = 
+  def findByDaily(id: UUID, currentdate: Long): Future[Seq[Task]] = 
    db.run(dao.Query.filter(r => r.id === id && r.datecreated === currentdate) 
       .result)
 
-  def findByWeekly(id: UUID, startdate: Instant, enddate : Instant): Future[Seq[Task]] =
-   db.run(dao.Query.filter(r => r.id === id && r.datecreated >= startdate && r.datecreated <= enddate ) 
-      .result)
+  def findByWeekly(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Option[Task]] =
+   db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate ) 
+     .drop(offset)
+      .take(limit)
+      .result
+       .headOption)
 
   def findAll(limit: Int, offset: Int): Future[Seq[Task]] = 
     db.run(dao.Query.drop(offset).take(limit).result)
@@ -59,3 +62,12 @@ class TaskRepo @Inject()(
       .result
       .headOption)
 }
+/*
+   def getByDate(start: Long, end: Long, limit: Int, offset: Int): Future[Seq[Task]] = {
+    db.run(dao.Query
+      .filter(r => r.blockTimestamp >= start && r.blockTimestamp <= end)
+      .drop(offset)
+      .take(limit)
+    .result)
+  }
+  */
