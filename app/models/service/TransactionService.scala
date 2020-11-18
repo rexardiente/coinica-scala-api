@@ -19,7 +19,7 @@ class TransactionService @Inject()(transactionRepo: TransactionRepo) extends uti
   		for {
 	      txs <- transactionRepo.getByDate(
 	      	start.getEpochSecond, 
-	      	end.map(_.getEpochSecond).getOrElse(start.getEpochSecond),  // Add 24hrs as default Instant.ofEpochSecond(start.getEpochSecond + 86400).getEpochSecond
+	      	end.map(_.getEpochSecond).getOrElse(start.getEpochSecond + 86400),  // Add 24hrs as default Instant.ofEpochSecond(start.getEpochSecond + 86400).getEpochSecond
 	      	limit, 
 	      	offset)
 	      size <- transactionRepo.getSize()
