@@ -34,4 +34,15 @@ class TaskService @Inject()(taskRepo: TaskRepo ) {
   		case e: Throwable => Future(Json.obj("err" -> e.toString))
   	}
   }
+  def getTaskByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
+    try {
+      for {
+        txs <- taskRepo.findByDaily(start.getEpochSecond, limit, offset)
+        size <- taskRepo.getSize()
+        hasNext <- Future(size - (offset + limit) > 0)
+      } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
+    } catch {
+      case e: Throwable => Future(Json.obj("err" -> e.toString))
+    }
+  }
 }
