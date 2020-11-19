@@ -33,10 +33,6 @@ class TransactionRepo @Inject()(
   def findByID(id: UUID): Future[Option[Transaction]] =
     db.run(dao.Query(id).result.headOption)
 
-  def findTxID(id: String): Future[Option[Transaction]] = {
-    db.run(dao.Query(id).result.headOption)
-  }
-
   def getByDate(start: Long, end: Long, limit: Int, offset: Int): Future[Seq[Transaction]] = {
     db.run(dao
       .Query
@@ -45,6 +41,9 @@ class TransactionRepo @Inject()(
       .take(limit)
     .result)
   }
+
+  def getByID(traceID: String): Future[Option[Transaction]] =
+    db.run(dao.Query.filter(_.traceID === traceID).result.headOption)
 
   def getSize(): Future[Int] =  
     db.run(dao.Query.length.result)

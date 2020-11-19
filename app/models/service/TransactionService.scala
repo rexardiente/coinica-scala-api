@@ -6,15 +6,13 @@ import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.DatabaseConfigProvider
-import play.api.libs.json.{ JsValue, Json }
+import play.api.libs.json.{ JsValue, Json, JsNull }
 import models.domain.{ PaginatedResult, Transaction }
 import models.repo.TransactionRepo
 
 @Singleton
 class TransactionService @Inject()(transactionRepo: TransactionRepo) extends utils.CommonImplicits {
-
-  def paginatedResult(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
-		// check if start and end are valid Instant epocheSecond
+  def getTxByDateRange(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   	try {
   		for {
 	      txs <- transactionRepo.getByDate(
@@ -29,4 +27,9 @@ class TransactionService @Inject()(transactionRepo: TransactionRepo) extends uti
   		case e: Throwable => Future(Json.obj("err" -> e.toString)) // need some upgrades
   	}
   }
+
+  def getByTxTraceID(traceID: String): Future[JsValue] =
+  	transactionRepo
+  		.getByID(traceID)
+  		.map(_.map(Json.toJson(_)).getOrElse(JsNull))
 }

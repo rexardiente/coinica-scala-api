@@ -147,6 +147,10 @@ class HomeController @Inject()(
   }
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
-    transactionService.paginatedResult(start, end, limit, offset).map(Ok(_))
+    transactionService.getTxByDateRange(start, end, limit, offset).map(Ok(_))
+  }
+
+  def transactionByTraceID(id: String) = Action.async { implicit request =>
+    transactionService.getByTxTraceID(id).map(Ok(_))
   }
 }
