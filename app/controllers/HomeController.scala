@@ -13,7 +13,7 @@ import play.api.data.format.Formats._
 import play.api.libs.json._
 import models.domain.{ Game, Genre, Task }
 import models.repo.{ GameRepo, GenreRepo, TaskRepo }
-import models.service.{ TaskService, TransactionService, TaskDateService }
+import models.service.{ TaskService, TransactionService }
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -26,7 +26,6 @@ class HomeController @Inject()(
       taskRepo: TaskRepo,
       taskService: TaskService,
       transactionService: TransactionService,
-      taskDateService:TaskDateService,
       val controllerComponents: ControllerComponents) extends BaseController {
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
@@ -34,21 +33,15 @@ class HomeController @Inject()(
     "imgURL" -> nonEmptyText,
     "path" -> nonEmptyText,
     "genre" -> uuid,
-    "description" -> optional(text),
-  ))
- 
+    "description" -> optional(text)))
   private def taskForm = Form(tuple(
     "gamename" -> nonEmptyText,
     "taskdate" -> optional(date("yyyy-MM-dd")),
-    "description" -> optional(text),
-  ))
- 
+    "description" -> optional(text)))
   private def genreForm = Form(tuple(
     "name" -> nonEmptyText,
-    "description" -> optional(text),
-  ))
+    "description" -> optional(text)))
 
-  /* MAIN API */
   def index() = Action.async { implicit request =>
     Future.successful(Ok(views.html.index()))
   }
@@ -57,38 +50,14 @@ class HomeController @Inject()(
     Future.successful(Ok(sort.getEpochSecond.toString + param.getEpochSecond.toString))
   }
 
-  // def page(page: Int, pageSize: Int, totalItems: Int) = {
-  //     val from = ((page - 1) * pageSize) + 1
-  //     var to = from + pageSize - 1
-  //     if (to > totalItems) to = totalItems
-  //     var totalPages: Int = totalItems / pageSize
-  //     if (totalItems % pageSize > 0) totalPages += 1
-  //     (from, to, totalPages)
-  // }
-  /* Task API */
   def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
   }
-  // def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
-  //   taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
-  // }
-  // def find(limit: Int, offset: Int) = Action.async { implicit request =>
-  //   taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
-  // }
-  // def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
-  //   taskRepo.findByID(id, limit, offset).map(task => Ok(Json.toJson(task)))
-  // }
-  // def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request =>
-  //   taskRepo.findByDaily(id, currentdate).map(task => Ok(Json.toJson(task)))
-  // }
-  // def findTaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request =>
-  //   taskRepo.findByWeekly(id, startdate, enddate).map(task => Ok(Json.toJson(task)))
-  // }
-  // def removeTask(id: UUID) = Action.async { implicit request =>
-  //    taskRepo.delete(id).map(r => if(r < 0) NotFound else Ok)
-  // }
 
-  /* GAME API */
+  def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
+  }
+
   def games() = Action.async { implicit request =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
   }
@@ -179,8 +148,5 @@ class HomeController @Inject()(
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     transactionService.paginatedResult(start, end, limit, offset).map(Ok(_))
-  }
-  def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
-    taskDateService.paginatedResult(start, end, limit, offset).map(Ok(_))
   }
 }

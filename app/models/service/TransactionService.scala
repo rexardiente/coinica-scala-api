@@ -13,7 +13,7 @@ import models.repo.TransactionRepo
 @Singleton
 class TransactionService @Inject()(transactionRepo: TransactionRepo) extends utils.CommonImplicits {
 
-  def paginatedResult[T >: Transaction](start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
+  def paginatedResult(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
 		// check if start and end are valid Instant epocheSecond
   	try {
   		for {
