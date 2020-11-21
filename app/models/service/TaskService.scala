@@ -41,12 +41,10 @@ class TaskService @Inject()(taskRepo: TaskRepo ) {
   	}
   }
   def getTaskByMonthly(currendate: Instant,  limit: Int, offset: Int): Future[JsValue] = {
-	  val cmonth: java.time.Instant = currendate
-      val cyear: java.time.Instant = currendate
-  
-     cmonth.atZone(ZoneId.systemDefault).getMonth()
-     cyear.atZone(ZoneId.systemDefault).getYear()
-
+	 val cmonth: java.time.Instant = currendate
+   val cyear: java.time.Instant = currendate
+   cmonth.atZone(ZoneId.systemDefault).getMonth()
+   cyear.atZone(ZoneId.systemDefault).getYear()
   	try {
       for {
         txs <- taskRepo.findByMonthly(cmonth.getEpochSecond, cyear.getEpochSecond, limit, offset)
