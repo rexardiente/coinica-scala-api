@@ -3,6 +3,8 @@ package models.repo
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import java.time.Instant
+import java.text.SimpleDateFormat
+import java.util.Date
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
@@ -45,12 +47,17 @@ class TaskRepo @Inject()(
      .take(limit)
      .result)
       
-
+ 
   def findByWeekly(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
    db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate ) 
      .drop(offset)
      .take(limit)
      .result)
+
+  def formatDateFromlong(date: Long): String = {
+        val d = new Date(date * 1000L)
+        new SimpleDateFormat("yyyy-MM-d").format(d)
+    }
 
   def findByMonthly(currentmonth: Long, currentyear: Long,limit: Int, offset: Int): Future[Seq[Task]] =
    db.run(dao.Query.filter(r => r.datecreated === currentmonth && r.datecreated === currentyear  ) 
