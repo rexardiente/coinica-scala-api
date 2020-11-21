@@ -11,9 +11,14 @@ import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.format.Formats._
 import play.api.libs.json._
-import models.domain.{ Game, Genre, Task }
+import play.api.libs.streams.ActorFlow
+import play.api.mvc.WebSocket.MessageFlowTransformer
+import akka.actor.ActorSystem
+import akka.stream.Materializer
+import models.domain.{ Game, Genre, Task, InEvent, OutEvent }
 import models.repo.{ GameRepo, GenreRepo, TaskRepo }
 import models.service.{ TaskService, TransactionService }
+import akka.WebSocketActor
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -26,7 +31,12 @@ class HomeController @Inject()(
       taskRepo: TaskRepo,
       taskService: TaskService,
       transactionService: TransactionService,
+      implicit val system: ActorSystem, 
+      mat: Materializer,
       val controllerComponents: ControllerComponents) extends BaseController {
+  import models.domain.Event._
+  implicit val messageFlowTransformer = MessageFlowTransformer.jsonMessageFlowTransformer[InEvent, OutEvent]
+
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
@@ -41,6 +51,10 @@ class HomeController @Inject()(
   private def genreForm = Form(tuple(
     "name" -> nonEmptyText,
     "description" -> optional(text)))
+
+  def socket = WebSocket.accept[InEvent, OutEvent] { implicit request =>
+    ActorFlow.actorRef { out => WebSocketActor.props(out) }
+  }
 
   def index() = Action.async { implicit request =>
     Future.successful(Ok(views.html.index()))

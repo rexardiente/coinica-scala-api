@@ -15,17 +15,17 @@ class TransactionRepo @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
-  def add(tx: Transaction): Future[Int] =
-    db.run(dao.Query += tx)
+  // def add(tx: Transaction): Future[Int] =
+  //   db.run(dao.Query += tx)
 
-  def delete(id: UUID): Future[Int] =
-    db.run(dao.Query(id).delete)
+  // def delete(id: UUID): Future[Int] =
+  //   db.run(dao.Query(id).delete)
 
-  def update(tx: Transaction): Future[Int] =
-    db.run(dao.Query.filter(_.id === tx.id).update(tx))
+  // def update(tx: Transaction): Future[Int] =
+  //   db.run(dao.Query.filter(_.id === tx.id).update(tx))
 
-  def all(): Future[Seq[Transaction]] =
-    db.run(dao.Query.result)
+  // def all(): Future[Seq[Transaction]] =
+  //   db.run(dao.Query.result)
 
   def exist(txID: String): Future[Boolean] = 
     db.run(dao.Query(txID).exists.result)
@@ -45,6 +45,6 @@ class TransactionRepo @Inject()(
   def getByID(traceID: String): Future[Option[Transaction]] =
     db.run(dao.Query.filter(_.traceID === traceID).result.headOption)
 
-  def getSize(): Future[Int] =  
+  def getSize(): Future[Int] =
     db.run(dao.Query.length.result)
 }
