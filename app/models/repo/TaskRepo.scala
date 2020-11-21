@@ -51,6 +51,12 @@ class TaskRepo @Inject()(
      .drop(offset)
      .take(limit)
      .result)
+
+  def findByMonthly(currentmonth: Long, currentyear: Long,limit: Int, offset: Int): Future[Seq[Task]] =
+   db.run(dao.Query.filter(r => r.datecreated === currentmonth && r.datecreated === currentyear  ) 
+     .drop(offset)
+     .take(limit)
+     .result)   
       
 
   def findAll(limit: Int, offset: Int): Future[Seq[Task]] = 
