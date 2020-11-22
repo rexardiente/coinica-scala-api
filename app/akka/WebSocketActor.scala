@@ -20,9 +20,9 @@ class WebSocketActor(out: ActorRef) extends Actor {
     if (true) {
     	// generate new session and send to user
     	// use it for the next ws request...
-    	out ! OutEvent(null, Json.obj("status" -> "succes", "session" -> out.toString))
+    	out ! OutEvent(JsNull, JsString("connected"))
     } else {
-		out ! OutEvent(null, JsString("error"))
+		out ! OutEvent(JsNull, JsString("disconnected"))
     }
   }
 

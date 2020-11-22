@@ -9,31 +9,31 @@ import play.api.Logger
 
 object SchedulerActor {
   def props = Props[SchedulerActor]
-  case class Connect(connection: ActorRef)
-  case class Disconnect(disconnection: ActorRef)
-  case class Broadcast(connection: ActorRef)
 }
 
 @Singleton
 class SchedulerActor @Inject()(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) extends Actor {
+  case class Connect(connection: ActorRef)
+  case class Disconnect(disconnection: ActorRef)
+  object Broadcast
+  
   val logger: Logger = Logger(this.getClass())
 
   override def preStart: Unit = {
     super.preStart
     println("SchedulerActor Initialized!!!")
 
-    // the block of code that will be executed
     actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 3.minute, interval = 3.minute) { () =>
-      self ! "Executing SchedulerActor in every 3 min..."
+      // the block of code that will be executed
+      self ! Broadcast
     }
   }
 
   def receive: Receive = {
-    case connect: SchedulerActor.Connect => // Indicators if there's new Client Connected..
+    case connect: Connect => // Indicators if there's new Client Connected..
       // println(connect)
 
-    case str: String => logger.info(str)
-      // logger.info(str.toString)
+    case Broadcast => logger.info("Executing SchedulerActor in every 3 min...")
     //   Clients.clientsList.append(connect.connection)
     //   self ! Json.obj("message"->"Connected")
 
