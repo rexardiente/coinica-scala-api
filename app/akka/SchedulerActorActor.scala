@@ -23,8 +23,8 @@ class SchedulerActor @Inject()(implicit actorSystem: ActorSystem, executionConte
     println("SchedulerActor Initialized!!!")
 
     // the block of code that will be executed
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 10.seconds, interval = 10.seconds) { () =>
-      self ! "Executing SchedulerActor in every 1 min..."
+    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 3.minute, interval = 3.minute) { () =>
+      self ! "Executing SchedulerActor in every 3 min..."
     }
   }
 
