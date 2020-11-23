@@ -1,5 +1,7 @@
 package models.service
 
+import java.text.SimpleDateFormat
+import java.util.Date
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import java.time.Instant
@@ -28,7 +30,7 @@ class TaskService @Inject()(taskRepo: TaskRepo ) {
   def getTaskByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   	try {
   		for {
-	      txs <- taskRepo.findByWeekly(
+	      txs <- taskRepo.findByDateRange(
 	      	start.getEpochSecond, 
 	      	end.map(_.getEpochSecond).getOrElse(start.getEpochSecond),
 	      	limit, 
@@ -40,21 +42,35 @@ class TaskService @Inject()(taskRepo: TaskRepo ) {
   		case e: Throwable => Future(Json.obj("err" -> e.toString))
   	}
   }
-  def getTaskByMonthly(currendate: Instant,  limit: Int, offset: Int): Future[JsValue] = {
-	 val cmonth: java.time.Instant = currendate
-   val cyear: java.time.Instant = currendate
-   cmonth.atZone(ZoneId.systemDefault).getMonth()
-   cyear.atZone(ZoneId.systemDefault).getYear()
+  /*
+   val cmonth: java.time.Instant = start
+   val cyear: java.time.Instant = start
+   val DATE_FORMAT = "EEE, MMM dd, yyyy h:mm a"
+   
+   val startdate: String = cmonth.atZone(ZoneId.systemDefault).getMonth().toString + "-01- " + cyear.atZone(ZoneId.systemDefault).getYear().toString +"T00:00:00.00Z"
+   val enddate: String = cmonth.atZone(ZoneId.systemDefault).getMonth().toString + "-30- " + cyear.atZone(ZoneId.systemDefault).getYear().toString +"T00:00:00.00Z"
+   val dateFormat = new SimpleDateFormat(DATE_FORMAT)
+   dateFormat.parse(startdate)
+   val start1 : Instant =  Instant.parse(startdate)
+   val end1 : Instant =  Instant.parse(startdate)
+  */
+ def getTaskByMonthly(start: Instant,  end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
+   
+  // val start1 : java.time.Instant=  Instant.parse(startdate)
+  // val end1 : java.time.Instant =  Instant.parse(startdate)
   	try {
-      for {
-        txs <- taskRepo.findByMonthly(cmonth.getEpochSecond, cyear.getEpochSecond, limit, offset)
-        size <- taskRepo.getSize()
-        hasNext <- Future(size - (offset + limit) > 0)
-      } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
-    } catch {
-      case e: Throwable => Future(Json.obj("err" -> e.toString))
-    }
-  
+  		for {
+	      txs <- taskRepo.findByDateRange(
+	      	start.getEpochSecond, 
+	      	end.map(_.getEpochSecond).getOrElse(start.getEpochSecond),
+	      	limit, 
+	      	offset)
+	      size <- taskRepo.getSize()
+	      hasNext <- Future(size - (offset + limit) > 0)
+	    } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
+  	} catch {
+  		case e: Throwable => Future(Json.obj("err" -> e.toString))
+  	}
   }
   def getTaskByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
 

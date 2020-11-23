@@ -74,8 +74,8 @@ class HomeController @Inject()(
     def taskdaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByDaily(start, limit, offset).map(Ok(_))
   }
-  def taskmonthly(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
-    taskService.getTaskByMonthly(start, limit, offset).map(Ok(_))
+  def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
   }
 
   def games() = Action.async { implicit request =>

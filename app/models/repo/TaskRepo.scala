@@ -48,7 +48,7 @@ class TaskRepo @Inject()(
      .result)
       
  
-  def findByWeekly(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
+  def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
    db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate ) 
      .drop(offset)
      .take(limit)
@@ -59,11 +59,7 @@ class TaskRepo @Inject()(
         new SimpleDateFormat("yyyy-MM-d").format(d)
     }
 
-  def findByMonthly(currentmonth: Long, currentyear: Long,limit: Int, offset: Int): Future[Seq[Task]] =
-   db.run(dao.Query.filter(r => r.datecreated === currentmonth && r.datecreated === currentyear  ) 
-     .drop(offset)
-     .take(limit)
-     .result)   
+     
       
 
   def findAll(limit: Int, offset: Int): Future[Seq[Task]] = 
