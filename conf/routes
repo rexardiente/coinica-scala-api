@@ -5,7 +5,7 @@
 
 # An example controller showing a sample home page
 # Websocket
-GET     /                                  		 controllers.HomeController.socket
+GET     /ws                                  	controllers.HomeController.socket
 
 GET     /                                        controllers.HomeController.index
 # Task API
