@@ -1,10 +1,7 @@
 # Routes
 # This file defines all application routes (Higher priority routes first)
 # https://www.playframework.com/documentation/latest/ScalaRouting
-# ~~~~
-
-# An example controller showing a sample home page
-# Websocket
+# ket
 GET     /ws                                  	controllers.HomeController.socket
 
 GET     /                                        controllers.HomeController.index
@@ -26,7 +23,9 @@ POST    /donut/api/v1/game/remove                controllers.HomeController.remo
 
 # Genre API
 GET     /donut/api/v1/genres                     controllers.HomeController.genres
-GET     /donut/api/v1/genre/find                 controllers.HomeController.findGenreByID(id: UUID)
+
+# An example controller showing a sample home page
+# WebsocGET     /donut/api/v1/genre/find                 controllers.HomeController.findGenreByID(id: UUID)
 POST    /donut/api/v1/genre/add                  controllers.HomeController.addGenre
 PUT     /donut/api/v1/genre/update               controllers.HomeController.updateGenre(id: UUID)
 POST    /donut/api/v1/genre/remove               controllers.HomeController.removeGenre(id: UUID)

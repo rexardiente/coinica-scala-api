@@ -11,8 +11,8 @@ import play.api.data.Form
 import play.api.data.Forms._
 // import play.api.data.format.Formats._
 import play.api.libs.json._
-import models.domain.{ Game, Genre, Task, InEvent, OutEvent }
-import models.repo.{ GameRepo, GenreRepo, TaskRepo }
+import models.domain.{ Game, Genre, Task, Referral, InEvent, OutEvent }
+import models.repo.{ GameRepo, GenreRepo, TaskRepo, ReferralRepo }
 import models.service.{ TaskService, TransactionService }
 import akka.WebSocketActor
 /**
@@ -24,6 +24,7 @@ class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       taskRepo: TaskRepo,
+      referral: Referral,
       taskService: TaskService,
       transactionService: TransactionService,
       implicit val system: akka.actor.ActorSystem, 
