@@ -13,7 +13,7 @@ import play.api.data.Forms._
 import play.api.libs.json._
 import models.domain.{ Game, Genre, Task, Referral, InEvent, OutEvent }
 import models.repo.{ GameRepo, GenreRepo, TaskRepo, ReferralRepo }
-import models.service.{ TaskService, TransactionService }
+import models.service.{ TaskService, ReferralService, TransactionService }
 import akka.WebSocketActor
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -24,8 +24,9 @@ class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       taskRepo: TaskRepo,
-      referral: Referral,
+      referralRepo: ReferralRepo,
       taskService: TaskService,
+      referralService: ReferralService,
       transactionService: TransactionService,
       implicit val system: akka.actor.ActorSystem, 
       mat: akka.stream.Materializer,
@@ -69,6 +70,12 @@ class HomeController @Inject()(
   }
     def taskdaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByDaily(start, limit, offset).map(Ok(_))
+  }
+  def referraldate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+  }
+    def referraldaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
+      referralService.getReferralByDaily(start, limit, offset).map(Ok(_))
   }
   def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))

@@ -10,7 +10,7 @@ import java.time.{ Instant, ZoneId }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json.{ Json, JsValue }
-import models.domain.{ PaginatedResult, Task }
+import models.domain.{ PaginatedResult, Referral }
 import models.repo.ReferralRepo
 
 // import java.time.{ Instant, ZoneId }
@@ -18,7 +18,7 @@ import models.repo.ReferralRepo
 
 @Singleton 
 class ReferralService @Inject()(referralRepo: ReferralRepo ) {
-  def paginatedResult[T >: Task](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
+  def paginatedResult[T >: Referral](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
   	  
 	  for {
       tasks <- referralRepo.findAll(limit, offset)
@@ -27,7 +27,7 @@ class ReferralService @Inject()(referralRepo: ReferralRepo ) {
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
 
-  def getTaskByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
+  def getReferralByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   	try {
   		for {
 	      txs <- referralRepo.findByDateRange(
@@ -42,23 +42,8 @@ class ReferralService @Inject()(referralRepo: ReferralRepo ) {
   		case e: Throwable => Future(Json.obj("err" -> e.toString))
   	}
   }
-  
- def getTaskByMonthly(start: Instant,  end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
-  	try {
-  		for {
-	      txs <- referralRepo.findByDateRange(
-	      	start.getEpochSecond, 
-	      	end.map(_.getEpochSecond).getOrElse(start.getEpochSecond),
-	      	limit, 
-	      	offset)
-	      size <- referralRepo.getSize()
-	      hasNext <- Future(size - (offset + limit) > 0)
-	    } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
-  	} catch {
-  		case e: Throwable => Future(Json.obj("err" -> e.toString))
-  	}
-  }
-  def getTaskByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
+ 
+  def getReferralByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
 
     try {
       for {

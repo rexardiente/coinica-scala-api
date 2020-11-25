@@ -7,6 +7,6 @@ import play.api.libs.functional.syntax._
 
 case class Referral(id: UUID, name : String, gameID: UUID,  imgURl: String, amount: Double, referralcreated: Long)
 
-object c {
+object Referral {
 	implicit def implReferral = Json.format[Referral]
 }
