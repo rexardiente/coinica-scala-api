@@ -21,7 +21,7 @@ final class TransactionDAO @Inject()(
     def trace = column[Trace] ("TRACE")
 
    def * = (id, traceID, blockNum, blockTimestamp, trace) <> (Transaction.tupled, Transaction.unapply)
-   def pk = primaryKey("pk_a", (id, traceID))
+   // def pk = primaryKey("pk_a", (id, traceID))
    // def idx = index("idx_a", (id, traceID), unique = true)
   }
 
