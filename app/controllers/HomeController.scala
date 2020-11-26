@@ -80,6 +80,9 @@ class HomeController @Inject()(
   def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
   }
+  def referralmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+  }
 
   def games() = Action.async { implicit request =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))

@@ -8,6 +8,7 @@ GET     /                                        controllers.HomeController.inde
 # Referral API
 GET     /donut/api/v1/referral/weekly                controllers.HomeController.referraldate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/referral/daily                controllers.HomeController.referraldaily(currentdate: java.time.Instant, limit: Int ?= 50, offset: Int ?= 0)
+GET     /donut/api/v1/referral/monthly                controllers.HomeController.referralmonthly(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 
 GET     /                                        controllers.HomeController.index
 # Task API
