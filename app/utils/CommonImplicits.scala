@@ -14,7 +14,6 @@ trait CommonImplicits {
       case _: Throwable => None
     }
 
-
 	// Models domain
 	implicit def implGame = Json.format[Game]
 	implicit def implGenre = Json.format[Genre]
@@ -90,5 +89,45 @@ trait CommonImplicits {
 		"block_num" -> tx.blockNum,
 		"block_timestamp" -> Instant.ofEpochSecond(tx.blockTimestamp),
 		"trace" -> tx.trace)
+	}
+	implicit val implicitInEventReads: Reads[InEvent] = new Reads[InEvent] {
+		override def reads(js: JsValue): JsResult[InEvent] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(InEvent((json \ "id").as[JsString], (json \ "input").as[JsValue]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitInEventWrites = new Writes[InEvent] {
+	  def writes(tx: InEvent) = {
+	  	if (tx.id == JsNull) 
+	  		Json.obj("input" -> tx.input)
+	  	else
+	  		Json.obj("id" -> tx.id, "input" -> tx.input)
+	  }
+	}
+  	implicit val implicitOutEventReads: Reads[OutEvent] = new Reads[OutEvent] {
+		override def reads(js: JsValue): JsResult[OutEvent] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(OutEvent((json \ "id").as[JsString], (json \ "response").as[JsValue]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitOutEventWrites = new Writes[OutEvent] {
+	  def writes(tx: OutEvent) = {
+	  	if (tx.id == JsNull) 
+	  		Json.obj("response" -> tx.response)
+	  	else
+	  		Json.obj("id" -> tx.id, "response" -> tx.response)
+	  }
 	}
 }

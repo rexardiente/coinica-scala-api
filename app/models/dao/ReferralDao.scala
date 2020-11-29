@@ -5,28 +5,27 @@ import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.Task
+import models.domain.Referral
 
 @Singleton
-final class TaskDAO @Inject()(
+final class ReferralDAO @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider,
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
- // private implicit val jsValueMappedColumnType: BaseColumnType[JsValue] =
- //   MappedColumnType.base[JsValue, String](Json.stringify, Json.parse)
 
-  protected class TaskTable(tag: Tag) extends Table[Task](tag, "TASK") {
+  protected class ReferralTable(tag: Tag) extends Table[Referral](tag, "REFERRAL") {
     def id = column[UUID] ("ID", O.PrimaryKey)
+    def name = column[String] ("NAME")
     def gameID = column[UUID] ("GAME_ID") 
-    def info = column[JsValue] ("INFO")
-    def isValid = column[Boolean] ("IS_VALID")
-    def datecreated = column[Long] ("DATECREATED")
+    def imgURl = column[String] ("IMG_URL")
+    def amount = column[Double] ("AMOUNT")
+    def referralcreated = column[Long] ("REFERRALCREATED")
 
-    def * = (id, gameID, info, isValid, datecreated) <> ((Task.apply _).tupled, Task.unapply) 
+    def * = (id, name, gameID, imgURl, amount, referralcreated) <> ((Referral.apply _).tupled, Referral.unapply) 
   }
 
-  object Query extends TableQuery(new TaskTable(_)) {
+  object Query extends TableQuery(new ReferralTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
  

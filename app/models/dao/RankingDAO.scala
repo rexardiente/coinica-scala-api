@@ -5,28 +5,27 @@ import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.Task
+import models.domain.Ranking
 
 @Singleton
-final class TaskDAO @Inject()(
+final class RankingDAO @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider,
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
- // private implicit val jsValueMappedColumnType: BaseColumnType[JsValue] =
- //   MappedColumnType.base[JsValue, String](Json.stringify, Json.parse)
 
-  protected class TaskTable(tag: Tag) extends Table[Task](tag, "TASK") {
+  protected class RankingTable(tag: Tag) extends Table[Ranking](tag, "RANKING") {
     def id = column[UUID] ("ID", O.PrimaryKey)
+    def name = column[String] ("NAME")
     def gameID = column[UUID] ("GAME_ID") 
-    def info = column[JsValue] ("INFO")
-    def isValid = column[Boolean] ("IS_VALID")
-    def datecreated = column[Long] ("DATECREATED")
+    def rate = column[Double] ("RATE")
+    def amount = column[Double] ("AMOUNT")
+    def rankingcreated = column[Long] ("RANKINGCREATED")
 
-    def * = (id, gameID, info, isValid, datecreated) <> ((Task.apply _).tupled, Task.unapply) 
+    def * = (id, name, gameID, rate, amount, rankingcreated) <> ((Ranking.apply _).tupled, Ranking.unapply) 
   }
 
-  object Query extends TableQuery(new TaskTable(_)) {
+  object Query extends TableQuery(new RankingTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
  

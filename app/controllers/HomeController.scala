@@ -9,12 +9,12 @@ import play.api._
 import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
-import play.api.data.format.Formats._
+// import play.api.data.format.Formats._
 import play.api.libs.json._
-import models.domain.{ Game, Genre, Task }
-import models.repo.{ GameRepo, GenreRepo, TaskRepo }
-import models.service.{ TaskService, TransactionService }
-
+import models.domain.{ Game, Genre, Task, Referral, InEvent, OutEvent }
+import models.repo.{ GameRepo, GenreRepo, TaskRepo, ReferralRepo }
+import models.service.{ TaskService, ReferralService, TransactionService }
+import akka.WebSocketActor
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -24,30 +24,35 @@ class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       taskRepo: TaskRepo,
+      referralRepo: ReferralRepo,
       taskService: TaskService,
+      referralService: ReferralService,
       transactionService: TransactionService,
+      implicit val system: akka.actor.ActorSystem, 
+      mat: akka.stream.Materializer,
       val controllerComponents: ControllerComponents) extends BaseController {
+  import models.domain.Event._
+  implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[InEvent, OutEvent]
+
   /*  CUSTOM FORM VALIDATION */
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
     "imgURL" -> nonEmptyText,
     "path" -> nonEmptyText,
     "genre" -> uuid,
-    "description" -> optional(text),
-  ))
- 
+    "description" -> optional(text)))
   private def taskForm = Form(tuple(
     "gamename" -> nonEmptyText,
     "taskdate" -> optional(date("yyyy-MM-dd")),
-    "description" -> optional(text),
-  ))
- 
+    "description" -> optional(text)))
   private def genreForm = Form(tuple(
     "name" -> nonEmptyText,
-    "description" -> optional(text),
-  ))
+    "description" -> optional(text)))
 
-  /* MAIN API */
+  def socket = WebSocket.accept[InEvent, OutEvent] { implicit request =>
+    play.api.libs.streams.ActorFlow.actorRef { out => WebSocketActor.props(out) }
+  }
+
   def index() = Action.async { implicit request =>
     Future.successful(Ok(views.html.index()))
   }
@@ -56,38 +61,29 @@ class HomeController @Inject()(
     Future.successful(Ok(sort.getEpochSecond.toString + param.getEpochSecond.toString))
   }
 
-  // def page(page: Int, pageSize: Int, totalItems: Int) = {
-  //     val from = ((page - 1) * pageSize) + 1
-  //     var to = from + pageSize - 1
-  //     if (to > totalItems) to = totalItems
-  //     var totalPages: Int = totalItems / pageSize
-  //     if (totalItems % pageSize > 0) totalPages += 1
-  //     (from, to, totalPages)
-  // }
-  /* Task API */
   def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
   }
-  // def tasks(limit: Int, offset: Int) = Action.async { implicit request =>
-  //   taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
-  // }
-  // def find(limit: Int, offset: Int) = Action.async { implicit request =>
-  //   taskRepo.all(limit, offset).map(task => Ok(Json.toJson(task)))
-  // }
-  // def findTaskByID(id: UUID, limit: Int, offset: Int) = Action.async { implicit request =>
-  //   taskRepo.findByID(id, limit, offset).map(task => Ok(Json.toJson(task)))
-  // }
-  // def findTaskByDaily(id: UUID, currentdate: Instant) = Action.async { implicit request =>
-  //   taskRepo.findByDaily(id, currentdate).map(task => Ok(Json.toJson(task)))
-  // }
-  // def findTaskByWeekly(id: UUID, startdate: Instant, enddate: Instant) = Action.async { implicit request =>
-  //   taskRepo.findByWeekly(id, startdate, enddate).map(task => Ok(Json.toJson(task)))
-  // }
-  // def removeTask(id: UUID) = Action.async { implicit request =>
-  //    taskRepo.delete(id).map(r => if(r < 0) NotFound else Ok)
-  // }
 
-  /* GAME API */
+  def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
+  }
+    def taskdaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
+    taskService.getTaskByDaily(start, limit, offset).map(Ok(_))
+  }
+  def referraldate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+  }
+    def referraldaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
+      referralService.getReferralByDaily(start, limit, offset).map(Ok(_))
+  }
+  def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
+  }
+  def referralmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+  }
+
   def games() = Action.async { implicit request =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
   }
@@ -177,6 +173,10 @@ class HomeController @Inject()(
   }
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
-    transactionService.paginatedResult(start, end, limit, offset).map(Ok(_))
+    transactionService.getTxByDateRange(start, end, limit, offset).map(Ok(_))
+  }
+
+  def transactionByTraceID(id: String) = Action.async { implicit request =>
+    transactionService.getByTxTraceID(id).map(Ok(_))
   }
 }

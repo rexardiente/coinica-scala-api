@@ -3,6 +3,8 @@ package models.repo
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import java.time.Instant
+import java.text.SimpleDateFormat
+import java.util.Date
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
@@ -26,27 +28,39 @@ class TaskRepo @Inject()(
 
   def all(limit: Int, offset: Int): Future[Seq[Task]] =
     db.run(dao.Query
-        .drop(offset)
+      .drop(offset)
       .take(limit)
-       .result)
+      .result)
 
   def exist(id: UUID): Future[Boolean] = 
     db.run(dao.Query(id).exists.result)
 
-  def findByID(id: UUID, limit: Int, offset: Int): Future[Option[Task]] =
+  def findByID(id: UUID, limit: Int, offset: Int): Future[Seq[Task]] =
     db.run(dao.Query.filter(r => r.id === id  )
       .drop(offset)
       .take(limit)
-      .result
-      .headOption)
-
-  def findByDaily(id: UUID, currentdate: Instant): Future[Seq[Task]] = 
-   db.run(dao.Query.filter(r => r.id === id && r.datecreated === currentdate) 
       .result)
+      
+  def findByDaily( currentdate: Long, limit: Int, offset: Int): Future[Seq[Task]] = 
+   db.run(dao.Query.filter(r =>  r.datecreated === currentdate) 
+     .drop(offset)
+     .take(limit)
+     .result)
+      
+ 
+  def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
+   db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate ) 
+     .drop(offset)
+     .take(limit)
+     .result)
 
-  def findByWeekly(id: UUID, startdate: Instant, enddate : Instant): Future[Seq[Task]] =
-   db.run(dao.Query.filter(r => r.id === id && r.datecreated >= startdate && r.datecreated <= enddate ) 
-      .result)
+  def formatDateFromlong(date: Long): String = {
+        val d = new Date(date * 1000L)
+        new SimpleDateFormat("yyyy-MM-d").format(d)
+    }
+
+     
+      
 
   def findAll(limit: Int, offset: Int): Future[Seq[Task]] = 
     db.run(dao.Query.drop(offset).take(limit).result)
@@ -59,3 +73,12 @@ class TaskRepo @Inject()(
       .result
       .headOption)
 }
+/*
+   def getByDate(start: Long, end: Long, limit: Int, offset: Int): Future[Seq[Task]] = {
+    db.run(dao.Query
+      .filter(r => r.blockTimestamp >= start && r.blockTimestamp <= end)
+      .drop(offset)
+      .take(limit)
+    .result)
+  }
+  */
