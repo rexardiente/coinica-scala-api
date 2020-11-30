@@ -25,7 +25,8 @@ class Generator @Inject()(
       genreDAO.Query.schema ++
       taskDAO.Query.schema ++
       txDAO.Query.schema ++
-      referralDAO.Query.schema
+      referralDAO.Query.schema 
+      
 
     val writer = new java.io.PrintWriter("target/schema.sql")
     writer.write("# --- !Ups\n\n")
