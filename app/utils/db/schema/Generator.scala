@@ -4,7 +4,7 @@ import javax.inject.{ Inject, Singleton }
 import play.api.Logger
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.dao.user.UserDAO
-import models.dao.{ GameDAO, GenreDAO, TaskDAO, TransactionDAO, ReferralDAO }
+import models.dao.{ GameDAO, GenreDAO, TaskDAO, TransactionDAO, ReferralDAO, RankingDAO }
 
 @Singleton
 class Generator @Inject()(
@@ -14,6 +14,7 @@ class Generator @Inject()(
     taskDAO: TaskDAO,
     txDAO: TransactionDAO,
     referralDAO: ReferralDAO,
+    rankingDAO: RankingDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._

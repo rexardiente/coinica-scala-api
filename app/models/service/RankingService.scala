@@ -17,7 +17,7 @@ import models.repo.RankingRepo
 // Instant.now().atZone(ZoneId.systemDefault)
 
 @Singleton 
-class RaankinglService @Inject()(rankingRepo: RankingRepo ) {
+class RankingService @Inject()(rankingRepo: RankingRepo ) {
   def paginatedResult[T >: Ranking](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
   	  
 	  for {
