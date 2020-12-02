@@ -38,4 +38,5 @@
       println(mapper.writeValueAsString(pushedTransaction))
     }
 
-> Note: Make TableRowsRequest as dynamic class object that can handle all EOSIO related table requests.
+> Note: Make TableRowsRequest as dynamic class object that can handle all EOSIO related table requests and 
+  at Chronicle consumer add websocket request to Server API regarding to latest updates on all users table

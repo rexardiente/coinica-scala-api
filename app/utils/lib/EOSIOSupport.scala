@@ -109,7 +109,6 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
     // abiBinToJson(row)
     complexRequest
       .post(Json.obj(
-        "json" -> true, // add this to format result into JSON
         "code" -> req.code,
         "table" -> req.table,
         "scope" -> req.scope,
@@ -117,12 +116,14 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
         "key_type" -> req.key_type.getOrElse(null),
         "encode_type" -> req.encode_type.getOrElse(null),
         "upper_bound" -> req.upper_bound.getOrElse(null),
-        "lower_bound" -> req.lower_bound.getOrElse(null)
+        "lower_bound" -> req.lower_bound.getOrElse(null),
+        "json" -> true, // add this to format result into JSON
+        "limit" -> 250 // set max result to 250 active users per request
       ))
       .map { response =>
          val validated: TableRowsResponse = (response.json).asOpt[TableRowsResponse].getOrElse(null)
 
-         if (validated.rows.size == 0 || validated == null) JsNull
+         if (validated == null || validated.rows.size == 0) JsNull
          else validated.toJson
       }
   }
