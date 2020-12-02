@@ -18,7 +18,7 @@ import io.jafka.jeos.core.common.transaction.{ PackedTransaction, SignedPackedTr
 import io.jafka.jeos.core.response.chain.{ AbiJsonToBin, Block }
 import io.jafka.jeos.core.response.chain.transaction.PushedTransaction
 import io.jafka.jeos.impl.EosApiServiceGenerator
-import models.domain.eosio.{ BinaryArgs, TableRowsRequest }
+import models.domain.eosio.{ BinaryArgs, TableRowsRequest, TableRowsResponse }
 
 @Singleton
 class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.ExecutionContext) {
@@ -100,56 +100,11 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   //     lockAllWallets() // close after transaction is finished
   //   }
 
-  def getAllUsers(): Unit = {
-    val req = new TableRowsRequest("treasurehunt", "users", "treasurehunt", None, Some("uint64_t"), None, None, None)
-
+  def getGQUsers(req: TableRowsRequest): Future[JsValue] = {
     val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.get_table_rows"))
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
-
-    // val js_response: JsValue = Json.parse("""{"rows":["00000000807015d60000000000000000100000000100000200000300000400000500000600000700000800000900000a00000b00000c00000d00000e00000f00001000010105102700000000000004454f530000000046175d74d145f73fae3700000000000004454f530000000000a415020000000004454f5300000000"],"more":false,"next_key":""}""")
-    // val get_rows: Seq[String] = (js_response \ "rows").as[Seq[String]]
-    // val row: String = get_rows(0)
-    // get_rows.map(x => println(x))
-
-    val sample_res: JsValue = Json.parse("""{
-      "row": [{
-        "username":"user1", 
-        "game_id":0,
-        "game_data":{
-          "panel_set":[
-            {"key":0, "isopen":0, "iswin":0},
-            {"key":1, "isopen":0, "iswin":0},
-            {"key":2, "isopen":0, "iswin":0},
-            {"key":3, "isopen":0, "iswin":0},
-            {"key":4, "isopen":0, "iswin":0},
-            {"key":5, "isopen":0, "iswin":0},
-            {"key":6, "isopen":0, "iswin":0},
-            {"key":7, "isopen":1, "iswin":1},
-            {"key":8, "isopen":0, "iswin":0},
-            {"key":9, "isopen":0, "iswin":0},
-            {"key":10, "isopen":0, "iswin":0},
-            {"key":11, "isopen":0, "iswin":0},
-            {"key":12, "isopen":0, "iswin":0},
-            {"key":13, "isopen":0, "iswin":0},
-            {"key":14, "isopen":0,"iswin":0},
-            {"key":15,"isopen":0, "iswin":0}
-          ],
-          "unopentile":15,
-          "win_count":1,
-          "destination":1,
-          "status":1,
-          "enemy_count":1,
-          "prize":"1.0453 EOS",
-          "odds":"1.07142857142857140",
-          "nextprize":"1.0975 EOS",
-          "maxprize":"11.8125 EOS"
-        }
-      }],
-      "more":false,
-      "next_key":""
-    }""")
 
     // abiBinToJson(row)
     complexRequest
@@ -165,13 +120,10 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
         "lower_bound" -> req.lower_bound.getOrElse(null)
       ))
       .map { response =>
-         println(response.body)
-         val rows: Seq[JsValue] = (response.json \ "rows").as[Seq[JsValue]]
+         val validated: TableRowsResponse = (response.json).asOpt[TableRowsResponse].getOrElse(null)
 
-         if (rows.size > 0) {
-          Seq.empty
-         } 
-         else Seq.empty
+         if (validated.rows.size == 0 || validated == null) JsNull
+         else validated.toJson
       }
   }
 
@@ -181,40 +133,6 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
       .plusMinutes(3)
       .truncatedTo(ChronoUnit.SECONDS)
       .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-  }
-
-  def hi(user: String): Unit = {
-    try {
-      // unlockWalletAPI()
-      abiJsonToBin("hello", "hi", Seq(user)).map { data => 
-        val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
-            "hello",
-            "hi",
-            authorization(Seq(user)), 
-            data.map(_.binargs.as[String]).getOrElse(null)))
-
-        val packedTx: PackedTransaction = new PackedTransaction()
-            packedTx.setExpiration(LocalDateTime.parse(expirationInStr))
-            packedTx.setRefBlockNum(getLatestBlock.getBlockNum())
-            packedTx.setRefBlockPrefix(getLatestBlock.getRefBlockPrefix())
-            packedTx.setDelaySec(0)
-            packedTx.setMaxNetUsageWords(0)
-            packedTx.setMaxCpuUsageMs(0)
-            packedTx.setActions(actions)
-
-        val signedPackedTransaction: SignedPackedTransaction = 
-            signTransaction(
-              packedTx,
-              Seq(publicKey),
-              clientNodeosAPI.getChainInfo().getChainId())
-
-        val pushedTransaction: PushedTransaction = clientNodeosAPI.pushTransaction(null, signedPackedTransaction)
-
-        println(mapper.writeValueAsString(pushedTransaction))
-      }
-    } catch  {
-      case e: Throwable => println(e)
-    }
   }
 
   // sign trasanction in JSON response
