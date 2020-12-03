@@ -4,7 +4,7 @@ import javax.inject.{ Inject, Singleton }
 import play.api.Logger
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.dao.user.UserDAO
-import models.dao.{ GameDAO, GenreDAO, TaskDAO, TransactionDAO, ReferralDAO, RankingDAO }
+import models.dao.{ GameDAO, GenreDAO, TaskDAO, TransactionDAO, ReferralDAO, RankingDAO, ChallengeDAO }
 
 @Singleton
 class Generator @Inject()(
@@ -15,6 +15,7 @@ class Generator @Inject()(
     txDAO: TransactionDAO,
     referralDAO: ReferralDAO,
     rankingDAO: RankingDAO,
+    challengeDAO: ChallengeDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
@@ -27,7 +28,8 @@ class Generator @Inject()(
       taskDAO.Query.schema ++
       txDAO.Query.schema ++
       referralDAO.Query.schema ++
-      rankingDAO.Query.schema
+      rankingDAO.Query.schema ++
+      challengeDAO.Query.schema
       
 
     val writer = new java.io.PrintWriter("target/schema.sql")

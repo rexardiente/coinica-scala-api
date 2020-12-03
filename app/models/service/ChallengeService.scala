@@ -43,7 +43,7 @@ class ChallengeService @Inject()(challengeRepo: ChallengeRepo ) {
   	}
   }
  
-  def getchallengeByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
+  def getChallengeByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
 
     try {
       for {
