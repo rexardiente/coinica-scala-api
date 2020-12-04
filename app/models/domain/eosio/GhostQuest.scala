@@ -2,14 +2,14 @@ package models.domain.eosio
 
 import play.api.libs.json._
 
-object GQGhost
-object GQGame
+object GQCharacterInfo extends utils.CommonImplicits
+object GQGhost extends utils.CommonImplicits
+object GQGame extends utils.CommonImplicits
 object GQTable extends utils.CommonImplicits
 object TableRowsResponse extends utils.CommonImplicits
 
-case class GQGhost(
+case class GQCharacterInfo(
   ghost_id: String, 
-  key: Int, 
   character_life: Int, 
   initial_hp: Int, 
   hitpoints: Int, 
@@ -24,6 +24,7 @@ case class GQGhost(
   battle_limit: Int, 
   battle_count: Int, 
   last_match: Long)
+case class GQGhost(key: Int, value: GQCharacterInfo)
 case class GQGame(character: Seq[GQGhost], monster_count: Int, summon_count: Int, status: Int)
 case class GQTable(username: String, game_id: Long, game_data: GQGame) {
   def toJson(): JsValue = Json.toJson(this)

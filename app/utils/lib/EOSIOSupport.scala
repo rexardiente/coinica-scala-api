@@ -26,7 +26,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   val keosdApiBaseURL   : String = config.getString("eosio.uri.keosd")
   val nodeosApiBaseURL  : String = config.getString("eosio.uri.nodeos")
   val publicKey         : String = config.getString("eosio.wallets.public.default.key")
-  val privateKey        : String = config.getString("eosio.wallets.private.default.key")
+  val privateKey        : String = config.getString("eosio.wallets.private.server.default.key")
   val clientKeosdAPI    : EosApi = EosApiFactory.create(keosdApiBaseURL)
   val clientNodeosAPI   : EosApi = EosApiFactory.create(nodeosApiBaseURL)
   val mapper            : ObjectMapper = EosApiServiceGenerator.getMapper()
@@ -106,7 +106,6 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    // abiBinToJson(row)
     complexRequest
       .post(Json.obj(
         "code" -> req.code,

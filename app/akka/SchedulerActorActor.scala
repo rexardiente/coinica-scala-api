@@ -27,10 +27,7 @@ class SchedulerActor @Inject()(ws: WSClient)(implicit actorSystem: ActorSystem, 
     super.preStart
     println("SchedulerActor Initialized!!!")
 
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.minute, interval = 1.minute) { () =>
-      // the block of code that will be executed
-      self ! GQBroadcast
-    }
+    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.minute, interval = 1.minute)(() => self ! GQBroadcast)
   }
 
   def receive: Receive = {
@@ -39,10 +36,11 @@ class SchedulerActor @Inject()(ws: WSClient)(implicit actorSystem: ActorSystem, 
       // println(connect)
 
     case response: TableRowsResponse =>
-      response.rows.map { tbl =>
-        val username: String = tbl.username
-        val gameData: GQGame = tbl.game_data
+      response.rows.map { user =>
+        val username: String = user.username
+        val gameData: GQGame = user.game_data
 
+        println("TableRowsResponse")
       }
 
     case GQBroadcast =>
@@ -60,7 +58,7 @@ class SchedulerActor @Inject()(ws: WSClient)(implicit actorSystem: ActorSystem, 
 
     // case json: JsValue => // Sends all the messages to all Clients..
     //   Clients.clientsList.map(_ ! json)
-  case "GQ_user_tbl_update" => println("GQ_user_tbl_update")
-  case _ => println("unkown data received!!!")
+    case "GQ_user_tbl_update" => println("GQ_user_tbl_update")
+    case _ => println("unkown data received!!!")
   }
 }
