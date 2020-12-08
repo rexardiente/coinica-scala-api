@@ -130,4 +130,11 @@ trait CommonImplicits {
 	  		Json.obj("id" -> tx.id, "response" -> tx.response)
 	  }
 	}
+
+	// EOSIO Tables..
+	implicit def implGQCharacterInfo = Json.format[models.domain.eosio.GQCharacterInfo]
+	implicit def implGQGhost = Json.format[models.domain.eosio.GQGhost]
+	implicit def implGQGame = Json.format[models.domain.eosio.GQGame]
+	implicit def implGQTable = Json.format[models.domain.eosio.GQTable]
+	implicit def implTableRowsResponse = Json.format[models.domain.eosio.TableRowsResponse]
 }

@@ -12,8 +12,8 @@ import play.api.data.Forms._
 // import play.api.data.format.Formats._
 import play.api.libs.json._
 import models.domain.{ Game, Genre, Task, Referral, InEvent, OutEvent }
-import models.repo.{ GameRepo, GenreRepo, TaskRepo, ReferralRepo }
-import models.service.{ TaskService, ReferralService, TransactionService }
+import models.repo.{ GameRepo, GenreRepo, TaskRepo, ReferralRepo, RankingRepo, TransactionRepo, ChallengeRepo }
+import models.service.{ TaskService, ReferralService, RankingService, TransactionService, ChallengeService }
 import akka.WebSocketActor
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -24,10 +24,14 @@ class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       taskRepo: TaskRepo,
+      rankingRepo: RankingRepo,
+      challengeRepo: ChallengeRepo,
       referralRepo: ReferralRepo,
       taskService: TaskService,
+      rankingService: RankingService,
       referralService: ReferralService,
       transactionService: TransactionService,
+      challengeService: ChallengeService,
       implicit val system: akka.actor.ActorSystem, 
       mat: akka.stream.Materializer,
       val controllerComponents: ControllerComponents) extends BaseController {
@@ -64,6 +68,12 @@ class HomeController @Inject()(
   def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
   }
+   def challengedate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
+  }
+   def challengedaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
+    challengeService.getChallengeByDaily(start, limit, offset).map(Ok(_))
+  }
 
   def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
@@ -76,6 +86,12 @@ class HomeController @Inject()(
   }
     def referraldaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
       referralService.getReferralByDaily(start, limit, offset).map(Ok(_))
+  }
+   def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+  }
+    def rankingdaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
+      rankingService.getReferralByDaily(start, limit, offset).map(Ok(_))
   }
   def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
