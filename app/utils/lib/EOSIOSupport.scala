@@ -18,6 +18,7 @@ import io.jafka.jeos.core.common.transaction.{ PackedTransaction, SignedPackedTr
 import io.jafka.jeos.core.response.chain.{ AbiJsonToBin, Block }
 import io.jafka.jeos.core.response.chain.transaction.PushedTransaction
 import io.jafka.jeos.impl.EosApiServiceGenerator
+import io.jafka.jeos.exception.EosApiException
 import models.domain.eosio.{ BinaryArgs, TableRowsRequest, TableRowsResponse }
 
 @Singleton
@@ -72,14 +73,14 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
     try {
       clientKeosdAPI.unlockWallet("default", privateKey)
     } catch {
-      case ex: Throwable => println(ex) 
+      case e: EosApiException => println(e) 
     }
 
   def lockAllWallets(): Unit = 
     try {
       clientKeosdAPI.lockAllWallets()
     } catch {
-      case ex: Throwable => println(ex) 
+      case e: EosApiException => println(e) 
     }
 
   // ⑧ push the signed transaction 
@@ -99,6 +100,41 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   //   } finally {
   //     lockAllWallets() // close after transaction is finished
   //   }
+
+  // requires account name and characterID
+  def battleAction(users: Seq[(String, Int)]): Future[JsValue] = {
+    // unlockWalletAPI()
+    // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
+    abiJsonToBin("ghostquest", "battle", Seq(users(0)._1, users(0)._2, users(1)._1, users(1)._2)).map { abiJsonToBinResult => 
+      val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
+          "ghostquest",
+          "battle",
+          authorization(Seq("ghostquest")),
+          abiJsonToBinResult.map(_.binargs.as[String]).getOrElse(null)))
+      // track current block to avoid invalid ref block num
+      val currentBlock: Block = getLatestBlock()
+      val packedTx: PackedTransaction = new PackedTransaction()
+          packedTx.setExpiration(LocalDateTime.parse(expirationInStr))
+          packedTx.setRefBlockNum(currentBlock.getBlockNum())
+          packedTx.setRefBlockPrefix(currentBlock.getRefBlockPrefix())
+          packedTx.setDelaySec(0)
+          packedTx.setMaxNetUsageWords(0)
+          packedTx.setMaxCpuUsageMs(0)
+          packedTx.setActions(actions)
+      val signedPackedTransaction: SignedPackedTransaction = 
+          signTransaction(
+            packedTx,
+            Seq(publicKey),
+            clientNodeosAPI.getChainInfo().getChainId())
+      // check if transaction is successful
+      try {
+        val pushedTransaction: PushedTransaction = clientNodeosAPI.pushTransaction(null, signedPackedTransaction)
+        Json.parse(mapper.writeValueAsString(pushedTransaction).toString)
+      } catch {
+        case e: EosApiException => Json.obj("error" -> e.getMessage.toString)
+      }
+    }
+  }
 
   def getGQUsers(req: TableRowsRequest): Future[JsValue] = {
     val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.get_table_rows"))
@@ -188,13 +224,19 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   }
 
   // custom abi to json bin function..
-  private def abiJsonToBin(code: String, action: String, args: Seq[String]): Future[Option[BinaryArgs]] = {
+  private def abiJsonToBin(code: String, action: String, args: Seq[Any]): Future[Option[BinaryArgs]] = {
     val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.abi_json_to_bin"))
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
     complexRequest
-      .post(Json.obj("code" -> code, "action" -> action, "args" -> JsArray(args.map(JsString(_)))))
+      .post(Json.obj("code" -> code, "action" -> action, "args" -> JsArray(args.map {
+        case str: String => JsString(str)
+        case num: Int => JsNumber(num)
+        case bol: Boolean => JsBoolean(bol)
+        case arr: JsArray => arr
+        case any => JsNull(any.toString)
+      })))
       .map(_.json.asOpt[BinaryArgs])
   }
 }
