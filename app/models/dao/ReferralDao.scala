@@ -16,13 +16,13 @@ final class ReferralDAO @Inject()(
 
   protected class ReferralTable(tag: Tag) extends Table[Referral](tag, "REFERRAL") {
     def id = column[UUID] ("ID", O.PrimaryKey)
-    def name = column[String] ("NAME")
-    def gameID = column[UUID] ("GAME_ID") 
-    def imgURl = column[String] ("IMG_URL")
-    def amount = column[Double] ("AMOUNT")
+    def referralname = column[String] ("REFFERALNAME")
+    def referallink = column[String] ("REFERRALLINK")
+    def rate = column[Double] ("RATE")
+    def feeamount = column[Double] ("FEEAMOUNT")
     def referralcreated = column[Long] ("REFERRALCREATED")
 
-    def * = (id, name, gameID, imgURl, amount, referralcreated) <> ((Referral.apply _).tupled, Referral.unapply) 
+    def * = (id, referralname,  referallink, rate,  feeamount, referralcreated) <> ((Referral.apply _).tupled, Referral.unapply) 
   }
 
   object Query extends TableQuery(new ReferralTable(_)) {
