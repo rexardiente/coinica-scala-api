@@ -71,8 +71,8 @@ class HomeController @Inject()(
    def challengedate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
   }
-   def challengedaily(start: Instant, limit: Int, offset: Int) = Action.async { implicit request =>
-    challengeService.getChallengeByDaily(start, limit, offset).map(Ok(_))
+   def challengedaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
   }
 
   def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
