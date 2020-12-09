@@ -1,14 +1,15 @@
 package akka
 
 import javax.inject.{ Inject, Singleton }
-import akka.actor.{ ActorRef, Actor, ActorSystem, Props }
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import akka.actor.{ ActorRef, Actor, ActorSystem, Props }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import play.api.Logger
-import utils.lib.EOSIOSupport
 import models.domain.eosio.{ TableRowsRequest, TableRowsResponse, GQGame }
+import akka.domain.common.objects._
+import utils.lib.EOSIOSupport
 
 object SchedulerActor {
   def props = Props[SchedulerActor]
@@ -16,10 +17,6 @@ object SchedulerActor {
 
 @Singleton
 class SchedulerActor @Inject()(ws: WSClient)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) extends Actor {
-  case class Connect(connection: ActorRef)
-  case class Disconnect(disconnection: ActorRef)
-  object GQBroadcast
-  
   val logger       : Logger      = Logger(this.getClass())
   val eosioSupport :EOSIOSupport = new EOSIOSupport(ws)
 
@@ -27,7 +24,11 @@ class SchedulerActor @Inject()(ws: WSClient)(implicit actorSystem: ActorSystem, 
     super.preStart
     println("SchedulerActor Initialized!!!")
 
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.minute, interval = 1.minute)(() => self ! GQBroadcast)
+    // load GhostQuest users to DB update for one time.. in case server is down..
+    self ! LoadGQUserTable
+
+    // scheduled on every 3 minutes
+    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 3.minute, interval = 3.minute)(() => self ! BattleScheduler)
   }
 
   def receive: Receive = {
@@ -40,10 +41,10 @@ class SchedulerActor @Inject()(ws: WSClient)(implicit actorSystem: ActorSystem, 
         val username: String = user.username
         val gameData: GQGame = user.game_data
 
-        println("TableRowsResponse")
+        // println("TableRowsResponse")
       }
 
-    case GQBroadcast =>
+    case BattleScheduler =>
       // logger.info("Executing SchedulerActor in every 3 min...")
       val req = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
       // validate response and send to self
@@ -58,6 +59,9 @@ class SchedulerActor @Inject()(ws: WSClient)(implicit actorSystem: ActorSystem, 
 
     // case json: JsValue => // Sends all the messages to all Clients..
     //   Clients.clientsList.map(_ ! json)
+    case LoadGQUserTable =>
+      println("LoadGQUserTable")
+
     case "GQ_user_tbl_update" => println("GQ_user_tbl_update")
     case _ => println("unkown data received!!!")
   }
