@@ -6,7 +6,7 @@ import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.Transaction
+import models.domain.eosio.Transaction
 
 @Singleton
 class TransactionRepo @Inject()(

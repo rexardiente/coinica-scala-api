@@ -5,6 +5,7 @@ import java.time.{ ZoneId, ZonedDateTime, LocalDateTime }
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.{ Arrays, List, ArrayList }
+import scala.util._
 import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -19,7 +20,7 @@ import io.jafka.jeos.core.response.chain.{ AbiJsonToBin, Block }
 import io.jafka.jeos.core.response.chain.transaction.PushedTransaction
 import io.jafka.jeos.impl.EosApiServiceGenerator
 import io.jafka.jeos.exception.EosApiException
-import models.domain.eosio.{ BinaryArgs, TableRowsRequest, TableRowsResponse }
+import models.domain.eosio.{ BinaryArgs, TableRowsRequest, GQRowsResponse }
 
 @Singleton
 class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.ExecutionContext) {
@@ -69,18 +70,18 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
     clientKeosdAPI.signTransaction(packedTx, new ArrayList(pubKeys.asJavaCollection), chainId)
 
   // ⑥ unlock the creator's wallet
-  def unlockWalletAPI(): Unit = 
+  def unlockWalletAPI(): Either[EosApiException, Unit] = 
     try {
-      clientKeosdAPI.unlockWallet("default", privateKey)
+      Right(clientKeosdAPI.unlockWallet("default", privateKey))
     } catch {
-      case e: EosApiException => println(e) 
+      case e: EosApiException => Left(e)
     }
 
-  def lockAllWallets(): Unit = 
+  def lockAllWallets(): Either[EosApiException, Unit] = 
     try {
-      clientKeosdAPI.lockAllWallets()
+      Right(clientKeosdAPI.lockAllWallets())
     } catch {
-      case e: EosApiException => println(e) 
+      case e: EosApiException => Left(e)
     }
 
   // ⑧ push the signed transaction 
@@ -102,7 +103,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   //   }
 
   // requires account name and characterID
-  def battleAction(users: Seq[(String, Int)]): Future[JsValue] = {
+  def battleAction(users: Seq[(String, Int)]): Future[Either[EosApiException, PushedTransaction]] = {
     // unlockWalletAPI()
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
     abiJsonToBin("ghostquest", "battle", Seq(users(0)._1, users(0)._2, users(1)._1, users(1)._2)).map { abiJsonToBinResult => 
@@ -121,22 +122,21 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
           packedTx.setMaxNetUsageWords(0)
           packedTx.setMaxCpuUsageMs(0)
           packedTx.setActions(actions)
-      val signedPackedTransaction: SignedPackedTransaction = 
-          signTransaction(
-            packedTx,
-            Seq(publicKey),
-            clientNodeosAPI.getChainInfo().getChainId())
       // check if transaction is successful
       try {
-        val pushedTransaction: PushedTransaction = clientNodeosAPI.pushTransaction(null, signedPackedTransaction)
-        Json.parse(mapper.writeValueAsString(pushedTransaction).toString)
-      } catch {
-        case e: EosApiException => Json.obj("error" -> e.getMessage.toString)
+        val signedPackedTx: SignedPackedTransaction = signTransaction(
+          packedTx,
+          Seq(publicKey),
+          clientNodeosAPI.getChainInfo().getChainId())
+
+        Right(clientNodeosAPI.pushTransaction(null, signedPackedTx))
+        // mapper.writeValueAsString(pushedTransaction).toString
       }
+      catch { case e: EosApiException => Left(e) }
     }
   }
 
-  def getGQUsers(req: TableRowsRequest): Future[JsValue] = {
+  def getGQUsers(req: TableRowsRequest): Future[Option[GQRowsResponse]] = {
     val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.get_table_rows"))
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -156,10 +156,10 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
         "limit" -> 250 // set max result to 250 active users per request
       ))
       .map { response =>
-         val validated: TableRowsResponse = (response.json).asOpt[TableRowsResponse].getOrElse(null)
+         val validated: GQRowsResponse = (response.json).asOpt[GQRowsResponse].getOrElse(null)
 
-         if (validated == null || validated.rows.size == 0) JsNull
-         else validated.toJson
+         if (validated == null || validated.rows.size == 0) None
+         else Some(validated)
       }
   }
 

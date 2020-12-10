@@ -6,7 +6,7 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.{ Act, ActionTrace, Data, Partial, Receipt, Trace}
+import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace}
 
 trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   protected val dbConfigProvider: DatabaseConfigProvider

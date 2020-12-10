@@ -5,7 +5,7 @@ import java.util.UUID
 import java.time.Instant
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.{Transaction, Trace}
+import models.domain.eosio.{ Transaction, Trace }
 
 @Singleton
 final class TransactionDAO @Inject()(
