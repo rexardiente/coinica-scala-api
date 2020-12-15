@@ -29,7 +29,7 @@ class HomeController @Inject()(
       referralRepo: ReferralRepo,
       taskService: TaskService,
       rankingService: RankingService,
-      referralService: ReferralService,
+      referralService:  ReferralService,
       transactionService: TransactionService,
       challengeService: ChallengeService,
       implicit val system: akka.actor.ActorSystem, 
