@@ -41,7 +41,6 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo,
       // println(connect)
 
     case GQRowsResponse(rows, hasNext, nextKey) =>
-      println(rows.size)
       val seqCharacters = ListBuffer[GQCharacterData]()
       val characterPrevMatches = ListBuffer[((String, Long), Seq[GQCharacterPrevMatch])]()
 
@@ -89,9 +88,9 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo,
                 else {
                   characterRepo.update(info).map { update =>
                     if (update > 0) 
-                      println("STATUS UPDATE SUCCESS: " + info.owner.toUpperCase + " ~> character " + info.key)
+                      println("Update Successful: " + info.owner.toUpperCase + " ~> character " + info.key)
                     else
-                      println("STATUS UPDATE FAILED: " + info.owner.toUpperCase + " ~> character " + info.key)
+                      println("Update Failed: " + info.owner.toUpperCase + " ~> character " + info.key)
                   }
                 }
               }
@@ -132,11 +131,9 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo,
         }
       } yield ()
 
-      // Todo: check if the first result still hasnext data
-      if (hasNext) {
-        val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", Some(nextKey), Some("uint64_t"), None, None, None)
-        self ! LoadGQUserTable(req)
-      }
+      // check if the first result still hasnext data
+      if (hasNext)
+        self ! LoadGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, Some(nextKey)))
 
     // case data: (List[GQCharacterData], List[GQCharacterPrevMatch])@unchecked =>  // insert into character's info DB
     case BattleScheduler =>
