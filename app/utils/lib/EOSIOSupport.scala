@@ -4,7 +4,7 @@ import javax.inject.{ Inject, Singleton }
 import java.time.{ ZoneId, ZonedDateTime, LocalDateTime }
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.{ Arrays, List, ArrayList }
+import java.util.{ Arrays, List, ArrayList, UUID }
 import scala.util._
 import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
@@ -103,10 +103,11 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   //   }
 
   // requires account name and characterID
-  def battleAction(users: Seq[(String, Int)]): Future[Either[EosApiException, PushedTransaction]] = {
+  def battleAction(users: Seq[(Int, String)], id: UUID): Future[Either[EosApiException, PushedTransaction]] = {
     // unlockWalletAPI()
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
-    abiJsonToBin("ghostquest", "battle", Seq(users(0)._1, users(0)._2, users(1)._1, users(1)._2)).map { abiJsonToBinResult => 
+    val data: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsNumber(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsNumber(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
+    abiJsonToBin("ghostquest", "battle", data).map { abiJsonToBinResult => 
       val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
           "ghostquest",
           "battle",
@@ -234,7 +235,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
         case str: String => JsString(str)
         case num: Int => JsNumber(num)
         case bol: Boolean => JsBoolean(bol)
-        case arr: JsArray => arr
+        case js: JsValue => js
         case any => JsNull(any.toString)
       })))
       .map(_.json.asOpt[BinaryArgs])

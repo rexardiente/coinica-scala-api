@@ -131,8 +131,8 @@ trait CommonImplicits {
 	  		Json.obj("id" -> tx.id, "response" -> tx.response)
 	  }
 	}
-
 	// EOSIO Tables..
+	implicit def implGQCharacterPrevMatchData = Json.format[GQCharacterPrevMatchData]
 	implicit def implGQCharacterPrevMatch = Json.format[GQCharacterPrevMatch]
 	implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQCharacterInfo] {
 		override def reads(js: JsValue): JsResult[GQCharacterInfo] = js match {
@@ -154,7 +154,7 @@ trait CommonImplicits {
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
 						(json \ "last_match").asOpt[String].map(_.toLong).getOrElse(0),
-						(json \ "enemy_fought").as[Seq[GQCharacterPrevMatch]]))
+						(json \ "match_history").as[Seq[GQCharacterPrevMatch]]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -179,7 +179,7 @@ trait CommonImplicits {
 		"battle_limit" -> tx.battle_limit,
 		"battle_count" -> tx.battle_count,
 		"last_match" -> tx.last_match,
-		"enemy_fought" -> tx.enemy_fought)
+		"match_history" -> tx.match_history)
 	}
 	implicit def implGQGhost = Json.format[GQGhost]
 	implicit def implGQGame = Json.format[GQGame]
@@ -207,8 +207,8 @@ trait CommonImplicits {
 						(json \ "prize").as[String],
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
-						(json \ "last_match").as[Long],
-						(json \ "enemy_fought").as[Seq[GQCharacterPrevMatch]]))
+						(json \ "last_match").as[Long]))
+						// (json \ "match_history").as[Seq[GQCharacterPrevMatch]]
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -234,7 +234,9 @@ trait CommonImplicits {
 		"prize" -> tx.prize,
 		"battle_limit" -> tx.battle_limit,
 		"battle_count" -> tx.battle_count,
-		"last_match" -> tx.last_match,
-		"enemy_fought" -> tx.enemy_fought)
+		"last_match" -> tx.last_match)
+		// "match_history" -> tx.match_history)
 	}
+	implicit def implGQCharacterGameHistory = Json.format[GQCharacterGameHistory]
+	
 }

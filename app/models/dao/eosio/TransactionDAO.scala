@@ -14,7 +14,7 @@ final class TransactionDAO @Inject()(
   import profile.api._
 
   protected class TransactionTable(tag: Tag) extends Table[Transaction](tag, "TRANSACTION") {
-    def id = column[UUID] ("ID")
+    def id = column[UUID] ("ID", O.PrimaryKey)
     def traceID = column[String] ("TRACE_ID")
     def blockNum = column[Long] ("BLOCK_NUM")
     def blockTimestamp = column[Long] ("BLOCK_TIMESTAMP")

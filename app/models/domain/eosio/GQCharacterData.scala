@@ -21,7 +21,6 @@ case class GQCharacterData(
     prize: String, 
     battle_limit: Int, 
     battle_count: Int, 
-    last_match: Long, // String Long value from smartcontract
-    enemy_fought: Seq[GQCharacterPrevMatch]) {
+    last_match: Long) { // String Long value from smartcontract
   def toJson(): JsValue = Json.toJson(this)
 }

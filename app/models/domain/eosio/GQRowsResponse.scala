@@ -2,14 +2,20 @@ package models.domain.eosio
 
 import play.api.libs.json._
 
+object GQCharacterPrevMatchData extends utils.CommonImplicits
 object GQCharacterPrevMatch extends utils.CommonImplicits
 object GQCharacterInfo extends utils.CommonImplicits
 object GQGhost extends utils.CommonImplicits
 object GQGame extends utils.CommonImplicits
 object GQTable extends utils.CommonImplicits
 object GQRowsResponse extends utils.CommonImplicits
-
-case class GQCharacterPrevMatch(key: Int, value: String)
+case class GQCharacterPrevMatchData(
+enemy: String,
+enemy_id: String,
+time_executed: String,
+gameplay_log: Seq[String],
+isWin: Int)
+case class GQCharacterPrevMatch(key: String, value: GQCharacterPrevMatchData)
 case class GQCharacterInfo(
   owner: String, 
   character_life: Int,
@@ -26,17 +32,12 @@ case class GQCharacterInfo(
   battle_limit: Int, 
   battle_count: Int, 
   last_match: Long, // String Long value from smartcontract
-  enemy_fought: Seq[GQCharacterPrevMatch])
+  match_history: Seq[GQCharacterPrevMatch])
 case class GQGhost(key: Long, value: GQCharacterInfo)
-case class GQGame(character: Seq[GQGhost], status: Int)
-case class GQTable(username: String, game_id: Long, game_data: GQGame) {
+case class GQGame(character: Seq[GQGhost])
+case class GQTable(username: String, game_data: GQGame) {
   def toJson(): JsValue = Json.toJson(this)
 }
 case class GQRowsResponse(rows: Seq[GQTable], more: Boolean, next_key: String) {
   def toJson(): JsValue = Json.toJson(this)
 }
-
-// uuid // auto generated as primary key 
-// GQGhost key // not morethan 1
-// username
-// GQCharacterInfo // enemy_fought must have game_id
