@@ -19,12 +19,15 @@ class GQCharacterGameHistoryRepo @Inject()(
     db.run(dao.Query += data)
 
   // def update(data: GQCharacterGameHistory): Future[Int] =
-  //   db.run(dao.Query.filter(x => x.owner === data.owner && x.game_id === data.game_id).update(data))
+  //   db.run(dao.Query.filter(x => x.player === data.player && x.game_id === data.game_id).update(data))
 
   def all(): Future[Seq[GQCharacterGameHistory]] =
     db.run(dao.Query.result)
 
-  def exist(id: String): Future[Boolean] =
+  def exist(id: String, player: String): Future[Boolean] =
+    db.run(dao.Query(id, player).exists.result)
+
+  def exist(id: UUID): Future[Boolean] =
     db.run(dao.Query(id).exists.result)
 
   // def find(id: UUID): Future[Option[GQCharacterGameHistory]] =

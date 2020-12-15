@@ -4,11 +4,12 @@ import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
+import scala.collection.mutable.ListBuffer
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import play.api.Logger
-import models.domain.eosio.{ TableRowsRequest, GQRowsResponse, GQGame, GQCharacterData, GQCharacterPrevMatch }
+import models.domain.eosio._
 import models.repo.eosio._
 import akka.domain.common.objects._
 import utils.lib.EOSIOSupport
@@ -18,7 +19,7 @@ object SchedulerActor {
 }
 
 @Singleton
-class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) extends Actor {
+class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo, gqGameHistoryRepo: GQCharacterGameHistoryRepo)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) extends Actor {
   val logger       : Logger      = Logger(this.getClass())
   val eosioSupport :EOSIOSupport = new EOSIOSupport(ws)
 
@@ -40,16 +41,19 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo)
       // println(connect)
 
     case GQRowsResponse(rows, hasNext, nextKey) =>
+      println(rows.size)
+      val seqCharacters = ListBuffer[GQCharacterData]()
+      val characterPrevMatches = ListBuffer[((String, Long), Seq[GQCharacterPrevMatch])]()
+
       for {
-        processed <- {
-          rows.map { row =>
+        _ <- Some({ // process data
+          rows.foreach { row =>
             val username: String = row.username
             val gameData: GQGame = row.game_data
 
-            val data: Seq[(GQCharacterData, Seq[GQCharacterPrevMatch])] = gameData.character.map { ch => 
-              val characteID: UUID = UUID.randomUUID()
-              (new GQCharacterData(
-                  characteID,
+            gameData.character.foreach { ch => 
+              val chracterInfo: GQCharacterData = new GQCharacterData(
+                  UUID.randomUUID(),
                   ch.key,
                   ch.value.owner,
                   ch.value.character_life,
@@ -65,20 +69,19 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo)
                   ch.value.prize,
                   ch.value.battle_limit,
                   ch.value.battle_count,
-                  ch.value.last_match),
-              ch.value.match_history)
+                  ch.value.last_match)
+
+              seqCharacters.append(chracterInfo)
+
+              ch.value.match_history.foreach(mtch => {
+                characterPrevMatches.append(((username, ch.key), ch.value.match_history))
+              })
             }
-
-            val setOfCharactersInfo: Seq[GQCharacterData] =
-              try { data.map(_._1) } catch { case _: Throwable => Seq.empty }
-            val setOfCharactersGameHistory: Seq[GQCharacterPrevMatch] = 
-              try { data.map(_._2).flatten } catch { case _: Throwable => Seq.empty }
-            (setOfCharactersInfo, setOfCharactersGameHistory)
           }
-        }
+        })
 
-        _ <-  { // insert Seq[GQCharacterData] 
-          processed._1.map { info =>
+        _ <-  Some { // insert Seq[GQCharacterData] 
+          seqCharacters.map { info =>
             try { // check if data aleady exists
               characterRepo.find(info.owner, info.key).map { isExists =>
                 if (!isExists) 
@@ -97,12 +100,43 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo)
             }
           }
         }
-        _ <- { // insert Seq[GQCharacterPrevMatch]
-          
-          // val setOfCharactersGameHistory: Seq[GQCharacterPrevMatch] = processed._2
-          Some(Seq.empty)
+        _ <- Some { // convert to GQCharacterGameHistory and insert Seq[GQCharacterPrevMatch]
+          val setOfCharactersGameHistory: ListBuffer[GQCharacterGameHistory] = characterPrevMatches.map({ 
+            case ((owner, id), seq) =>
+              seq.map({ x => 
+                new GQCharacterGameHistory(
+                UUID.randomUUID(), 
+                x.key, 
+                owner, 
+                x.value.enemy, 
+                id, 
+                x.value.enemy_id,
+                x.value.time_executed, 
+                x.value.gameplay_log, 
+                x.value.isWin)
+              })}).flatten
+
+          setOfCharactersGameHistory.foreach(history => {
+            gqGameHistoryRepo.exist(history.game_id, history.player).map { isExists =>
+              if (!isExists) gqGameHistoryRepo.insert(history)
+              // else {
+              //   gqGameHistoryRepo.update(history).map { update =>
+              //     if (update > 0) 
+              //       println("STATUS UPDATE SUCCESS: " + info.owner.toUpperCase + " ~> character " + info.key)
+              //     else
+              //       println("STATUS UPDATE FAILED: " + info.owner.toUpperCase + " ~> character " + info.key)
+              //   }
+              // }
+            }
+          })
         }
       } yield ()
+
+      // Todo: check if the first result still hasnext data
+      if (hasNext) {
+        val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", Some(nextKey), Some("uint64_t"), None, None, None)
+        self ! LoadGQUserTable(req)
+      }
 
     // case data: (List[GQCharacterData], List[GQCharacterPrevMatch])@unchecked =>  // insert into character's info DB
     case BattleScheduler =>
@@ -111,16 +145,11 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo)
       // println("BattleScheduler")
       // validate response and send to self
       // eosioSupport.getGQUsers(req).map(_.map(self ! _))
-
-    // case UpdateUserDB(data) => 
-    //   println(data)
-
-
-    // n = List of characters and save to DB
-    // battle Action response >>
-    // if (life > 0)
+      // n = List of characters and save to DB
+      // battle Action response >>
+      // if (life > 0)
       // update chracter info and gamehistory...
-    // else
+      // else
       // updata chracter status to eliminated..
 
     case LoadGQUserTable(request) =>
