@@ -103,10 +103,11 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   //   }
 
   // requires account name and characterID
-  def battleAction(users: Seq[(Int, String)], id: UUID): Future[Either[EosApiException, PushedTransaction]] = {
+  def battleAction(users: Seq[(String, String)], id: UUID): Future[Either[EosApiException, PushedTransaction]] = {
     // unlockWalletAPI()
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
-    val data: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsNumber(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsNumber(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
+    val data: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
+
     abiJsonToBin("ghostquest", "battle", data).map { abiJsonToBinResult => 
       val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
           "ghostquest",
@@ -154,7 +155,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
         "upper_bound" -> req.upper_bound.getOrElse(null),
         "lower_bound" -> req.lower_bound.getOrElse(null),
         "json" -> true, // add this to format result into JSON
-        "limit" -> 250 // set max result to 250 active users per request
+        "limit" -> 10 // set max result to 250 active users per request
       ))
       .map { response =>
          val validated: GQRowsResponse = (response.json).asOpt[GQRowsResponse].getOrElse(null)

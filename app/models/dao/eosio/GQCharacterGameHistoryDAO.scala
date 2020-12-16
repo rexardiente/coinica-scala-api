@@ -14,18 +14,21 @@ final class GQCharacterGameHistoryDAO @Inject()(
   import profile.api._
 
   protected class GQCharacterGameHistoryTable(tag: Tag) extends Table[GQCharacterGameHistory](tag, "GQ_CHARACTER_GAME_HISTORY") {
-    def key = column[String] ("KEY", O.PrimaryKey)
-    def game_id = column[String] ("ID")
-    def owner = column[String] ("OWNER")
+    def id = column[UUID] ("ID", O.PrimaryKey)
+    def game_id = column[String] ("GAME_ID")
+    def player = column[String] ("PLAYER")
     def enemy = column[String] ("ENEMY")
-    def time_executed = column[String] ("TIME_EXECUTED")
+    def playerID = column[Long] ("PLAYER_ID")
+    def enemyID = column[Long] ("ENEMY_ID")
+    def time_executed = column[Long] ("TIME_EXECUTED")
     def gameplay_log = column[List[String]] ("GAME_LOG")
     def isWin = column[Boolean] ("IS_WIN")
 
-   def * = (key, game_id, owner, enemy, time_executed, gameplay_log, isWin) <> ((GQCharacterGameHistory.apply _).tupled, GQCharacterGameHistory.unapply)
+   def * = (id, game_id, player, enemy, playerID, enemyID, time_executed, gameplay_log, isWin) <> ((GQCharacterGameHistory.apply _).tupled, GQCharacterGameHistory.unapply)
   }
 
   object Query extends TableQuery(new GQCharacterGameHistoryTable(_)) {
-    def apply(key: String) = this.withFilter(_.key === key)
+    def apply(id: UUID) = this.withFilter(_.id === id)
+    def apply(id: String, player: String) = this.withFilter(x => x.game_id === id && x.player === player)
   } 
 }

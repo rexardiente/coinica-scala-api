@@ -131,8 +131,35 @@ trait CommonImplicits {
 	  		Json.obj("id" -> tx.id, "response" -> tx.response)
 	  }
 	}
+	
 	// EOSIO Tables..
-	implicit def implGQCharacterPrevMatchData = Json.format[GQCharacterPrevMatchData]
+	implicit val implicitGQCharacterPrevMatchDataReads: Reads[GQCharacterPrevMatchData] = new Reads[GQCharacterPrevMatchData] {
+		override def reads(js: JsValue): JsResult[GQCharacterPrevMatchData] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(GQCharacterPrevMatchData(
+						(json \ "enemy").as[String],
+						(json \ "enemy_id").as[Long],
+						(json \ "time_executed").as[String].toLong,
+						(json \ "gameplay_log").as[List[String]],
+						(if ((json \ "isWin").as[Int] > 0) true else false)
+					))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitGQCharacterPrevMatchDataWrites = new Writes[GQCharacterPrevMatchData] {
+	  def writes(tx: GQCharacterPrevMatchData): JsValue = Json.obj(
+		"enemy" -> tx.enemy,
+		"enemy_id" -> tx.enemy_id,
+		"time_executed" -> tx.time_executed,
+		"gameplay_log" -> tx.gameplay_log,
+		"isWin" -> tx.isWin)
+	}
+
 	implicit def implGQCharacterPrevMatch = Json.format[GQCharacterPrevMatch]
 	implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQCharacterInfo] {
 		override def reads(js: JsValue): JsResult[GQCharacterInfo] = js match {

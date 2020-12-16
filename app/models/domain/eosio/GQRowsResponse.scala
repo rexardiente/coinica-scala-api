@@ -11,10 +11,10 @@ object GQTable extends utils.CommonImplicits
 object GQRowsResponse extends utils.CommonImplicits
 case class GQCharacterPrevMatchData(
 enemy: String,
-enemy_id: String,
-time_executed: String,
-gameplay_log: Seq[String],
-isWin: Int)
+enemy_id: Long,
+time_executed: Long,
+gameplay_log: List[String],
+isWin: Boolean)
 case class GQCharacterPrevMatch(key: String, value: GQCharacterPrevMatchData)
 case class GQCharacterInfo(
   owner: String, 
