@@ -1,10 +1,10 @@
-package models.dao.login
+package models.dao
 
 import java.util.UUID
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.login.Login
+import models.domain.Login
 
 @Singleton
 final class LoginDAO @Inject()(

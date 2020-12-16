@@ -1,4 +1,4 @@
-package models.domain.login
+package models.domain
 
 import java.time.Instant
 import java.util.UUID
