@@ -14,11 +14,11 @@ final class LoginDAO @Inject()(
 
   protected class LoginTable(tag: Tag) extends Table[Login](tag, "LOGIN") {
     def id = column[UUID] ("ID")
-    def emailaddress = column[String] ("emailaddress")
+    def username = column[String] ("USERNAME")
     def password = column[String] ("PASSWORD")
     def logincreated = column[Instant] ("LOGINCREATED")
 
-   def * = (id, emailaddress, password, logincreated) <> ((Login.apply _).tupled, Login.unapply)
+   def * = (id, username, password, logincreated) <> ((Login.apply _).tupled, Login.unapply)
   }
 
   object Query extends TableQuery(new LoginTable(_)) {
