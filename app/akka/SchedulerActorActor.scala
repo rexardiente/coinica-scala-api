@@ -19,7 +19,10 @@ object SchedulerActor {
 }
 
 @Singleton
-class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo, gqGameHistoryRepo: GQCharacterGameHistoryRepo)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) extends Actor {
+class SchedulerActor @Inject()(
+      ws: WSClient, 
+      characterRepo: GQCharacterDataRepo, 
+      gqGameHistoryRepo: GQCharacterGameHistoryRepo)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) extends Actor {
   val logger       : Logger      = Logger(this.getClass())
   val eosioSupport :EOSIOSupport = new EOSIOSupport(ws)
 
@@ -82,15 +85,15 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo,
         _ <-  Some { // insert Seq[GQCharacterData] 
           seqCharacters.map { info =>
             try { // check if data aleady exists
-              characterRepo.find(info.owner, info.key).map { isExists =>
+              characterRepo.find(info.owner, info.chracterID).map { isExists =>
                 if (!isExists) 
                   characterRepo.insert(info)
                 else {
                   characterRepo.update(info).map { update =>
                     if (update > 0) 
-                      println("Update Successful: " + info.owner.toUpperCase + " ~> character " + info.key)
+                      println("Update Successful: " + info.owner.toUpperCase + " ~> character " + info.chracterID)
                     else
-                      println("Update Failed: " + info.owner.toUpperCase + " ~> character " + info.key)
+                      println("Update Failed: " + info.owner.toUpperCase + " ~> character " + info.chracterID)
                   }
                 }
               }
@@ -99,6 +102,7 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo,
             }
           }
         }
+
         _ <- Some { // convert to GQCharacterGameHistory and insert Seq[GQCharacterPrevMatch]
           val setOfCharactersGameHistory: ListBuffer[GQCharacterGameHistory] = characterPrevMatches.map({ 
             case ((owner, id), seq) =>
@@ -134,14 +138,21 @@ class SchedulerActor @Inject()(ws: WSClient, characterRepo: GQCharacterDataRepo,
       // check if the first result still hasnext data
       if (hasNext)
         self ! LoadGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, Some(nextKey)))
+      // remove eliminated chracter from users table..
+      else 
+        ???
+
 
     // case data: (List[GQCharacterData], List[GQCharacterPrevMatch])@unchecked =>  // insert into character's info DB
     case BattleScheduler =>
       // logger.info("Executing SchedulerActor in every 3 min...")
-      // val req = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
-      // println("BattleScheduler")
-      // validate response and send to self
-      // eosioSupport.getGQUsers(req).map(_.map(self ! _))
+      // for {
+      //   chracters <- characterRepo.all() // Future[Seq[GQCharacterData]]
+      //   grouped <- Future.successful(chracters.grouped(2).toList)
+      // } yield grouped.map { list =>
+      //   println(list)
+      // }
+
       // n = List of characters and save to DB
       // battle Action response >>
       // if (life > 0)

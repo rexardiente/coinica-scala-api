@@ -2,11 +2,11 @@ package models.domain.eosio
 
 import play.api.libs.json._
 
-object GQCharacterData extends utils.CommonImplicits
+object GQCharacterDataHistory extends utils.CommonImplicits
 
-case class GQCharacterData(
+case class GQCharacterDataHistory(
     id: java.util.UUID,
-    chracterID: Long,
+    gameID: Long,
     owner: String, 
     character_life: Int,
     initial_hp: Int, 
@@ -21,6 +21,7 @@ case class GQCharacterData(
     prize: String, 
     battle_limit: Int, 
     battle_count: Int, 
-    last_match: Long) { // String Long value from smartcontract
+    last_match: Long,
+    matches: Int) {
   def toJson(): JsValue = Json.toJson(this)
 }

@@ -8,32 +8,34 @@ import models.dao._
 
 @Singleton
 class Generator @Inject()(
-    userDAO: UserDAO,
-    gameDAO: GameDAO,
-    genreDAO: GenreDAO,
-    taskDAO: TaskDAO,
-    txDAO: TransactionDAO,
-    referralDAO: ReferralDAO,
-    rankingDAO: RankingDAO,
-    challengeDAO: ChallengeDAO,
-    gqCharacterDataDAO: GQCharacterDataDAO,
-    gqCharacterGameHistoryDAO: GQCharacterGameHistoryDAO,
+    user: UserDAO,
+    game: GameDAO,
+    genre: GenreDAO,
+    task: TaskDAO,
+    tx: TransactionDAO,
+    referral: ReferralDAO,
+    ranking: RankingDAO,
+    challenge: ChallengeDAO,
+    gqCharacterData: GQCharacterDataDAO,
+    gqCharacterGameHistory: GQCharacterGameHistoryDAO,
+    gqCharacterDataHistory: GQCharacterDataHistoryDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
   def createDDLScript() = {
     val schemas = 
-      userDAO.Query.schema ++
-      gameDAO.Query.schema ++
-      genreDAO.Query.schema ++
-      taskDAO.Query.schema ++
-      txDAO.Query.schema ++
-      referralDAO.Query.schema ++
-      rankingDAO.Query.schema ++
-      challengeDAO.Query.schema ++
-      gqCharacterDataDAO.Query.schema ++
-      gqCharacterGameHistoryDAO.Query.schema
+      user.Query.schema ++
+      game.Query.schema ++
+      genre.Query.schema ++
+      task.Query.schema ++
+      tx.Query.schema ++
+      referral.Query.schema ++
+      ranking.Query.schema ++
+      challenge.Query.schema ++
+      gqCharacterData.Query.schema ++
+      gqCharacterGameHistory.Query.schema ++
+      gqCharacterDataHistory.Query.schema
       
 
     val writer = new java.io.PrintWriter("target/schema.sql")

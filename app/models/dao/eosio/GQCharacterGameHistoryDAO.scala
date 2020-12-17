@@ -24,11 +24,20 @@ final class GQCharacterGameHistoryDAO @Inject()(
     def gameplay_log = column[List[String]] ("GAME_LOG")
     def isWin = column[Boolean] ("IS_WIN")
 
-   def * = (id, game_id, player, enemy, playerID, enemyID, time_executed, gameplay_log, isWin) <> ((GQCharacterGameHistory.apply _).tupled, GQCharacterGameHistory.unapply)
+   def * = (id,
+            game_id,
+            player,
+            enemy,
+            playerID,
+            enemyID,
+            time_executed,
+            gameplay_log,
+            isWin) <> ((GQCharacterGameHistory.apply _).tupled, GQCharacterGameHistory.unapply)
   }
 
   object Query extends TableQuery(new GQCharacterGameHistoryTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
     def apply(id: String, player: String) = this.withFilter(x => x.game_id === id && x.player === player)
+    def apply(id: Long, player: String) = this.withFilter(x => x.playerID === id && x.player === player)
   } 
 }

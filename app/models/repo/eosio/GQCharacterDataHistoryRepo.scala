@@ -6,31 +6,28 @@ import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.eosio.GQCharacterGameHistory
+import models.domain.eosio.GQCharacterDataHistory
 
 @Singleton
-class GQCharacterGameHistoryRepo @Inject()(
-    dao: models.dao.GQCharacterGameHistoryDAO,
+class GQCharacterDataHistoryRepo @Inject()(
+    dao: models.dao.GQCharacterDataHistoryDAO,
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
-  def insert(data: GQCharacterGameHistory): Future[Int] =
+  def insert(data: GQCharacterDataHistory): Future[Int] =
     db.run(dao.Query += data)
 
-  // def update(data: GQCharacterGameHistory): Future[Int] =
+  // def update(data: GQCharacterDataHistory): Future[Int] =
   //   db.run(dao.Query.filter(x => x.player === data.player && x.game_id === data.game_id).update(data))
 
-  def all(): Future[Seq[GQCharacterGameHistory]] =
+  def all(): Future[Seq[GQCharacterDataHistory]] =
     db.run(dao.Query.result)
 
-  def exist(id: String, player: String): Future[Boolean] =
+  def exist(id: Long, player: String): Future[Boolean] =
     db.run(dao.Query(id, player).exists.result)
 
-  def exist(id: UUID): Future[Boolean] =
-    db.run(dao.Query(id).exists.result)
-
-  def find(id: Long, player: String): Future[Seq[GQCharacterGameHistory]] =
+  def find(id: Long, player: String): Future[Seq[GQCharacterDataHistory]] =
     db.run(dao.Query(id, player).result)
 
   def getSize(id: Long, player: String): Future[Int] =
