@@ -11,7 +11,7 @@ object GQTable extends utils.CommonImplicits
 object GQRowsResponse extends utils.CommonImplicits
 case class GQCharacterPrevMatchData(
 enemy: String,
-enemy_id: Long,
+enemy_id: String,
 time_executed: Long,
 gameplay_log: List[String],
 isWin: Boolean)
@@ -33,7 +33,7 @@ case class GQCharacterInfo(
   battle_count: Int, 
   last_match: Long, // String Long value from smartcontract
   match_history: Seq[GQCharacterPrevMatch])
-case class GQGhost(key: Long, value: GQCharacterInfo)
+case class GQGhost(key: String, value: GQCharacterInfo)
 case class GQGame(character: Seq[GQGhost])
 case class GQTable(username: String, game_data: GQGame) {
   def toJson(): JsValue = Json.toJson(this)

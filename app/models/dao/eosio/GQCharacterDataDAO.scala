@@ -15,7 +15,7 @@ final class GQCharacterDataDAO @Inject()(
 
   protected class GQCharacterDataTable(tag: Tag) extends Table[GQCharacterData](tag, "GQ_CHARACTER_DATA") {
     def id = column[UUID] ("ID", O.PrimaryKey)
-    def chracterID = column[Long] ("CHARACTER_ID")
+    def chracterID = column[String] ("CHARACTER_ID")
     def owner = column[String] ("OWNER")
     def life = column[Int] ("LIFE")
     def initial_hp = column[Int] ("INITIAL_HP")
@@ -32,24 +32,23 @@ final class GQCharacterDataDAO @Inject()(
     def battle_count = column[Int] ("BATTLE_COUNT")
     def last_match = column[Long] ("LAST_MATCH")
 
-   def * = (
-      id,
-      chracterID,
-      owner,
-      life,
-      initial_hp,
-      hitpoints,
-      `class`,
-      level,
-      status,
-      attack,
-      defense,
-      speed,
-      luck,
-      prize,
-      battle_limit,
-      battle_count,
-      last_match) <> ((GQCharacterData.apply _).tupled, GQCharacterData.unapply)
+    def * = (id,
+            chracterID,
+            owner,
+            life,
+            initial_hp,
+            hitpoints,
+            `class`,
+            level,
+            status,
+            attack,
+            defense,
+            speed,
+            luck,
+            prize,
+            battle_limit,
+            battle_count,
+            last_match) <> ((GQCharacterData.apply _).tupled, GQCharacterData.unapply)
   }
 
   object Query extends TableQuery(new GQCharacterDataTable(_)) {

@@ -9,8 +9,8 @@ case class GQCharacterGameHistory(
     game_id: String,
     player: String,
     enemy: String,
-    player_id: Long,
-    enemy_id: Long,
+    player_id: String,
+    enemy_id: String,
     time_executed: Long,
     gameplay_log: List[String],
     isWin: Boolean) { // String Long value from smartcontract

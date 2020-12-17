@@ -20,9 +20,7 @@ final class TransactionDAO @Inject()(
     def blockTimestamp = column[Long] ("BLOCK_TIMESTAMP")
     def trace = column[Trace] ("TRACE")
 
-   def * = (id, traceID, blockNum, blockTimestamp, trace) <> (Transaction.tupled, Transaction.unapply)
-   // def pk = primaryKey("pk_a", (id, traceID))
-   // def idx = index("idx_a", (id, traceID), unique = true)
+    def * = (id, traceID, blockNum, blockTimestamp, trace) <> (Transaction.tupled, Transaction.unapply)
   }
 
   object Query extends TableQuery(new TransactionTable(_)) {

@@ -139,7 +139,7 @@ trait CommonImplicits {
 				try {
 					JsSuccess(GQCharacterPrevMatchData(
 						(json \ "enemy").as[String],
-						(json \ "enemy_id").as[Long],
+						(json \ "enemy_id").as[String],
 						(json \ "time_executed").as[String].toLong,
 						(json \ "gameplay_log").as[List[String]],
 						(if ((json \ "isWin").as[Int] > 0) true else false)
@@ -208,7 +208,25 @@ trait CommonImplicits {
 		"last_match" -> tx.last_match,
 		"match_history" -> tx.match_history)
 	}
-	implicit def implGQGhost = Json.format[GQGhost]
+	// implicit def implGQGhost = Json.format[GQGhost]
+	implicit val implicitGQGhostReads: Reads[GQGhost] = new Reads[GQGhost] {
+		override def reads(js: JsValue): JsResult[GQGhost] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(GQGhost(
+						(json \ "key").as[String],
+						(json \ "value").as[GQCharacterInfo]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitGQGhostWrites = new Writes[GQGhost] {
+	  def writes(tx: GQGhost): JsValue = Json.obj("key" -> tx.key, "value" -> tx.value)
+	}
+
 	implicit def implGQGame = Json.format[GQGame]
 	implicit def implGQTable = Json.format[GQTable]
 	implicit def implGQRowsResponse = Json.format[GQRowsResponse]
@@ -219,7 +237,7 @@ trait CommonImplicits {
 				try {
 					JsSuccess(GQCharacterData(
 						(json \ "id").as[UUID],
-						(json \ "key").as[Long],
+						(json \ "key").as[String],
 						(json \ "owner").as[String],
 						(json \ "character_life").as[Int],
 						(json \ "initial_hp").as[Int],
@@ -235,7 +253,6 @@ trait CommonImplicits {
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
 						(json \ "last_match").as[Long]))
-						// (json \ "match_history").as[Seq[GQCharacterPrevMatch]]
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}

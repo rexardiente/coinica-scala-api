@@ -33,7 +33,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
     def lastMatch = column[Long] ("LAST_MATCH")
     def matches = column[Int] ("MATCHES")
 
-   def * = (id,
+    def * = (id,
             chracterID,
             player,
             life,
