@@ -31,8 +31,10 @@ class SchedulerActor @Inject()(
     println("SchedulerActor Initialized!!!")
 
     // load GhostQuest users to DB update for one time.. in case server is down..
-    val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
-    self ! LoadGQUserTable(req)
+    // val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
+    // self ! LoadGQUserTable(req)
+
+    self ! BattleScheduler
 
     // scheduled on every 3 minutes
     // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.minute, interval = 1.minute)(() => self ! BattleScheduler)
@@ -45,7 +47,7 @@ class SchedulerActor @Inject()(
 
     case GQRowsResponse(rows, hasNext, nextKey) =>
       val seqCharacters = ListBuffer[GQCharacterData]()
-      val characterPrevMatches = ListBuffer[((String, Long), Seq[GQCharacterPrevMatch])]()
+      val characterPrevMatches = ListBuffer[((String, String), Seq[GQCharacterPrevMatch])]()
 
       for {
         _ <- Some({ // process data
@@ -138,13 +140,36 @@ class SchedulerActor @Inject()(
       // check if the first result still hasnext data
       if (hasNext)
         self ! LoadGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, Some(nextKey)))
-      // remove eliminated chracter from users table..
-      else 
-        ???
+      // remove eliminated chracter from users table..   
+      // else 
+      //   ???
+
+    case BattleScheduler => 
+      // import java.util.Random
+      // Note: no more chracters that are eliminated in the game..
+      characterRepo.all().map { characters =>
+        // val rand = new scala.util.Random()
+        // val shuffled: Seq[GQCharacterData] = rand.shuffle(characters)
+
+        // val map = new scala.collection.mutable.HashMap[String, GQCharacterData]() // chracter ID
+        // shuffled.foreach(each => map(each.chracterID) = each)
+        // println(map.size)
+
+        println(res)
 
 
-    // case data: (List[GQCharacterData], List[GQCharacterPrevMatch])@unchecked =>  // insert into character's info DB
-    case BattleScheduler =>
+        // shuffled.map { x =>
+        //   println(x.chracterID + "\t" + x.owner)
+        // }
+        // shuffled.grouped(2)
+        // println(shuffled(0))
+        // println(characters(0))
+        // characters.filter(_ => rand.nextInt(100) < 50)
+        // println(Json.toJson(characters))
+      }
+
+
+
       // logger.info("Executing SchedulerActor in every 3 min...")
       // for {
       //   chracters <- characterRepo.all() // Future[Seq[GQCharacterData]]
