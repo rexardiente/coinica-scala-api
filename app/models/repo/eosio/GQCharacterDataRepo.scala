@@ -19,17 +19,17 @@ class GQCharacterDataRepo @Inject()(
     db.run(dao.Query += data)
 
   def update(data: GQCharacterData): Future[Int] =
-    db.run(dao.Query.filter(x => x.owner === data.owner && x.chracterID === data.chracterID).update(data))
+    db.run(dao.Query.filter(x => x.owner === data.owner && x.characterID === data.characterID).update(data))
 
   def all(): Future[Seq[GQCharacterData]] =
     db.run(dao.Query.result)
 
-  def exist(id: UUID): Future[Boolean] = 
+  def exist(id: String): Future[Boolean] = 
     db.run(dao.Query(id).exists.result)
 
-  def find(id: UUID): Future[Option[GQCharacterData]] =
+  def find(id: String): Future[Option[GQCharacterData]] =
     db.run(dao.Query(id).result.headOption)
 
-  def find(user: String, chracterID: String): Future[Boolean] = 
-    db.run(dao.Query.filter(x => x.owner === user && x.chracterID === chracterID).exists.result)
+  def find(user: String, characterID: String): Future[Boolean] = 
+    db.run(dao.Query.filter(x => x.owner === user && x.characterID === characterID).exists.result)
 }

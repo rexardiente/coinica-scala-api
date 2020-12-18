@@ -236,7 +236,6 @@ trait CommonImplicits {
 			case json: JsValue => {
 				try {
 					JsSuccess(GQCharacterData(
-						(json \ "id").as[UUID],
 						(json \ "key").as[String],
 						(json \ "owner").as[String],
 						(json \ "character_life").as[Int],
@@ -262,8 +261,7 @@ trait CommonImplicits {
 	}
 	implicit val implicitGQCharacterDataWrites = new Writes[GQCharacterData] {
 	  def writes(tx: GQCharacterData): JsValue = Json.obj(
-		"id" -> tx.id,
-		"key" -> tx.chracterID,
+		"key" -> tx.characterID,
 		"owner" -> tx.owner,
 		"character_life" -> tx.character_life,
 		"initial_hp" -> tx.initial_hp,
