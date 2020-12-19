@@ -9,4 +9,5 @@ case class LoadGQUserTable(request: TableRowsRequest) extends AnyVal
 case class SetOfGQCharacterInfo(list: Seq[GQCharacterData]) extends AnyVal
 case class SetOfGQCharacterGameHistory(list: Seq[GQCharacterPrevMatch]) extends AnyVal
 object BattleScheduler
+object RemoveCharacterWithNoLife
 // case class UpdateUserDB(data: TableRowsResponse)

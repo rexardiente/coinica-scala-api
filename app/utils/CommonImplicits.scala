@@ -261,7 +261,7 @@ trait CommonImplicits {
 	}
 	implicit val implicitGQCharacterDataWrites = new Writes[GQCharacterData] {
 	  def writes(tx: GQCharacterData): JsValue = Json.obj(
-		"key" -> tx.characterID,
+		"key" -> tx.id,
 		"owner" -> tx.owner,
 		"character_life" -> tx.character_life,
 		"initial_hp" -> tx.initial_hp,

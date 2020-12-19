@@ -2,11 +2,30 @@ package models.domain.eosio
 
 import play.api.libs.json._
 
-object GQCharacterDataHistory extends utils.CommonImplicits
+object GQCharacterDataHistory extends utils.CommonImplicits {
+  def fromCharacterData(data: GQCharacterData, count: Int): GQCharacterDataHistory =
+      new GQCharacterDataHistory(
+          data.id,
+          data.owner,
+          data.character_life,
+          data.initial_hp,
+          data.hitpoints,
+          data.ghost_class,
+          data.ghost_level,
+          data.status,
+          data.attack,
+          data.defense,
+          data.speed,
+          data.luck,
+          data.prize,
+          data.battle_limit,
+          data.battle_count,
+          data.last_match,
+          count)
+}
 
 case class GQCharacterDataHistory(
-    id: java.util.UUID,
-    gameID: Long,
+    id: String,
     owner: String, 
     character_life: Int,
     initial_hp: Int, 
@@ -23,5 +42,5 @@ case class GQCharacterDataHistory(
     battle_count: Int, 
     last_match: Long,
     matches: Int) {
-  def toJson(): JsValue = Json.toJson(this)
+    def toJson(): JsValue = Json.toJson(this)
 }

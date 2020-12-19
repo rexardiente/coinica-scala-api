@@ -4,26 +4,23 @@ import javax.inject.{ Inject, Singleton }
 import java.time.{ ZoneId, ZonedDateTime, LocalDateTime }
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.{ Arrays, List, ArrayList, UUID }
-import scala.util._
-import scala.jdk.CollectionConverters._
-import scala.concurrent.Future
-import scala.concurrent.duration._
+import java.util.{ Arrays, List, ArrayList }
 import com.typesafe.config.{ Config, ConfigFactory}
 import com.fasterxml.jackson.databind.ObjectMapper
+import scala.jdk.CollectionConverters._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
 import io.jafka.jeos.{ EosApi, EosApiFactory }
 import io.jafka.jeos.core.common.transaction.{ PackedTransaction, SignedPackedTransaction, TransactionAction, TransactionAuthorization }
-// import io.jafka.jeos.core.request.chain.json2bin.TransferArg
 import io.jafka.jeos.core.response.chain.{ AbiJsonToBin, Block }
-import io.jafka.jeos.core.response.chain.transaction.PushedTransaction
 import io.jafka.jeos.impl.EosApiServiceGenerator
 import io.jafka.jeos.exception.EosApiException
-import models.domain.eosio.{ BinaryArgs, TableRowsRequest, GQRowsResponse }
+import models.domain.eosio.BinaryArgs
 
 @Singleton
-class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.ExecutionContext) {
+class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val config            : Config = ConfigFactory.load()
   val keosdApiBaseURL   : String = config.getString("eosio.uri.keosd")
   val nodeosApiBaseURL  : String = config.getString("eosio.uri.nodeos")
@@ -41,7 +38,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   }
 
   // ③ create the authorization
-  private def authorization(acc: Seq[String]): List[TransactionAuthorization] = 
+  def authorization(acc: Seq[String]): List[TransactionAuthorization] = 
     new ArrayList(acc.map(x => new TransactionAuthorization(x, "active")).asJavaCollection)
 
   // ④ build the all actions
@@ -50,7 +47,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
     // returns actions: List[TransactionAction]
 
   // ⑤ build the packed transaction
-  private def packedTransaction(acc: String, block: Block, auth: List[TransactionAuthorization], data: AbiJsonToBin): PackedTransaction = {
+  def packedTransaction(acc: String, block: Block, auth: List[TransactionAuthorization], data: AbiJsonToBin): PackedTransaction = {
     // expired after 3 minutes
     val expiration: String = ZonedDateTime.now(ZoneId.of("GMT")).plusMinutes(3).truncatedTo(ChronoUnit.SECONDS).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
     val packedTx: PackedTransaction = new PackedTransaction()
@@ -66,23 +63,8 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   }
 
   // ⑦ sign the transaction
-  private def signTransaction(packedTx: PackedTransaction, pubKeys: Seq[String], chainId: String): SignedPackedTransaction = 
+  def signTransaction(packedTx: PackedTransaction, pubKeys: Seq[String], chainId: String): SignedPackedTransaction = 
     clientKeosdAPI.signTransaction(packedTx, new ArrayList(pubKeys.asJavaCollection), chainId)
-
-  // ⑥ unlock the creator's wallet
-  def unlockWalletAPI(): Either[EosApiException, Unit] = 
-    try {
-      Right(clientKeosdAPI.unlockWallet("default", privateKey))
-    } catch {
-      case e: EosApiException => Left(e)
-    }
-
-  def lockAllWallets(): Either[EosApiException, Unit] = 
-    try {
-      Right(clientKeosdAPI.lockAllWallets())
-    } catch {
-      case e: EosApiException => Left(e)
-    }
 
   // ⑧ push the signed transaction 
   // return 1 for success and 0 for failed tx..
@@ -103,69 +85,68 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   //   }
 
   // requires account name and characterID
-  def battleAction(users: Seq[(String, String)], id: UUID): Future[Either[EosApiException, PushedTransaction]] = {
-    // unlockWalletAPI()
-    // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
-    val data: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
+  // def battleAction(users: Seq[(String, String)], id: UUID): Future[Either[EosApiException, PushedTransaction]] = {
+  //   // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
+  //   val data: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
 
-    abiJsonToBin("ghostquest", "battle", data).map { abiJsonToBinResult => 
-      val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
-          "ghostquest",
-          "battle",
-          authorization(Seq("ghostquest")),
-          abiJsonToBinResult.map(_.binargs.as[String]).getOrElse(null)))
-      // track current block to avoid invalid ref block num
-      val currentBlock: Block = getLatestBlock()
-      val packedTx: PackedTransaction = new PackedTransaction()
-          packedTx.setExpiration(LocalDateTime.parse(expirationInStr))
-          packedTx.setRefBlockNum(currentBlock.getBlockNum())
-          packedTx.setRefBlockPrefix(currentBlock.getRefBlockPrefix())
-          packedTx.setDelaySec(0)
-          packedTx.setMaxNetUsageWords(0)
-          packedTx.setMaxCpuUsageMs(0)
-          packedTx.setActions(actions)
-      // check if transaction is successful
-      try {
-        val signedPackedTx: SignedPackedTransaction = signTransaction(
-          packedTx,
-          Seq(publicKey),
-          clientNodeosAPI.getChainInfo().getChainId())
+  //   abiJsonToBin("ghostquest", "battle", data).map { abiJsonToBinResult => 
+  //     val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
+  //         "ghostquest",
+  //         "battle",
+  //         authorization(Seq("ghostquest")),
+  //         abiJsonToBinResult.map(_.binargs.as[String]).getOrElse(null)))
+  //     // track current block to avoid invalid ref block num
+  //     val currentBlock: Block = getLatestBlock()
+  //     val packedTx: PackedTransaction = new PackedTransaction()
+  //         packedTx.setExpiration(LocalDateTime.parse(expirationInStr))
+  //         packedTx.setRefBlockNum(currentBlock.getBlockNum())
+  //         packedTx.setRefBlockPrefix(currentBlock.getRefBlockPrefix())
+  //         packedTx.setDelaySec(0)
+  //         packedTx.setMaxNetUsageWords(0)
+  //         packedTx.setMaxCpuUsageMs(0)
+  //         packedTx.setActions(actions)
+  //     // check if transaction is successful
+  //     try {
+  //       val signedPackedTx: SignedPackedTransaction = signTransaction(
+  //         packedTx,
+  //         Seq(publicKey),
+  //         clientNodeosAPI.getChainInfo().getChainId())
 
-        Right(clientNodeosAPI.pushTransaction(null, signedPackedTx))
-        // mapper.writeValueAsString(pushedTransaction).toString
-      }
-      catch { case e: EosApiException => Left(e) }
-    }
-  }
+  //       Right(clientNodeosAPI.pushTransaction(null, signedPackedTx))
+  //       // mapper.writeValueAsString(pushedTransaction).toString
+  //     }
+  //     catch { case e: EosApiException => Left(e) }
+  //   }
+  // }
 
-  def getGQUsers(req: TableRowsRequest): Future[Option[GQRowsResponse]] = {
-    val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.get_table_rows"))
-    val complexRequest: WSRequest = request
-      .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+  // def getGQUsers(req: TableRowsRequest): Future[Option[GQRowsResponse]] = {
+  //   val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.get_table_rows"))
+  //   val complexRequest: WSRequest = request
+  //     .addHttpHeaders("Accept" -> "application/json")
+  //     .withRequestTimeout(10000.millis)
 
-    complexRequest
-      .post(Json.obj(
-        "code" -> req.code,
-        "table" -> req.table,
-        "scope" -> req.scope,
-        "index_position" -> req.index_position.getOrElse(null),
-        "key_type" -> req.key_type.getOrElse(null),
-        "encode_type" -> req.encode_type.getOrElse(null),
-        "upper_bound" -> req.upper_bound.getOrElse(null),
-        "lower_bound" -> req.lower_bound.getOrElse(null),
-        "json" -> true, // add this to format result into JSON
-        "limit" -> 10 // set max result to 250 active users per request
-      ))
-      .map { response =>
-         val validated: GQRowsResponse = (response.json).asOpt[GQRowsResponse].getOrElse(null)
+  //   complexRequest
+  //     .post(Json.obj(
+  //       "code" -> req.code,
+  //       "table" -> req.table,
+  //       "scope" -> req.scope,
+  //       "index_position" -> req.index_position.getOrElse(null),
+  //       "key_type" -> req.key_type.getOrElse(null),
+  //       "encode_type" -> req.encode_type.getOrElse(null),
+  //       "upper_bound" -> req.upper_bound.getOrElse(null),
+  //       "lower_bound" -> req.lower_bound.getOrElse(null),
+  //       "json" -> true, // add this to format result into JSON
+  //       "limit" -> 10 // set max result to 250 active users per request
+  //     ))
+  //     .map { response =>
+  //        val validated: GQRowsResponse = (response.json).asOpt[GQRowsResponse].getOrElse(null)
 
-         if (validated == null || validated.rows.size == 0) None
-         else Some(validated)
-      }
-  }
+  //        if (validated == null || validated.rows.size == 0) None
+  //        else Some(validated)
+  //     }
+  // }
 
-  private def expirationInStr(): String = {
+  def expirationInStr(): String = {
     ZonedDateTime
       .now(ZoneId.of("GMT"))
       .plusMinutes(3)
@@ -174,7 +155,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   }
 
   // sign trasanction in JSON response
-  private def signTransactionToJson(args: Option[BinaryArgs]): Future[JsValue] = {
+  def signTransactionToJson(args: Option[BinaryArgs]): Future[JsValue] = {
     val request: WSRequest = ws.url(keosdApiBaseURL + config.getString("eosio.uri.path.sign_transaction"))
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -215,7 +196,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   }
 
   // custom abi to json bin function..
-  private def abiBinToJson(binargs: String): Unit = {
+  def abiBinToJson(binargs: String): Unit = {
     val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.abi_bin_to_json"))
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -226,7 +207,7 @@ class EOSIOSupport @Inject()(ws: WSClient)(implicit ec: scala.concurrent.Executi
   }
 
   // custom abi to json bin function..
-  private def abiJsonToBin(code: String, action: String, args: Seq[Any]): Future[Option[BinaryArgs]] = {
+  def abiJsonToBin(code: String, action: String, args: Seq[Any]): Future[Option[BinaryArgs]] = {
     val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.abi_json_to_bin"))
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")

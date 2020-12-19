@@ -5,7 +5,7 @@ import play.api.libs.json._
 object GQCharacterData extends utils.CommonImplicits
 
 case class GQCharacterData(
-    characterID: String,
+    id: String,
     owner: String, 
     character_life: Int,
     initial_hp: Int, 
