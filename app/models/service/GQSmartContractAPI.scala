@@ -19,50 +19,33 @@ import models.domain.eosio.{ TableRowsRequest, GQRowsResponse }
 import utils.lib.EOSIOSupport
 
 @Singleton
-class SmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-	final val GQContractName  : String = "ghostquest"
-	final val config          : Config = ConfigFactory.load()
-  final val keosdApiBaseURL : String = config.getString("eosio.uri.keosd")
-  final val nodeosApiBaseURL: String = config.getString("eosio.uri.nodeos")
-  final val publicKey       : String = config.getString("eosio.wallets.public.default.key")
-  final val privateKey      : String = config.getString("eosio.wallets.private.server.default.key")
-  final val clientKeosdAPI  : EosApi = EosApiFactory.create(keosdApiBaseURL)
-  final val clientNodeosAPI : EosApi = EosApiFactory.create(nodeosApiBaseURL)
-  final val mapper          : ObjectMapper = EosApiServiceGenerator.getMapper()
-	final val eosio 					: EOSIOSupport = new EOSIOSupport
-
-
-	// ⑥ unlock the creator's wallet
-  def unlockWalletAPI(): Either[EosApiException, Int] = 
-    try {
-      clientKeosdAPI.unlockWallet("default", privateKey)
-      Right(1)
-    } catch {
-      case e: EosApiException => Left(e)
-    }
-
-  def lockAllWallets(): Either[EosApiException, Int] = 
-    try {
-      clientKeosdAPI.lockAllWallets()
-      Right(1)
-    } catch {
-      case e: EosApiException => Left(e)
-    }
+class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
+	private val support: EOSIOSupport = new EOSIOSupport()
+	private val GQContractName: String = "ghostquest"
+	// final val config          : Config = ConfigFactory.load()
+ //  final val keosdApiBaseURL : String = config.getString("eosio.uri.keosd")
+ //  final val nodeosApiBaseURL: String = config.getString("eosio.uri.nodeos")
+ //  final val publicKey       : String = config.getString("eosio.wallets.public.default.key")
+ //  final val privateKey      : String = config.getString("eosio.wallets.private.server.default.key")
+ //  final val clientKeosdAPI  : EosApi = EosApiFactory.create(keosdApiBaseURL)
+ //  final val clientNodeosAPI : EosApi = EosApiFactory.create(nodeosApiBaseURL)
+ //  final val mapper          : ObjectMapper = EosApiServiceGenerator.getMapper()
+	// final val eosio 					: EOSIOSupport = new EOSIOSupport
 
 	def battleAction(users: Seq[(String, String)], id: UUID): Future[Either[EosApiException, PushedTransaction]] = {
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
     val query: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
 
-    eosio.abiJsonToBin(GQContractName, "battle", query).map { abiJsonToBinResult => 
+    support.abiJsonToBin(GQContractName, "battle", query).map { abiJsonToBinResult => 
       val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
           GQContractName,
           "battle",
-          eosio.authorization(Seq(GQContractName)),
+          support.authorization(Seq(GQContractName)),
           abiJsonToBinResult.map(_.binargs.as[String]).getOrElse(null)))
       // track current block to avoid invalid ref block num
-      val currentBlock: Block = eosio.getLatestBlock()
+      val currentBlock: Block = support.getLatestBlock()
       val packedTx: PackedTransaction = new PackedTransaction()
-          packedTx.setExpiration(LocalDateTime.parse(eosio.expirationInStr))
+          packedTx.setExpiration(LocalDateTime.parse(support.expirationInStr))
           packedTx.setRefBlockNum(currentBlock.getBlockNum())
           packedTx.setRefBlockPrefix(currentBlock.getRefBlockPrefix())
           packedTx.setDelaySec(0)
@@ -71,12 +54,12 @@ class SmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
           packedTx.setActions(actions)
       // check if transaction is successful
       try {
-        val signedPackedTx: SignedPackedTransaction = eosio.signTransaction(
+        val signedPackedTx: SignedPackedTransaction = support.signTransaction(
           packedTx,
-          Seq(publicKey),
-          clientNodeosAPI.getChainInfo().getChainId())
+          Seq(support.publicKey),
+          support.clientNodeosAPI.getChainInfo().getChainId())
 
-        Right(clientNodeosAPI.pushTransaction(null, signedPackedTx))
+        Right(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
       }
       catch { case e: EosApiException => Left(e) }
     }
@@ -86,16 +69,16 @@ class SmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   def removeCharacter(player: String, characterKey: String): Future[Either[EosApiException, PushedTransaction]] = {
   	val query = Seq(JsString(player), JsString(characterKey))
 
-    eosio.abiJsonToBin(GQContractName, "eliminate", query).map { abiJsonToBinResult => 
+    support.abiJsonToBin(GQContractName, "eliminate", query).map { abiJsonToBinResult => 
       val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
           GQContractName,
           "eliminate",
-          eosio.authorization(Seq(GQContractName)),
+          support.authorization(Seq(GQContractName)),
           abiJsonToBinResult.map(_.binargs.as[String]).getOrElse(null)))
       // track current block to avoid invalid ref block num
-      val currentBlock: Block = eosio.getLatestBlock()
+      val currentBlock: Block = support.getLatestBlock()
       val packedTx: PackedTransaction = new PackedTransaction()
-          packedTx.setExpiration(LocalDateTime.parse(eosio.expirationInStr))
+          packedTx.setExpiration(LocalDateTime.parse(support.expirationInStr))
           packedTx.setRefBlockNum(currentBlock.getBlockNum())
           packedTx.setRefBlockPrefix(currentBlock.getRefBlockPrefix())
           packedTx.setDelaySec(0)
@@ -104,19 +87,19 @@ class SmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
           packedTx.setActions(actions)
       // check if transaction is successful
       try {
-        val signedPackedTx: SignedPackedTransaction = eosio.signTransaction(
+        val signedPackedTx: SignedPackedTransaction = support.signTransaction(
           packedTx,
-          Seq(publicKey),
-          clientNodeosAPI.getChainInfo().getChainId())
+          Seq(support.publicKey),
+          support.clientNodeosAPI.getChainInfo().getChainId())
 
-        Right(clientNodeosAPI.pushTransaction(null, signedPackedTx))
+        Right(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
       }
       catch { case e: EosApiException => Left(e) }
     }
   }
 
   def getGQUsers(req: TableRowsRequest): Future[Option[GQRowsResponse]] = {
-    val request: WSRequest = ws.url(nodeosApiBaseURL + config.getString("eosio.uri.path.get_table_rows"))
+    val request: WSRequest = ws.url(support.nodeosApiBaseURL + support.config.getString("eosio.uri.path.get_table_rows"))
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)

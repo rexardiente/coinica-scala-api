@@ -29,7 +29,24 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val clientKeosdAPI    : EosApi = EosApiFactory.create(keosdApiBaseURL)
   val clientNodeosAPI   : EosApi = EosApiFactory.create(nodeosApiBaseURL)
   val mapper            : ObjectMapper = EosApiServiceGenerator.getMapper()
-  
+    
+  // unlock the creator's wallet
+  def unlockWalletAPI(): Either[EosApiException, Int] = 
+    try {
+      clientKeosdAPI.unlockWallet("default", privateKey)
+      Right(1)
+    } catch {
+      case e: EosApiException => Left(e)
+    }
+
+  def lockAllWallets(): Either[EosApiException, Int] = 
+    try {
+      clientKeosdAPI.lockAllWallets()
+      Right(1)
+    } catch {
+      case e: EosApiException => Left(e)
+    }
+
   // ② get the latest block info
   def getLatestBlock(): Block = {
     clientNodeosAPI.getBlock(clientNodeosAPI.getChainInfo().getHeadBlockId())
