@@ -22,15 +22,6 @@ import utils.lib.EOSIOSupport
 class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 	private val support: EOSIOSupport = new EOSIOSupport()
 	private val GQContractName: String = "ghostquest"
-	// final val config          : Config = ConfigFactory.load()
- //  final val keosdApiBaseURL : String = config.getString("eosio.uri.keosd")
- //  final val nodeosApiBaseURL: String = config.getString("eosio.uri.nodeos")
- //  final val publicKey       : String = config.getString("eosio.wallets.public.default.key")
- //  final val privateKey      : String = config.getString("eosio.wallets.private.server.default.key")
- //  final val clientKeosdAPI  : EosApi = EosApiFactory.create(keosdApiBaseURL)
- //  final val clientNodeosAPI : EosApi = EosApiFactory.create(nodeosApiBaseURL)
- //  final val mapper          : ObjectMapper = EosApiServiceGenerator.getMapper()
-	// final val eosio 					: EOSIOSupport = new EOSIOSupport
 
 	def battleAction(users: Seq[(String, String)], id: UUID): Future[Either[EosApiException, PushedTransaction]] = {
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'

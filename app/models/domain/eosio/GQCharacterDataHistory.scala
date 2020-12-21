@@ -3,7 +3,7 @@ package models.domain.eosio
 import play.api.libs.json._
 
 object GQCharacterDataHistory extends utils.CommonImplicits {
-  def fromCharacterData(data: GQCharacterData, count: Int): GQCharacterDataHistory =
+  def fromCharacterData(data: GQCharacterData): GQCharacterDataHistory =
       new GQCharacterDataHistory(
           data.id,
           data.owner,
@@ -20,8 +20,7 @@ object GQCharacterDataHistory extends utils.CommonImplicits {
           data.prize,
           data.battle_limit,
           data.battle_count,
-          data.last_match,
-          count)
+          data.last_match)
 }
 
 case class GQCharacterDataHistory(
@@ -40,7 +39,6 @@ case class GQCharacterDataHistory(
     prize: String, 
     battle_limit: Int, 
     battle_count: Int, 
-    last_match: Long,
-    matches: Int) {
+    last_match: Long) {
     def toJson(): JsValue = Json.toJson(this)
 }
