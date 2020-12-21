@@ -30,7 +30,6 @@ final class GQCharacterDataHistoryDAO @Inject()(
     def battleLimit = column[Int] ("BATTLE_LIMIT")
     def battleCount = column[Int] ("BATTLE_COUNT")
     def lastMatch = column[Long] ("LAST_MATCH")
-    def matches = column[Int] ("MATCHES")
 
     def * = (chracterID,
             player,
@@ -47,8 +46,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
             prize,
             battleLimit,
             battleCount,
-            lastMatch,
-            matches) <> ((GQCharacterDataHistory.apply _).tupled, GQCharacterDataHistory.unapply)
+            lastMatch) <> ((GQCharacterDataHistory.apply _).tupled, GQCharacterDataHistory.unapply)
   }
 
   object Query extends TableQuery(new GQCharacterDataHistoryTable(_)) {

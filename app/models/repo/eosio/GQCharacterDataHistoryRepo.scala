@@ -35,7 +35,4 @@ class GQCharacterDataHistoryRepo @Inject()(
 
   def getSize(id: String, player: String): Future[Int] =
     db.run(dao.Query(id, player).size.result)
-
-  // def playedCount(id: String): Future[Int] =
-  //   db.run(dao.Query.filter(_.chracterID === id).size.result)
 }

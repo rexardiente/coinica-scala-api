@@ -36,15 +36,11 @@ class SchedulerActor @Inject()(
     val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
     self ! VerifyGQUserTable(req)
 
-    
     // scheduled on every 3 minutes
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.minute, interval = 1.minute)(() => self ! BattleScheduler)
+    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 3.minute, interval = 3.minute)(() => self ! BattleScheduler)
 
     // scheduled on every 1 hr to verify data integrity..
-    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.minute, interval = 1.minute)(() => {
-    //   self ! VerifyGQUserTable(req)})
-
-    // self ! BattleScheduler
+    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.hour, interval = 1.hour)(() => self ! VerifyGQUserTable(req))
   }
 
   def receive: Receive = {
@@ -109,7 +105,7 @@ class SchedulerActor @Inject()(
               case e: Throwable => println(e)
             }
 
-            Thread.sleep(200) // help prevent from overlapping existing process.. 
+            defaultThreadSleep() // help prevent from overlapping existing process.. 
           }
         }
 
@@ -224,19 +220,17 @@ class SchedulerActor @Inject()(
 
           _ <- Future.successful(support.lockAllWallets())
           // update database ..
-          _ <- Future.successful {
-            val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
-            self ! VerifyGQUserTable(req)
-          }
+          _ <- Future.successful(self ! VerifyGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)))
       } yield ()
 
     case RemoveCharacterWithNoLife =>
+      // unlock your wallet..
+      support.unlockWalletAPI().map(_ => defaultThreadSleep())
+
       // get all characters that has no life on DB
       characterRepo.getNoLifeCharacters.map { characters =>
         if (characters.size > 0)
           for {
-            // unlock your wallet..
-            _ <- Future.successful(support.unlockWalletAPI().map(_ => defaultThreadSleep()))
             // remove characters that has no life on the contract..
             _ <- Future.successful {
               characters.foreach { ch =>
@@ -248,17 +242,14 @@ class SchedulerActor @Inject()(
                   case Right(x) =>
                     for {
                       isDeleted <- characterRepo.remove(ch.owner, ch.id)
-                      playCount <- gQGameHistoryRepo.getSize(ch.id, ch.owner)
                       // check if Successfully removed the add to game data history..
-                      _ <- gQCDHistoryRepo.insert(GQCharacterDataHistory.fromCharacterData(ch, playCount))
-                      // _ <- Future.successful {
-                        // insert into game data history
-                        // if (playCount > 0)
-                        //   gQCDHistoryRepo.insert(GQCharacterDataHistory.fromCharacterData(ch, playCount))
-                        // // TODO: check the reason why it is failed..  
-                        // else
-                        //   gQCDHistoryRepo.insert(GQCharacterDataHistory.fromCharacterData(ch, 0)) // return nothing
-                      // }
+                      _ <-  { 
+                        if (isDeleted > 0)
+                          gQCDHistoryRepo.insert(GQCharacterDataHistory.fromCharacterData(ch))
+                        else
+                          Future(None)
+                      }
+                      // TODO: check the reason why it is failed..  
                     } yield ()
                 }
                 // add timeout for contract response..
@@ -266,11 +257,12 @@ class SchedulerActor @Inject()(
               }
               println("All Characters with no life has been removed")
             }
-            _ <- Future.successful(support.lockAllWallets())
           } yield ()
         
         else 
           println("Info: There's no eliminated character/s to remove in the DB.")
+        // close wallet after using...
+        support.lockAllWallets()
       }
 
     case VerifyGQUserTable(request) =>
