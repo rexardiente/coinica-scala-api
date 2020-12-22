@@ -40,7 +40,12 @@ class HomeController @Inject()(
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[InEvent, OutEvent]
 
   /*  CUSTOM FORM VALIDATION */
-  
+  private def rankingForm = Form(tuple(
+    "name" -> nonEmptyText,
+    "bets" -> number,
+    "profit" -> number,
+    "multiplieramount" -> number,
+    "rankingcreated" -> optional(date("yyyy-MM-dd"))))
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
     "imgURL" -> nonEmptyText,

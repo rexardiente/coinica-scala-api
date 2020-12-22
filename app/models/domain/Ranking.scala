@@ -5,11 +5,6 @@ import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-//case class Ranking(id: UUID, name : String, bets: Double, profit: Double, multiplieramount: Double, rankingcreated: Long)
-
-//object Ranking{
-//	implicit def implRanking = Json.format[Ranking]
-//}
 case class Ranking(
                      id: Int,
                      name: String,
@@ -34,7 +29,7 @@ case class Ranking(
           )
           JsObject(rankingSeq)
         }
-//(json \ "total_count").as[Int],
+
         def reads(json: JsValue): JsResult[Ranking] = {    
           JsSuccess(Ranking(
             (json \ "id").as[Int],
@@ -49,4 +44,5 @@ case class Ranking(
 
       def tupled = (this.apply _).tupled
     }
+	
 
