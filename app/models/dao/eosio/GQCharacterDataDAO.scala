@@ -18,7 +18,6 @@ final class GQCharacterDataDAO @Inject()(
     def owner = column[String] ("OWNER")
     def life = column[Int] ("LIFE")
     def initial_hp = column[Int] ("INITIAL_HP")
-    def hitpoints = column[Int] ("HIT_POINTS")
     def `class` = column[Int] ("CLASS")
     def level = column[Int] ("LEVEL")
     def status = column[Int] ("STATUS")
@@ -35,7 +34,6 @@ final class GQCharacterDataDAO @Inject()(
             owner,
             life,
             initial_hp,
-            hitpoints,
             `class`,
             level,
             status,

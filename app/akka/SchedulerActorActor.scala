@@ -33,14 +33,17 @@ class SchedulerActor @Inject()(
     // make sure all wallets are locked to avoid tx error..
     support.lockAllWallets()
     // load GhostQuest users to DB update for one time.. in case server is down..
-    val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
-    self ! VerifyGQUserTable(req)
+    // val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
+    // self ! VerifyGQUserTable(req)
 
     // scheduled on every 3 minutes
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 3.minute, interval = 3.minute)(() => self ! BattleScheduler)
+    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 3.minute, interval = 3.minute)(() => self ! BattleScheduler)
 
     // scheduled on every 1 hr to verify data integrity..
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.hour, interval = 1.hour)(() => self ! VerifyGQUserTable(req))
+    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.hour, interval = 1.hour)(() => self ! VerifyGQUserTable(req))
+
+    // gQGameHistoryRepo.getByPlayerName("user1").map(x => println(x.size))
+    // gQGameHistoryRepo.find("ec6ec8c5b63dc754d9f6a384c011280", "user1").map(_.map(x => println(x.player_id, x.enemy_id)))
   }
 
   def receive: Receive = {
@@ -63,7 +66,6 @@ class SchedulerActor @Inject()(
                   ch.value.owner,
                   ch.value.character_life,
                   ch.value.initial_hp,
-                  ch.value.hitpoints,
                   ch.value.ghost_class,
                   ch.value.ghost_level,
                   ch.value.status,

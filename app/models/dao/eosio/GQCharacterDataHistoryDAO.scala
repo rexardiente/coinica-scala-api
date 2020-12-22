@@ -18,7 +18,6 @@ final class GQCharacterDataHistoryDAO @Inject()(
     def player = column[String] ("PLAYER")
     def life = column[Int] ("ENEMY")
     def hp = column[Int] ("HP")
-    def hitpoints = column[Int] ("HIT_POINTS")
     def ghostClass = column[Int] ("CLASS")
     def level = column[Int] ("LEVEL")
     def status = column[Int] ("STATUS")
@@ -35,7 +34,6 @@ final class GQCharacterDataHistoryDAO @Inject()(
             player,
             life,
             hp,
-            hitpoints,
             ghostClass,
             level,
             status,
