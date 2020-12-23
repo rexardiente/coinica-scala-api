@@ -106,6 +106,21 @@ class HomeController @Inject()(
       }
     )
   }
+  def updateRanking(id: UUID) = Action.async { implicit request =>
+    rankingForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (name, bets,profit,multiplieramount,rankingcreated) =>
+        rankingRepo
+          .update(Ranking(id, name, bets,profit,multiplieramount,rankingcreated))
+          .map(r => if(r < 0) NotFound else Ok)
+      }
+    )
+  }
+  def removeRanking(id: UUID) = Action.async { implicit request =>
+    rankingRepo
+      .delete(id)
+      .map(r => if(r < 0) NotFound else Ok)
+  }
    def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
