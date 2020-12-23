@@ -30,8 +30,11 @@ class GQCharacterDataHistoryRepo @Inject()(
   def find(id: String, player: String): Future[Seq[GQCharacterDataHistory]] =
     db.run(dao.Query(id, player).result)
 
-  def find(player: String): Future[Seq[GQCharacterDataHistory]] =
+  def findByUser(player: String): Future[Seq[GQCharacterDataHistory]] =
     db.run(dao.Query.filter(_.player === player).result)
+
+  def findByID(id: String): Future[Seq[GQCharacterDataHistory]] =
+    db.run(dao.Query.filter(_.chracterID === id).result)
 
   def getSize(id: String, player: String): Future[Int] =
     db.run(dao.Query(id, player).size.result)

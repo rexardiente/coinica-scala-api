@@ -61,5 +61,16 @@ POST    /donut/api/v1/genre/remove               controllers.HomeController.remo
 GET    /donut/api/v1/txs               			 controllers.HomeController.transactions(start: java.time.Instant, end: Option[java.time.Instant], limit: Int ?= 10, offset: Int ?= 0)
 GET    /donut/api/v1/tx/find              	 	 controllers.HomeController.transactionByTraceID(trace_id: String)
 
+# Ghost Quest API
+GET 	/donut/api/v1/game/ghost-quest/character/history/user/:user  controllers.HomeController.getCharacterHistoryByUser(user: String)
+GET 	/donut/api/v1/game/ghost-quest/character/history/id/:id 	controllers.HomeController.getCharacterHistoryByID(id: String)
+GET 	/donut/api/v1/game/ghost-quest/characters 			controllers.HomeController.getAllCharacters()
+GET 	/donut/api/v1/game/ghost-quest/character/:user 		controllers.HomeController.getCharactersByUser(user: String)
+GET 	/donut/api/v1/game/ghost-quest/character/:user/:id 	controllers.HomeController.getCharacterByUserAndID(user: String, id: String)
+GET 	/donut/api/v1/game/ghost-quest/game/history/gameid/:id 	controllers.HomeController.getGQGameHistoryByGameID(id: UUID)
+GET 	/donut/api/v1/game/ghost-quest/game/history 		controllers.HomeController.getAllGQGameHistory()
+GET 	/donut/api/v1/game/ghost-quest/game/history/:user 	controllers.HomeController.getGQGameHistoryByUser(user: String)
+GET 	/donut/api/v1/game/ghost-quest/game/history/:user/:id 	controllers.HomeController.getGQGameHistoryByUserAndID(user: String, id: String)
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

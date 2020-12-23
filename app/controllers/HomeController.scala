@@ -13,6 +13,7 @@ import play.api.data.Forms._
 import play.api.libs.json._
 import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, InEvent, OutEvent }
 import models.repo.{ LoginRepo, GameRepo, GenreRepo, TaskRepo, ReferralRepo, RankingRepo, TransactionRepo, ChallengeRepo }
+import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo, GQCharacterDataHistoryRepo }
 import models.service.{ TaskService, ReferralService, RankingService, TransactionService, ChallengeService }
 import akka.WebSocketActor
 /**
@@ -33,6 +34,9 @@ class HomeController @Inject()(
       referralService:  ReferralService,
       transactionService: TransactionService,
       challengeService: ChallengeService,
+      gQCharacterDataRepo: GQCharacterDataRepo,
+      gQCharacterDataHistoryRepo: GQCharacterDataHistoryRepo,
+      gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
       implicit val system: akka.actor.ActorSystem, 
       mat: akka.stream.Materializer,
       val controllerComponents: ControllerComponents) extends BaseController {
@@ -261,5 +265,40 @@ class HomeController @Inject()(
 
   def transactionByTraceID(id: String) = Action.async { implicit request =>
     transactionService.getByTxTraceID(id).map(Ok(_))
+  }
+
+  def getAllCharacters() = Action.async { implicit request =>
+    gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x)))
+  }
+
+  def getCharactersByUser[T <: String](user: T) = Action.async { implicit request => 
+    gQCharacterDataRepo.findByUser(user).map(x => Ok(Json.toJson(x)))
+  }
+
+  def getCharacterByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
+    gQCharacterDataRepo.findByUserAndID(user, id).map(x => Ok(Json.toJson(x)))
+  }
+
+  def getAllGQGameHistory() = Action.async { implicit request =>
+    gQCharacterGameHistoryRepo.all().map(x => Ok(Json.toJson(x)))
+  }
+
+  def getGQGameHistoryByUser(user: String) = Action.async { implicit request =>
+    gQCharacterGameHistoryRepo.getByUser(user).map(x => Ok(Json.toJson(x)))
+  }
+
+  def getGQGameHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
+    gQCharacterGameHistoryRepo.find(id, user).map(x => Ok(Json.toJson(x)))
+  }
+  def getGQGameHistoryByGameID(id: UUID) = Action.async { implicit request =>
+    gQCharacterGameHistoryRepo.findByGameID(id).map(x => Ok(Json.toJson(x)))
+  }
+
+  def getCharacterHistoryByUser(user: String) = Action.async { implicit request =>
+    gQCharacterDataHistoryRepo.findByUser(user).map(x => Ok(Json.toJson(x)))
+  }
+
+  def getCharacterHistoryByID(id: String) = Action.async { implicit request =>
+    gQCharacterDataHistoryRepo.findByID(id).map(x => Ok(Json.toJson(x)))
   }
 }
