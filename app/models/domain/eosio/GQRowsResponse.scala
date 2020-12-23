@@ -20,7 +20,6 @@ case class GQCharacterInfo(
   owner: String, 
   character_life: Int,
   initial_hp: Int, 
-  hitpoints: Int, 
   ghost_class: Int, 
   ghost_level: Int, 
   status: Int, 
