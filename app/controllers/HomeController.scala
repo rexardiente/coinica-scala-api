@@ -41,6 +41,14 @@ class HomeController @Inject()(
 
   /*  CUSTOM FORM VALIDATION */
   
+  private def challengeForm = Form(tuple(
+    "name" -> nonEmptyText,
+    "bets" -> number,
+    "profit" -> number,
+    "ratio" -> number,
+    "vippoints" -> number,
+    "challengecreated" -> number))
+
   private def rankingForm = Form(tuple(
     "name" -> nonEmptyText,
     "bets" -> number,
@@ -76,6 +84,31 @@ class HomeController @Inject()(
 
   def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
+  }
+  def addChallenge = Action.async { implicit request =>
+    challengeForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (name, bets,profit,ratio,vippoints,challengecreated)  =>
+        challengeRepo
+          .add(Challenge(UUID.randomUUID, name, bets,profit,ratio,vippoints,challengecreated))
+          .map(r => if(r < 0) InternalServerError else Created )
+      }
+    )
+  }
+  def updateChallenge(id: UUID) = Action.async { implicit request =>
+    challengeForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (name, bets,profit,ratio,vippoints,challengecreated) =>
+        challengeRepo
+          .update(Challenge(id, name, bets,profit,ratio,vippoints,challengecreated))
+          .map(r => if(r < 0) NotFound else Ok)
+      }
+    )
+  }
+  def removeChallenge(id: UUID) = Action.async { implicit request =>
+    challengeRepo
+      .delete(id)
+      .map(r => if(r < 0) NotFound else Ok)
   }
    def challengedate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))

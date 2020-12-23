@@ -6,6 +6,10 @@ GET     /ws                                  	controllers.HomeController.socket
 
 GET     /                                        controllers.HomeController.index
 # Challenge API
+POST    /donut/api/v1/challenge/add                   controllers.HomeController.addChallenge
+PUT     /donut/api/v1/challenge/update               controllers.HomeController.updateChallenge(id: UUID)
+POST    /donut/api/v1/challenge/remove                controllers.HomeController.removeChallenge(id: UUID)
+
 GET     /donut/api/v1/challenge/weekly               controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/challenge/daily                controllers.HomeController.challengedaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/challenge/monthly              controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
