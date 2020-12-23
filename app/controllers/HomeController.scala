@@ -11,7 +11,7 @@ import play.api.data.Form
 import play.api.data.Forms._
 // import play.api.data.format.Formats._
 import play.api.libs.json._
-import models.domain.{ Login, Game, Genre, Task, Referral, InEvent, OutEvent }
+import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, InEvent, OutEvent }
 import models.repo.{ LoginRepo, GameRepo, GenreRepo, TaskRepo, ReferralRepo, RankingRepo, TransactionRepo, ChallengeRepo }
 import models.service.{ TaskService, ReferralService, RankingService, TransactionService, ChallengeService }
 import akka.WebSocketActor
@@ -40,12 +40,14 @@ class HomeController @Inject()(
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[InEvent, OutEvent]
 
   /*  CUSTOM FORM VALIDATION */
+  
   private def rankingForm = Form(tuple(
     "name" -> nonEmptyText,
     "bets" -> number,
     "profit" -> number,
     "multiplieramount" -> number,
-    "rankingcreated" -> optional(date("yyyy-MM-dd"))))
+    "rankingcreated" -> number))
+  
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
     "imgURL" -> nonEmptyText,
@@ -93,6 +95,16 @@ class HomeController @Inject()(
   }
     def referraldaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
        referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+  }
+  def addRanking = Action.async { implicit request =>
+    rankingForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (name, bets,profit,multiplieramount,rankingcreated)  =>
+        rankingRepo
+          .add(Ranking(UUID.randomUUID, name, bets,profit,multiplieramount,rankingcreated))
+          .map(r => if(r < 0) InternalServerError else Created )
+      }
+    )
   }
    def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))

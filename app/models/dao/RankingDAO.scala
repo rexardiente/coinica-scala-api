@@ -15,7 +15,7 @@ final class RankingDAO @Inject()(
 
 
   protected class RankingTable(tag: Tag) extends Table[Ranking](tag, "RANKING") {
-    def id = column[Int] ("ID", O.PrimaryKey)
+    def id = column[UUID] ("ID", O.PrimaryKey)
     def name = column[String] ("NAME")
     def bets = column[Double] ("BETS")
     def profit = column[Double] ("PROFIT")
@@ -26,7 +26,7 @@ final class RankingDAO @Inject()(
   }
 
   object Query extends TableQuery(new RankingTable(_)) {
-    def apply(id: Int) = this.withFilter(_.id === id)
+    def apply(id: UUID) = this.withFilter(_.id === id)
   }
  
 }

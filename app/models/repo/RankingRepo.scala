@@ -20,7 +20,7 @@ class RankingRepo @Inject()(
   def add(ranking: Ranking): Future[Int] =
     db.run(dao.Query += ranking)
 
-  def delete(id: Int): Future[Int] =
+  def delete(id: UUID): Future[Int] =
     db.run(dao.Query(id).delete)
 
   def update(ranking: Ranking): Future[Int] =
@@ -32,10 +32,10 @@ class RankingRepo @Inject()(
       .take(limit)
       .result)
 
-  def exist(id: Int): Future[Boolean] = 
+  def exist(id: UUID): Future[Boolean] = 
     db.run(dao.Query(id).exists.result)
 
-  def findByID(id: Int, limit: Int, offset: Int): Future[Seq[Ranking]] =
+  def findByID(id: UUID, limit: Int, offset: Int): Future[Seq[Ranking]] =
     db.run(dao.Query.filter(r => r.id === id  )
       .drop(offset)
       .take(limit)
