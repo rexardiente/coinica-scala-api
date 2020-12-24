@@ -33,8 +33,14 @@ class GQCharacterDataRepo @Inject()(
   def find(id: String): Future[Option[GQCharacterData]] =
     db.run(dao.Query(id).result.headOption)
 
-  def find(user: String, id: String): Future[Boolean] = 
+  def find(user: String, id: String): Future[Boolean] =
     db.run(dao.Query.filter(x => x.owner === user && x.id === id).exists.result)
+
+  def findByUserAndID(user: String, id: String): Future[Seq[GQCharacterData]] =
+    db.run(dao.Query.filter(x => x.owner === user && x.id === id).result)
+
+  def findByUser(user: String): Future[Seq[GQCharacterData]] =
+    db.run(dao.Query.filter(_.owner === user).result)    
 
   def getNoLifeCharacters(): Future[Seq[GQCharacterData]] =
     db.run(dao.Query.filter(_.life < 1).result)

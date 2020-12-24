@@ -30,14 +30,17 @@ class GQCharacterGameHistoryRepo @Inject()(
   def existByID(gameID: String, characterID: String): Future[Boolean] =
     db.run(dao.Query.filter(x => x.gameID === gameID && x.playerID === characterID).exists.result)
 
-  def getByPlayerName(player: String): Future[Seq[GQCharacterGameHistory]] =
+  def getByUser(player: String): Future[Seq[GQCharacterGameHistory]] =
     db.run(dao.Query.filter(_.player === player).result)
 
   def getByIDs(player: String, enemy: String): Future[Seq[GQCharacterGameHistory]] = 
     db.run(dao.Query.filter(x => x.playerID === player && x.enemyID === enemy).result)
 
-  def find(id: String, player: String): Future[Option[GQCharacterGameHistory]] =
-    db.run(dao.Query.filter(x => x.playerID === id && x.player === player).result.headOption)
+  def find(id: String, player: String): Future[Seq[GQCharacterGameHistory]] =
+    db.run(dao.Query.filter(x => x.playerID === id && x.player === player).result)
+
+  def findByGameID(id: UUID): Future[Option[GQCharacterGameHistory]] =
+    db.run(dao.Query.filter(_.id === id).result.headOption)
 
   def totalByIDs(id: String, player: String): Future[Int] =
     db.run(dao.Query.filter(x => x.playerID === id && x.player === player).size.result)
