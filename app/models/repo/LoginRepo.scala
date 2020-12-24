@@ -21,7 +21,7 @@ class LoginRepo @Inject()(
 
   def delete(username: String): Future[Int] =
     db.run(dao.Query(username).delete)  
-//new
+
   def update(login: Login): Future[Int] =
     db.run(dao.Query.filter(_.username ===login.username).update(login))
 

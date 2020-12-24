@@ -41,6 +41,10 @@ class HomeController @Inject()(
 
   /*  CUSTOM FORM VALIDATION */
   
+  private def loginForm = Form(tuple(
+    "username" -> nonEmptyText,
+    "password" -> nonEmptyText))
+
   private def challengeForm = Form(tuple(
     "name" -> nonEmptyText,
     "bets" -> number,
