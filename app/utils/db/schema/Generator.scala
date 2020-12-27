@@ -8,6 +8,7 @@ import models.dao._
 
 @Singleton
 class Generator @Inject()(
+    login: LoginDAO,
     user: UserDAO,
     game: GameDAO,
     genre: GenreDAO,
@@ -32,6 +33,7 @@ class Generator @Inject()(
       tx.Query.schema ++
       referral.Query.schema ++
       ranking.Query.schema ++
+      login.Query.schema ++ 
       challenge.Query.schema ++
       gqCharacterData.Query.schema ++
       gqCharacterGameHistory.Query.schema ++

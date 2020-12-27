@@ -33,8 +33,6 @@ GET     /donut/api/v1/referral/monthly              controllers.HomeController.r
 
 GET     /                                        controllers.HomeController.index
 # Task API
-#GET     /donut/api/v1/tasks                      controllers.HomeController.tasks(limit: Int, offset: Int)
-#GET     /donut/api/v1/task/find                  controllers.HomeController.findTaskByID(id: UUID, limit: Int, offset: Int)
 GET     /donut/api/v1/tasks                      controllers.HomeController.paginatedResult(limit: Int ?= 10, offset: Int ?= 1)
 GET     /donut/api/v1/task/weekly                controllers.HomeController.taskdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/task/daily                controllers.HomeController.taskdaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
