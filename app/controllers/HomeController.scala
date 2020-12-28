@@ -44,10 +44,6 @@ class HomeController @Inject()(
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[InEvent, OutEvent]
 
   /*  CUSTOM FORM VALIDATION */
-  
-  private def loginForm = Form(tuple(
-    "username" -> nonEmptyText,
-    "password" -> nonEmptyText))
 
   private def challengeForm = Form(tuple(
     "name" -> nonEmptyText,
@@ -86,35 +82,6 @@ class HomeController @Inject()(
     Future.successful(Ok(views.html.index()))
   }
 
-  def hello(sort: Instant, param: Instant) = Action.async { implicit request =>
-    Future.successful(Ok(sort.getEpochSecond.toString + param.getEpochSecond.toString))
-  }
-
-  def addLogin = Action.async { implicit request =>
-    loginForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (username, password)  =>
-        loginRepo
-          .add(Login(UUID.randomUUID, username, password))
-          .map(r => if(r < 0) InternalServerError else Created )
-      }
-    )
-  }
-  def updateLogin(id: UUID) = Action.async { implicit request =>
-    loginForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (username, password) =>
-        loginRepo
-          .update(Login(id, username, password))
-          .map(r => if(r < 0) NotFound else Ok)
-      }
-    )
-  }
-  def removeLogin(id: UUID) = Action.async { implicit request =>
-    loginRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
-  }
   def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
   }
