@@ -24,26 +24,27 @@ class AdminController @Inject()(loginRepo: LoginRepo, val controllerComponents: 
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password)  =>
         loginRepo
-          .add(Login(UUID.randomUUID, username, password))
+          .add(Login( username, password))
           .map(r => if(r < 0) InternalServerError else Created )
       }
     )
   }
 
-  def updateLogin(id: UUID) = Action.async { implicit request =>
+  def updateLogin(username: String) = Action.async { implicit request =>
     loginForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password) =>
         loginRepo
-          .update(Login(id, username, password))
+          .update(Login( username, password))
           .map(r => if(r < 0) NotFound else Ok)
       }
     )
   }
-
-  def removeLogin(id: UUID) = Action.async { implicit request =>
+ 
+  def removeLogin(username: String) = Action.async { implicit request =>
     loginRepo
-      .delete(id)
+      .delete(username)
       .map(r => if(r < 0) NotFound else Ok)
   }
+  
 }

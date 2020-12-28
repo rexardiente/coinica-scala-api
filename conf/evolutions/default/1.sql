@@ -1,5 +1,5 @@
 # --- !Ups
-create table "LOGIN" ("ID" UUID NOT NULL,"USERNAME" VARCHAR NOT NULL,"PASSWORD" timestamp NOT NULL);
+create table "LOGIN" (USERNAME" VARCHAR NOT NULL,"PASSWORD" timestamp NOT NULL);
 
 create table "USER" ("ID" UUID NOT NULL,"ACCOUNT" VARCHAR NOT NULL,"CREATED_AT" timestamp NOT NULL);
 
