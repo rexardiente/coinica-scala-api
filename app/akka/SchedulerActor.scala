@@ -33,11 +33,11 @@ class SchedulerActor @Inject()(
     // make sure all wallets are locked to avoid tx error..
     support.lockAllWallets()
     // load GhostQuest users to DB update for one time.. in case server is down..
-    // val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
-    // self ! VerifyGQUserTable(req)
+    val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
+    self ! VerifyGQUserTable(req)
 
     // scheduled on every 3 minutes
-    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 3.minute, interval = 3.minute)(() => self ! BattleScheduler)
+    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 3.minute, interval = 3.minute)(() => self ! BattleScheduler)
 
     // scheduled on every 1 hr to verify data integrity..
     // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.hour, interval = 1.hour)(() => self ! VerifyGQUserTable(req))
@@ -159,7 +159,7 @@ class SchedulerActor @Inject()(
         _ <- characterRepo
               .all()
               .map { response =>
-                if (response.isEmpty)
+                if (response.isEmpty || response.size == 1)
                   println("No available characters.")
                 else {
                   // loop chracters in the database
