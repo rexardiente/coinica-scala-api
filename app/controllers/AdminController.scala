@@ -46,5 +46,8 @@ class AdminController @Inject()(loginRepo: LoginRepo, val controllerComponents: 
       .delete(username)
       .map(r => if(r < 0) NotFound else Ok)
   }
+  def check(username: String, password: String) = {
+    (username == "admin" && password == "1234")  
+  }
   
 }
