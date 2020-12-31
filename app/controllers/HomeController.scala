@@ -45,6 +45,13 @@ class HomeController @Inject()(
 
   /*  CUSTOM FORM VALIDATION */
 
+private def referralForm = Form(tuple(
+    "referralname" -> nonEmptyText,
+    "referrallink" -> nonEmptyText,
+    "rate" -> number,
+    "feeamount" -> number,
+    "referralcreated" -> number))
+
   private def challengeForm = Form(tuple(
     "name" -> nonEmptyText,
     "bets" -> number,
@@ -84,6 +91,31 @@ class HomeController @Inject()(
 
   def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
+  }
+  def addReferral = Action.async { implicit request =>
+    referralForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (referralname, referrallink,rate,feeamount,referralcreated)  =>
+        referralRepo
+          .add(Referral(UUID.randomUUID, referralname, referrallink,rate,feeamount,referralcreated))
+          .map(r => if(r < 0) InternalServerError else Created )
+      }
+    )
+  }
+  def updateReferral(id: UUID) = Action.async { implicit request =>
+    referralForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (referralname, referrallink,rate,feeamount,referralcreated) =>
+        referralRepo
+          .update(Referral(id, referralname, referrallink,rate,feeamount,referralcreated))
+          .map(r => if(r < 0) NotFound else Ok)
+      }
+    )
+  }
+  def removeReferral(id: UUID) = Action.async { implicit request =>
+    referralRepo
+      .delete(id)
+      .map(r => if(r < 0) NotFound else Ok)
   }
   def addChallenge = Action.async { implicit request =>
     challengeForm.bindFromRequest.fold(
