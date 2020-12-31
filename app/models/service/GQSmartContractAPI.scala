@@ -23,11 +23,11 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
 	private val support: EOSIOSupport = new EOSIOSupport()
 	private val GQContractName: String = "ghostquest"
 
-	def battleAction(users: Seq[(String, String)], id: UUID): Future[Either[EosApiException, PushedTransaction]] = {
+	def battleAction(users: Seq[(String, String)], id: UUID): Future[Option[PushedTransaction]] = {
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
     val query: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
 
-    support.abiJsonToBin(GQContractName, "battle", query).map { abiJsonToBinResult => 
+    support.abiJsonToBin(GQContractName, "battle", query).map { abiJsonToBinResult =>
       val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
           GQContractName,
           "battle",
@@ -50,17 +50,17 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
           Seq(support.publicKey),
           support.clientNodeosAPI.getChainInfo().getChainId())
 
-        Right(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
+        Some(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
       }
-      catch { case e: EosApiException => Left(e) }
+      catch { case e: EosApiException => None }
     }
   }
 
   // TODO: Please check if character exists on users table...
-  def removeCharacter(player: String, characterKey: String): Future[Either[EosApiException, PushedTransaction]] = {
+  def removeCharacter(player: String, characterKey: String): Future[Option[PushedTransaction]] = {
   	val query = Seq(JsString(player), JsString(characterKey))
 
-    support.abiJsonToBin(GQContractName, "eliminate", query).map { abiJsonToBinResult => 
+    support.abiJsonToBin(GQContractName, "eliminate", query).map { abiJsonToBinResult =>
       val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
           GQContractName,
           "eliminate",
@@ -83,9 +83,9 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
           Seq(support.publicKey),
           support.clientNodeosAPI.getChainInfo().getChainId())
 
-        Right(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
+        Some(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
       }
-      catch { case e: EosApiException => Left(e) }
+      catch { case e: EosApiException => None }
     }
   }
 

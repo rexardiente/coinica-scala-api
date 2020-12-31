@@ -20,8 +20,8 @@ object SchedulerActor {
 
 @Singleton
 class SchedulerActor @Inject()(
-      characterRepo: GQCharacterDataRepo, 
-      gQCDHistoryRepo: GQCharacterDataHistoryRepo, 
+      characterRepo: GQCharacterDataRepo,
+      gQCDHistoryRepo: GQCharacterDataHistoryRepo,
       gQGameHistoryRepo: GQCharacterGameHistoryRepo,
       support: EOSIOSupport,
       eosio: GQSmartContractAPI)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) extends Actor {
@@ -33,18 +33,26 @@ class SchedulerActor @Inject()(
     // make sure all wallets are locked to avoid tx error..
     support.lockAllWallets()
     // load GhostQuest users to DB update for one time.. in case server is down..
-    val req: TableRowsRequest = new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
-    self ! VerifyGQUserTable(req)
+    val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
+                                                  "ghostquest",
+                                                  "users",
+                                                  "ghostquest",
+                                                  None,
+                                                  Some("uint64_t"),
+                                                  None,
+                                                  None,
+                                                  None)
+    self ! VerifyGQUserTable(eosTblRowsRequest)
 
     // scheduled on every 5 minutes
     actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
 
     // scheduled on every 1 hr to verify data integrity..
-    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.hour, interval = 1.hour)(() => self ! VerifyGQUserTable(req))
+    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.hour, interval = 1.hour)(() => self ! VerifyGQUserTable(eosTblRowsRequest))
   }
 
   def receive: Receive = {
-    case connect: Connect => 
+    case connect: Connect =>
       // Indicators if there's new Client Connected..
       // println(connect)
 
@@ -57,23 +65,23 @@ class SchedulerActor @Inject()(
             val username: String = row.username
             val gameData: GQGame = row.game_data
 
-            gameData.character.foreach { ch => 
-              val chracterInfo: GQCharacterData = new GQCharacterData(
-                  ch.key,
-                  ch.value.owner,
-                  ch.value.character_life,
-                  ch.value.initial_hp,
-                  ch.value.ghost_class,
-                  ch.value.ghost_level,
-                  ch.value.status,
-                  ch.value.attack,
-                  ch.value.defense,
-                  ch.value.speed,
-                  ch.value.luck,
-                  ch.value.prize,
-                  ch.value.battle_limit,
-                  ch.value.battle_count,
-                  ch.value.last_match)
+            gameData.character.foreach { ch =>
+              val chracterInfo = new GQCharacterData(
+                                    ch.key,
+                                    ch.value.owner,
+                                    ch.value.character_life,
+                                    ch.value.initial_hp,
+                                    ch.value.ghost_class,
+                                    ch.value.ghost_level,
+                                    ch.value.status,
+                                    ch.value.attack,
+                                    ch.value.defense,
+                                    ch.value.speed,
+                                    ch.value.luck,
+                                    ch.value.prize,
+                                    ch.value.battle_limit,
+                                    ch.value.battle_count,
+                                    ch.value.last_match)
 
               seqCharacters.append(chracterInfo)
 
@@ -84,16 +92,16 @@ class SchedulerActor @Inject()(
           }
         }
 
-        _ <-  Future.successful { // insert Seq[GQCharacterData] 
-          println("\n============\tValidating Characters    ============\n") 
+        _ <-  Future.successful { // insert Seq[GQCharacterData]
+          println("\n============\tValidating Characters    ============\n")
           seqCharacters.map { info =>
             try { // check if data aleady exists
               characterRepo.find(info.owner, info.id).map { isExists =>
-                if (!isExists) 
+                if (!isExists)
                   characterRepo.insert(info)
                 else {
                   characterRepo.update(info).map { update =>
-                    if (update > 0) 
+                    if (update > 0)
                       println("  "+ info.owner + " ~> " + info.id + " UPDATED")
                     else
                       println("  "+ info.owner + " ~> " + info.id + " FAILED TO UPDATE")
@@ -104,33 +112,33 @@ class SchedulerActor @Inject()(
               case e: Throwable => println(e)
             }
 
-            defaultThreadSleep() // help prevent from overlapping existing process.. 
+            defaultThreadSleep() // help prevent from overlapping existing process..
           }
         }
 
         _ <- Future.successful { // convert to GQCharacterGameHistory and insert Seq[GQCharacterPrevMatch]
-          val setOfCharactersGameHistory: ListBuffer[GQCharacterGameHistory] = characterPrevMatches.map({ 
+          val setOfCharactersGameHistory: ListBuffer[GQCharacterGameHistory] = characterPrevMatches.map({
             case ((owner, id), info) => new GQCharacterGameHistory(
-                                            UUID.randomUUID(), 
-                                            info.key, 
-                                            owner, 
-                                            info.value.enemy, 
-                                            id, 
+                                            UUID.randomUUID(),
+                                            info.key,
+                                            owner,
+                                            info.value.enemy,
+                                            id,
                                             info.value.enemy_id,
-                                            info.value.time_executed, 
-                                            info.value.gameplay_log, 
+                                            info.value.time_executed,
+                                            info.value.gameplay_log,
                                             info.value.isWin)})
 
-          Future.sequence(setOfCharactersGameHistory.map{ history => 
+          Future.sequence(setOfCharactersGameHistory.map{ history =>
             gQGameHistoryRepo
               .existByID(history.game_id, history.player_id)
               .map(isExists => if (!isExists) gQGameHistoryRepo.insert(history).map(_ => true) else Future(false))
               .flatten
-          }).map { x => 
-            if(x.forall(_ == true)) 
-              println("\n============\tHistory has been updated ============\n") 
+          }).map { x =>
+            if(x.forall(_ == true))
+              println("\n============\tHistory has been updated ============\n")
             else
-              println("\n============\tHistory is up to date    ============\n") 
+              println("\n============\tHistory is up to date    ============\n")
           }
         }
 
@@ -138,18 +146,18 @@ class SchedulerActor @Inject()(
           // check if the first result still hasnext data
           if (hasNext)
             self ! VerifyGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, Some(nextKey)))
-          // remove eliminated chracter from users table..   
+          // remove eliminated chracter from users table..
           else
             self ! RemoveCharacterWithNoLife
         }
       } yield ()
 
-    case BattleScheduler => 
+    case BattleScheduler =>
       // Note: no more chracters that are eliminated in the game..
       // unlock wallet to execute the battle command...
       for  {
         _ <- Future.successful(support.unlockWalletAPI().map(_ => defaultThreadSleep()))
-        
+
         // get latest history data..
         gameHistory <- gQGameHistoryRepo.all()
 
@@ -167,49 +175,44 @@ class SchedulerActor @Inject()(
 
                   characters.foreach { character =>
                     // println(character.owner)
-                    // remove his own characters from the list 
+                    // remove his own characters from the list
                     // all characters from other players...(DONE)
-                    val removedOwnCharacters: Seq[GQCharacterData] = 
+                    val removedOwnCharacters: Seq[GQCharacterData] =
                       characters.filterNot(_.owner.equals(character.owner))
 
                     // get all history related to this character.. (DONE)
-                    val playedHistory: Seq[GQCharacterGameHistory] = 
+                    val gameHistories: Seq[GQCharacterGameHistory] =
                       gameHistory.filter(_.player_id == character.id)
-                    
-                    // remove played characters from playedHistory DB.. (DONE)
-                    val removedPlayedHistoryDB: Seq[GQCharacterData] = 
-                      removedOwnCharacters.filterNot(enemy => playedHistory.map(_.enemy_id).contains(enemy.id))
+
+                    // remove played characters from gameHistories DB.. (DONE)
+                    val checkedHistoryDB: Seq[GQCharacterData] =
+                      removedOwnCharacters.filterNot(ch => gameHistories.map(_.enemy_id).contains(ch.id))
 
                     // remove played character on current characters list from currentlyPlayed.. (ON TEST)
-                    val removedPlayed: Seq[GQCharacterData] = 
-                      removedPlayedHistoryDB.filterNot(enemy => currentlyPlayed.map(_._1).toSeq.contains(enemy.id))
-                      
+                    val checkedCurrentCycle: Seq[GQCharacterData] =
+                      checkedHistoryDB.filterNot(ch => currentlyPlayed.map(_._1).toSeq.contains(ch.id))
 
-                    if (removedPlayed.isEmpty) {
-                      println("No available enemy for ~~> " + character.id)
-                      currentlyPlayed(character.id) = character.owner
-                    }
-                    else {
+                    if (!checkedCurrentCycle.isEmpty) {
                        try {
-                        val enemy: GQCharacterData = removedPlayed.head
+                        val enemy: GQCharacterData = checkedCurrentCycle.head
                         val req: Seq[(String, String)] = Seq(
-                          (character.id.toString, character.owner.toString), 
+                          (character.id.toString, character.owner.toString),
                           (enemy.id.toString, enemy.owner.toString))
 
                         eosio.battleAction(req, UUID.randomUUID()).map {
-                          case Left(x) =>
-                            println(x)
-                            println("Error: Battle " + character.id + " ~~> " + enemy.id)
-                          // add to finished list after succesful battle ACTION..
-                          case Right(e) =>
-                            // remmove both characters in the current game rotation..
+                          case Some(e) =>
+                            // add to finished list after succesful battle ACTION..
+                            // and remove both characters in the current game rotation..
                             currentlyPlayed(character.id) = character.owner
                             currentlyPlayed(enemy.id) = enemy.owner
+
+                          case None => println("Error: Battle " + character.id + " ~~> " + enemy.id)
                         }
-                      } catch {
-                        case e: Throwable => 
-                          println("Error: System is not responding.")
                       }
+                      catch { case e: Throwable => println("Error: System is not responding.") }
+                    } else {
+                      println("No available enemy for ~~> " + character.id)
+                      currentlyPlayed(character.id) = character.owner
                     }
 
                     defaultThreadSleep()
@@ -234,22 +237,22 @@ class SchedulerActor @Inject()(
             _ <- Future.successful {
               characters.foreach { ch =>
                 eosio.removeCharacter(ch.owner, ch.id).map {
-                  // TODO: check the reason why it is failed..  
-                  case Left(x) => 
-                    println("Error: removing character")
                   // Remove from the Character Data DB
-                  case Right(x) =>
+                  case Some(x) =>
                     for {
                       isDeleted <- characterRepo.remove(ch.owner, ch.id)
                       // check if Successfully removed the add to game data history..
-                      _ <-  { 
+                      _ <-  {
                         if (isDeleted > 0)
                           gQCDHistoryRepo.insert(GQCharacterDataHistory.fromCharacterData(ch))
                         else
                           Future(None)
                       }
-                      // TODO: check the reason why it is failed..  
+                      // TODO: check the reason why it is failed..
                     } yield ()
+
+                  // TODO: check the reason why it is failed..
+                  case None => println("Error: removing character")
                 }
                 // add timeout for contract response..
                defaultThreadSleep()
@@ -257,8 +260,8 @@ class SchedulerActor @Inject()(
               println("All Characters with no life has been removed")
             }
           } yield ()
-        
-        else 
+
+        else
           println("Info: There's no eliminated character/s to remove in the DB.")
         // close wallet after using...
         support.lockAllWallets()
@@ -267,7 +270,7 @@ class SchedulerActor @Inject()(
     case VerifyGQUserTable(request) =>
       eosio.getGQUsers(request).map(_.map(self ! _))
 
-    case e => 
+    case e =>
       println("Error: Unkown data received")
   }
 
