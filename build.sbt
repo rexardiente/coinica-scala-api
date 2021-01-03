@@ -16,6 +16,9 @@ libraryDependencies ++= Seq(
 	// "io.jafka" % "jeos" % "0.9.16"
 	// "com.typesafe.play" %% "play-json" % "2.8.1",
 	// "com.typesafe.akka" %% "akka-actor" % "2.6.10",
+	//"com.pauldijou" %% "jwt-play" % "0.19.0",
+    //"com.pauldijou" %% "jwt-core" % "0.19.0",
+     //"com.auth0" % "jwks-rsa" % "0.6.1",
 	"org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )
 
