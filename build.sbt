@@ -13,12 +13,9 @@ libraryDependencies ++= Seq(
 	"com.typesafe.play" %% "play-slick-evolutions" % "5.0.0",
 	"com.github.tminglei" %% "slick-pg" % "0.19.0",
 	"io.jafka" % "jeos" % "0.9.16",
-	// "io.jafka" % "jeos" % "0.9.16"
-	// "com.typesafe.play" %% "play-json" % "2.8.1",
-	// "com.typesafe.akka" %% "akka-actor" % "2.6.10",
-	//"com.pauldijou" %% "jwt-play" % "0.19.0",
-    //"com.pauldijou" %% "jwt-core" % "0.19.0",
-     //"com.auth0" % "jwks-rsa" % "0.6.1",
+	"org.typelevel" %% "cats-core" % "2.1.1",
+	"com.ejisan" %% "scalauthx" % "1.0-SNAPSHOT",
+  	"com.ejisan" %% "kuro-otp" % "0.0.1-SNAPSHOTS",
 	"org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )
 
@@ -29,4 +26,5 @@ play.sbt.routes.RoutesKeys.routesImport ++= Seq(
 )
 
 resolvers += "sonatype snapshots".at("https://oss.sonatype.org/content/repositories/snapshots/")
+resolvers += "Ejisan Github" at "https://ejisan.github.io/repo/"
 Global / onChangedBuildSource := IgnoreSourceChanges
