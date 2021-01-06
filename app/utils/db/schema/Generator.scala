@@ -8,7 +8,7 @@ import models.dao._
 
 @Singleton
 class Generator @Inject()(
-    
+
     user: UserDAO,
     game: GameDAO,
     genre: GenreDAO,
@@ -20,12 +20,13 @@ class Generator @Inject()(
     gqCharacterData: GQCharacterDataDAO,
     gqCharacterGameHistory: GQCharacterGameHistoryDAO,
     gqCharacterDataHistory: GQCharacterDataHistoryDAO,
+    adminDAO: AdminDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
   def createDDLScript() = {
-    val schemas = 
+    val schemas =
       user.Query.schema ++
       game.Query.schema ++
       genre.Query.schema ++
@@ -36,8 +37,9 @@ class Generator @Inject()(
       challenge.Query.schema ++
       gqCharacterData.Query.schema ++
       gqCharacterGameHistory.Query.schema ++
-      gqCharacterDataHistory.Query.schema
-      
+      gqCharacterDataHistory.Query.schema ++
+      adminDAO.Query.schema
+
 
     val writer = new java.io.PrintWriter("target/schema.sql")
     writer.write("# --- !Ups\n\n")

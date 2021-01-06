@@ -105,7 +105,7 @@ trait CommonImplicits {
 	}
 	implicit val implicitInEventWrites = new Writes[InEvent] {
 	  def writes(tx: InEvent): JsValue = {
-	  	if (tx.id == JsNull) 
+	  	if (tx.id == JsNull)
 	  		Json.obj("input" -> tx.input)
 	  	else
 	  		Json.obj("id" -> tx.id, "input" -> tx.input)
@@ -125,13 +125,13 @@ trait CommonImplicits {
 	}
 	implicit val implicitOutEventWrites = new Writes[OutEvent] {
 	  def writes(tx: OutEvent): JsValue = {
-	  	if (tx.id == JsNull) 
+	  	if (tx.id == JsNull)
 	  		Json.obj("response" -> tx.response)
 	  	else
 	  		Json.obj("id" -> tx.id, "response" -> tx.response)
 	  }
 	}
-	
+
 	// EOSIO Tables..
 	implicit val implicitGQCharacterPrevMatchDataReads: Reads[GQCharacterPrevMatchData] = new Reads[GQCharacterPrevMatchData] {
 		override def reads(js: JsValue): JsResult[GQCharacterPrevMatchData] = js match {
@@ -277,5 +277,7 @@ trait CommonImplicits {
 	}
 	implicit def implGQCharacterGameHistory = Json.format[GQCharacterGameHistory]
 	implicit def implGQCharacterDataHistory = Json.format[GQCharacterDataHistory]
-	
+
+	// implicit def implAdminAuth = Json.format[AdminAuth]
+
 }
