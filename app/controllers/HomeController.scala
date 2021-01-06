@@ -14,14 +14,14 @@ import play.api.libs.json._
 import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, InEvent, OutEvent }
 import models.repo.{ LoginRepo, GameRepo, GenreRepo, TaskRepo, ReferralRepo, RankingRepo, TransactionRepo, ChallengeRepo }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo, GQCharacterDataHistoryRepo }
-import models.service.{ TaskService, ReferralService, RankingService, TransactionService, ChallengeService }
+import models.service.{ TaskService, ReferralService, RankingService, TransactionService, ChallengeService, GQGameService }
 import akka.WebSocketActor
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
  */
 @Singleton
-class HomeController @Inject()( 
+class HomeController @Inject()(
       loginRepo: LoginRepo,
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
@@ -37,7 +37,8 @@ class HomeController @Inject()(
       gQCharacterDataRepo: GQCharacterDataRepo,
       gQCharacterDataHistoryRepo: GQCharacterDataHistoryRepo,
       gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
-      implicit val system: akka.actor.ActorSystem, 
+      gqGameService: GQGameService,
+      implicit val system: akka.actor.ActorSystem,
       mat: akka.stream.Materializer,
       val controllerComponents: ControllerComponents) extends BaseController {
   import models.domain.Event._
@@ -66,7 +67,7 @@ private def referralForm = Form(tuple(
     "profit" -> number,
     "multiplieramount" -> number,
     "rankingcreated" -> number))
-  
+
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
     "imgURL" -> nonEmptyText,
@@ -202,7 +203,7 @@ private def referralForm = Form(tuple(
   def games() = Action.async { implicit request =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
   }
-  
+
   def addGame() = Action.async { implicit request =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
@@ -239,7 +240,7 @@ private def referralForm = Form(tuple(
               else Future.successful(InternalServerError)
            }
         } yield(result)
-        
+
       }
     )
   }
@@ -299,8 +300,9 @@ private def referralForm = Form(tuple(
     gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x)))
   }
 
-  def getCharactersByUser[T <: String](user: T) = Action.async { implicit request => 
-    gQCharacterDataRepo.findByUser(user).map(x => Ok(Json.toJson(x)))
+  def getCharactersByUser[T <: String](user: T) = Action.async { implicit request =>
+    // gQCharacterDataRepo.findByUser(user).map(x => Ok(Json.toJson(x)))
+    gqGameService.getCharacterDataAndHistoryLogsByUser(user).map(Ok(_))
   }
 
   def getCharacterByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
@@ -318,8 +320,8 @@ private def referralForm = Form(tuple(
   def getGQGameHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
     gQCharacterGameHistoryRepo.find(id, user).map(x => Ok(Json.toJson(x)))
   }
-  def getGQGameHistoryByGameID(id: UUID) = Action.async { implicit request =>
-    gQCharacterGameHistoryRepo.findByGameID(id).map(x => Ok(Json.toJson(x)))
+  def getGQGameHistoryByGameID(id: String) = Action.async { implicit request =>
+    gQCharacterGameHistoryRepo.findByID(id).map(x => x.map(y => Ok(Json.toJson(y))).getOrElse(Ok(JsNull)))
   }
 
   def getCharacterHistoryByUser(user: String) = Action.async { implicit request =>

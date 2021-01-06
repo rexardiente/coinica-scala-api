@@ -5,7 +5,6 @@ import play.api.libs.json._
 object GQCharacterGameHistory extends utils.CommonImplicits
 
 case class GQCharacterGameHistory(
-    id: java.util.UUID,
     game_id: String,
     player: String,
     enemy: String,

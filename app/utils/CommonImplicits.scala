@@ -278,6 +278,28 @@ trait CommonImplicits {
 	implicit def implGQCharacterGameHistory = Json.format[GQCharacterGameHistory]
 	implicit def implGQCharacterDataHistory = Json.format[GQCharacterDataHistory]
 
+	implicit val implicitGQCharacterDataHistoryLogsReads: Reads[GQCharacterDataHistoryLogs] = new Reads[GQCharacterDataHistoryLogs] {
+		override def reads(js: JsValue): JsResult[GQCharacterDataHistoryLogs] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(GQCharacterDataHistoryLogs(
+						(json \ "game_id").as[String],
+						(json \ "is_win").as[Boolean],
+						(json \ "logs").as[List[String]]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitGQCharacterDataHistoryLogsWrites = new Writes[GQCharacterDataHistoryLogs] {
+	  def writes(tx: GQCharacterDataHistoryLogs): JsValue = Json.obj(
+		"game_id" -> tx.gameID,
+		"is_win" -> tx.isWin,
+		"logs" -> tx.logs)
+	}
+
 	// implicit def implAdminAuth = Json.format[AdminAuth]
 
 }

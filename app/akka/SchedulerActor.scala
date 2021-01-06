@@ -119,7 +119,6 @@ class SchedulerActor @Inject()(
         _ <- Future.successful { // convert to GQCharacterGameHistory and insert Seq[GQCharacterPrevMatch]
           val setOfCharactersGameHistory: ListBuffer[GQCharacterGameHistory] = characterPrevMatches.map({
             case ((owner, id), info) => new GQCharacterGameHistory(
-                                            UUID.randomUUID(),
                                             info.key,
                                             owner,
                                             info.value.enemy,
@@ -244,7 +243,7 @@ class SchedulerActor @Inject()(
                       // check if Successfully removed the add to game data history..
                       _ <-  {
                         if (isDeleted > 0)
-                          gQCDHistoryRepo.insert(GQCharacterDataHistory.fromCharacterData(ch))
+                          gQCDHistoryRepo.insert(GQCharacterDataHistory(ch))
                         else
                           Future(None)
                       }

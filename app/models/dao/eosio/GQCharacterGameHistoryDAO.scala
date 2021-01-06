@@ -14,8 +14,7 @@ final class GQCharacterGameHistoryDAO @Inject()(
   import profile.api._
 
   protected class GQCharacterGameHistoryTable(tag: Tag) extends Table[GQCharacterGameHistory](tag, "GQ_CHARACTER_GAME_HISTORY") {
-    def id = column[UUID] ("ID", O.PrimaryKey)
-    def gameID = column[String] ("GAME_ID")
+    def id = column[String] ("GAME_ID", O.PrimaryKey)
     def player = column[String] ("PLAYER")
     def enemy = column[String] ("ENEMY")
     def playerID = column[String] ("PLAYER_ID")
@@ -25,7 +24,6 @@ final class GQCharacterGameHistoryDAO @Inject()(
     def isWin = column[Boolean] ("IS_WIN")
 
     def * = (id,
-            gameID,
             player,
             enemy,
             playerID,
@@ -36,8 +34,8 @@ final class GQCharacterGameHistoryDAO @Inject()(
   }
 
   object Query extends TableQuery(new GQCharacterGameHistoryTable(_)) {
-    def apply(id: UUID) = this.withFilter(_.id === id)
-    def apply(id: String, player: String) = this.withFilter(x => x.gameID === id && x.player === player)
+    def apply(id: String) = this.withFilter(_.id === id)
+    def apply(id: String, player: String) = this.withFilter(x => x.id === id && x.player === player)
     // def apply(id: String, player: String) = this.withFilter(x => x.playerID === id && x.player === player)
-  } 
+  }
 }

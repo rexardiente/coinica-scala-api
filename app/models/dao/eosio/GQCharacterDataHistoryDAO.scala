@@ -44,11 +44,11 @@ final class GQCharacterDataHistoryDAO @Inject()(
             prize,
             battleLimit,
             battleCount,
-            lastMatch) <> ((GQCharacterDataHistory.apply _).tupled, GQCharacterDataHistory.unapply)
+            lastMatch) <> (GQCharacterDataHistory.tupled, GQCharacterDataHistory.unapply)
   }
 
   object Query extends TableQuery(new GQCharacterDataHistoryTable(_)) {
     def apply(id: String) = this.withFilter(_.chracterID === id)
     def apply(id: String, player: String) = this.withFilter(x => x.chracterID === id && x.player === player)
-  } 
+  }
 }
