@@ -27,6 +27,9 @@ GET     /donut/api/v1/ranking/monthly              controllers.HomeController.ra
 
 GET     /                                        controllers.HomeController.index
 # Referral API
+POST    /donut/api/v1/referrall/add                   controllers.HomeController.addReferral
+PUT     /donut/api/v1/referral/update               controllers.HomeController.updateReferral(id: UUID)
+POST    /donut/api/v1/referral/remove                controllers.HomeController.removeReferral(id: UUID)
 GET     /donut/api/v1/referral/weekly               controllers.HomeController.referraldate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/referral/daily                controllers.HomeController.referraldaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/referral/monthly              controllers.HomeController.referralmonthly(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)

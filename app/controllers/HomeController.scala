@@ -75,9 +75,10 @@ private def referralForm = Form(tuple(
     "genre" -> uuid,
     "description" -> optional(text)))
   private def taskForm = Form(tuple(
-    "gamename" -> nonEmptyText,
-    "taskdate" -> optional(date("yyyy-MM-dd")),
-    "description" -> optional(text)))
+    "gameid" -> uuid,
+    "info" -> nonEmptyText,
+    "isValid" -> boolean,
+    "datecreated" -> number))
   private def genreForm = Form(tuple(
     "name" -> nonEmptyText,
     "description" -> optional(text)))
@@ -193,6 +194,7 @@ private def referralForm = Form(tuple(
     def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
       rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
+  
   def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
   }

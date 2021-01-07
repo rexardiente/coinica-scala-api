@@ -19,11 +19,11 @@ class LoginRepo @Inject()(
   def add(login: Login): Future[Int] =
     db.run(dao.Query += login)
 
-  def delete(username: String): Future[Int] =
-    db.run(dao.Query(username).delete)  
+  def delete(id: UUID): Future[Int] =
+    db.run(dao.Query(id).delete)  
 
   def update(login: Login): Future[Int] =
-    db.run(dao.Query.filter(_.username ===login.username).update(login))
+    db.run(dao.Query.filter(_.id ===login.id).update(login))
 
   def all(limit: Int, offset: Int): Future[Seq[Login]] =
     db.run(dao.Query
@@ -32,9 +32,7 @@ class LoginRepo @Inject()(
       .result)
 
  
-def isValidLogin(username: String, password: String): Future[Seq[Login]] = 
-    db.run(dao.Query.filter(r => r.username === username  ).result)  
-     
+ 
 
   def findAll(limit: Int, offset: Int): Future[Seq[Login]] = 
     db.run(dao.Query.drop(offset).take(limit).result)
