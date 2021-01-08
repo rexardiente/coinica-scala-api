@@ -14,7 +14,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
   import profile.api._
 
   protected class GQCharacterDataHistoryTable(tag: Tag) extends Table[GQCharacterDataHistory](tag, "GQ_CHARACTER_DATA_HISTORY") {
-    def chracterID = column[String] ("CHARACTER_ID", O.PrimaryKey)
+    def id = column[String] ("CHARACTER_ID", O.PrimaryKey)
     def player = column[String] ("PLAYER")
     def life = column[Int] ("ENEMY")
     def hp = column[Int] ("HP")
@@ -30,7 +30,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
     def battleCount = column[Int] ("BATTLE_COUNT")
     def lastMatch = column[Long] ("LAST_MATCH")
 
-    def * = (chracterID,
+    def * = (id,
             player,
             life,
             hp,
@@ -48,7 +48,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
   }
 
   object Query extends TableQuery(new GQCharacterDataHistoryTable(_)) {
-    def apply(id: String) = this.withFilter(_.chracterID === id)
-    def apply(id: String, player: String) = this.withFilter(x => x.chracterID === id && x.player === player)
+    def apply(id: String) = this.withFilter(_.id === id)
+    def apply(id: String, player: String) = this.withFilter(x => x.id === id && x.player === player)
   }
 }

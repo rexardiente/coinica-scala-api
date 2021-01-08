@@ -29,9 +29,9 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val clientKeosdAPI    : EosApi = EosApiFactory.create(keosdApiBaseURL)
   val clientNodeosAPI   : EosApi = EosApiFactory.create(nodeosApiBaseURL)
   val mapper            : ObjectMapper = EosApiServiceGenerator.getMapper()
-    
+
   // unlock the creator's wallet
-  def unlockWalletAPI(): Either[EosApiException, Int] = 
+  def unlockWalletAPI(): Either[EosApiException, Int] =
     try {
       clientKeosdAPI.unlockWallet("default", privateKey)
       Right(1)
@@ -39,9 +39,9 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       case e: EosApiException => Left(e)
     }
 
-  def lockAllWallets(): Either[EosApiException, Int] = 
+  def lockAllWallets(): Either[EosApiException, Int] =
     try {
-      clientKeosdAPI.lockAllWallets()
+      clientKeosdAPI.lockWallet("default")
       Right(1)
     } catch {
       case e: EosApiException => Left(e)
@@ -51,15 +51,15 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   def getLatestBlock(): Block = {
     clientNodeosAPI.getBlock(clientNodeosAPI.getChainInfo().getHeadBlockId())
     // println("blockNum=" + block.getBlockNum())
-    // val block: Block = 
+    // val block: Block =
   }
 
   // ③ create the authorization
-  def authorization(acc: Seq[String]): List[TransactionAuthorization] = 
+  def authorization(acc: Seq[String]): List[TransactionAuthorization] =
     new ArrayList(acc.map(x => new TransactionAuthorization(x, "active")).asJavaCollection)
 
   // ④ build the all actions
-  private def buildActions(contract: String, action: String, auth: List[TransactionAuthorization], data: String) = 
+  private def buildActions(contract: String, action: String, auth: List[TransactionAuthorization], data: String) =
     Arrays.asList(new TransactionAction(contract, action, auth, data))
     // returns actions: List[TransactionAction]
 
@@ -80,10 +80,10 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   }
 
   // ⑦ sign the transaction
-  def signTransaction(packedTx: PackedTransaction, pubKeys: Seq[String], chainId: String): SignedPackedTransaction = 
+  def signTransaction(packedTx: PackedTransaction, pubKeys: Seq[String], chainId: String): SignedPackedTransaction =
     clientKeosdAPI.signTransaction(packedTx, new ArrayList(pubKeys.asJavaCollection), chainId)
 
-  // ⑧ push the signed transaction 
+  // ⑧ push the signed transaction
   // return 1 for success and 0 for failed tx..
   // def pushSignedTx(signedTx: SignedPackedTransaction): PushedTransaction =
   //   EosApiFactory.create(nodeosApiBaseURL).pushTransaction(null, signedTx)
@@ -106,7 +106,7 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   //   // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
   //   val data: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
 
-  //   abiJsonToBin("ghostquest", "battle", data).map { abiJsonToBinResult => 
+  //   abiJsonToBin("ghostquest", "battle", data).map { abiJsonToBinResult =>
   //     val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
   //         "ghostquest",
   //         "battle",

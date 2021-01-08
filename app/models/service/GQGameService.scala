@@ -11,17 +11,16 @@ import models.repo.eosio._
 @Singleton
 class GQGameService @Inject()(
       charDataRepo: GQCharacterDataRepo,
-      charDataHistoryRepo: GQCharacterDataHistoryRepo,
+      // charDataHistoryRepo: GQCharacterDataHistoryRepo,
       charGameHistoryRepo: GQCharacterGameHistoryRepo ) {
 
   // def getCharacterWinAndLostHistory(user: String, characterID: String) = ???
   // def getGameLogs(gameID: String) = ???
 
-  def getHistoryByCharacterID(id: String): Future[Seq[GQCharacterGameHistory]] =
+  def getHistoryByCharacterID(id: String): Future[Seq[GQCharacterGameHistory]] = {
     charGameHistoryRepo.getByCharacterID(id)
+  }
 
-  def mergeFutureSeq[A ,T <: Future[Seq[A]]](seq1: T, seq2: T) =
-    Future.reduceLeft(List(seq1, seq2))(_ ++ _)
   def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
 
   // get all characters from specific player
@@ -32,8 +31,8 @@ class GQGameService @Inject()(
       alive <- charDataRepo.findByUser(user)
       // get all characters that are already eliminated and
       // convert to GQCharacterData from GQCharacterDataHistory
-      eliminated <- charDataHistoryRepo
-        .findByUser(user)
+      eliminated <- charDataRepo
+        .getHistoryByUser(user)
         .map(_.map(GQCharacterDataHistory.toCharacterData))
 
       // merge two Future[Seq] in single Future[Seq]
@@ -46,7 +45,7 @@ class GQGameService @Inject()(
             // get all history of character
             val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.game_id, v.isWin, v.gameplay_log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.log)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs.map(v => (character.toJson, Json.toJson(v)))
           }))

@@ -14,7 +14,7 @@ import play.api.libs.json._
 import play.api.libs.json.JsValue
 import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, InEvent, OutEvent }
 import models.repo.{ LoginRepo, GameRepo, GenreRepo, TaskRepo, ReferralRepo, RankingRepo, TransactionRepo, ChallengeRepo }
-import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo, GQCharacterDataHistoryRepo }
+import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.service.{ TaskService, ReferralService, RankingService, TransactionService, ChallengeService, GQGameService }
 import akka.WebSocketActor
 /**
@@ -36,7 +36,6 @@ class HomeController @Inject()(
       transactionService: TransactionService,
       challengeService: ChallengeService,
       gQCharacterDataRepo: GQCharacterDataRepo,
-      gQCharacterDataHistoryRepo: GQCharacterDataHistoryRepo,
       gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
       gqGameService: GQGameService,
       implicit val system: akka.actor.ActorSystem,
@@ -189,14 +188,13 @@ private def referralForm = Form(tuple(
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-   def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+  def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
     def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
       rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
-  
-  
+
   def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
   }
@@ -305,12 +303,19 @@ private def referralForm = Form(tuple(
   }
 
   def getCharactersByUser[T <: String](user: T) = Action.async { implicit request =>
-    // gQCharacterDataRepo.findByUser(user).map(x => Ok(Json.toJson(x)))
     gqGameService.getCharacterDataAndHistoryLogsByUser(user).map(Ok(_))
   }
 
   def getCharacterByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
     gQCharacterDataRepo.findByUserAndID(user, id).map(x => Ok(Json.toJson(x)))
+  }
+
+  def getCharacterHistoryByUser(user: String) = Action.async { implicit request =>
+    gQCharacterDataRepo.getHistoryByUser(user).map(x => Ok(Json.toJson(x)))
+  }
+
+  def getCharacterHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
+    gQCharacterDataRepo.getCharacterHistoryByUserAndID(user, id).map(x => Ok(Json.toJson(x)))
   }
 
   def getAllGQGameHistory() = Action.async { implicit request =>
@@ -321,18 +326,10 @@ private def referralForm = Form(tuple(
     gQCharacterGameHistoryRepo.getByUser(user).map(x => Ok(Json.toJson(x)))
   }
 
-  def getGQGameHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
-    gQCharacterGameHistoryRepo.find(id, user).map(x => Ok(Json.toJson(x)))
+  def getGQGameHistoryByUserAndCharacterID[T <: String](user: T, id: T) = Action.async { implicit request =>
+    gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(id, user).map(x => Ok(Json.toJson(x)))
   }
   def getGQGameHistoryByGameID(id: String) = Action.async { implicit request =>
-    gQCharacterGameHistoryRepo.findByID(id).map(x => x.map(y => Ok(Json.toJson(y))).getOrElse(Ok(JsNull)))
-  }
-
-  def getCharacterHistoryByUser(user: String) = Action.async { implicit request =>
-    gQCharacterDataHistoryRepo.findByUser(user).map(x => Ok(Json.toJson(x)))
-  }
-
-  def getCharacterHistoryByID(id: String) = Action.async { implicit request =>
-    gQCharacterDataHistoryRepo.findByID(id).map(x => Ok(Json.toJson(x)))
+    gQCharacterGameHistoryRepo.filteredByID(id).map(x => Ok(Json.toJson(x)))
   }
 }
