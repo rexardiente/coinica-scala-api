@@ -302,20 +302,24 @@ private def referralForm = Form(tuple(
     gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x)))
   }
 
-  def getCharactersByUser[T <: String](user: T) = Action.async { implicit request =>
-    gqGameService.getCharacterDataAndHistoryLogsByUser(user).map(Ok(_))
+  def getAllCharactersByUser[T <: String](user: T) = Action.async { implicit request =>
+    gqGameService.getAllCharactersDataAndHistoryLogsByUser(user).map(Ok(_))
   }
 
-  def getCharacterByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
-    gQCharacterDataRepo.findByUserAndID(user, id).map(x => Ok(Json.toJson(x)))
+  def getCharactersByUser[T <: String](user: T) = Action.async { implicit request =>
+    gqGameService.getAliveCharacters(user).map(Ok(_))
+  }
+
+  def getCharacterByID(id: String) = Action.async { implicit request =>
+    gqGameService.getCharacterDataByID(id).map(Ok(_))
   }
 
   def getCharacterHistoryByUser(user: String) = Action.async { implicit request =>
-    gQCharacterDataRepo.getHistoryByUser(user).map(x => Ok(Json.toJson(x)))
+    gqGameService.getAllEliminatedCharacters(user).map(Ok(_))
   }
 
   def getCharacterHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
-    gQCharacterDataRepo.getCharacterHistoryByUserAndID(user, id).map(x => Ok(Json.toJson(x)))
+    gqGameService.getCharacterHistoryByUserAndID(user, id).map(Ok(_))
   }
 
   def getAllGQGameHistory() = Action.async { implicit request =>
