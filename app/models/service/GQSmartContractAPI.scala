@@ -23,7 +23,11 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
 	private val support: EOSIOSupport = new EOSIOSupport()
 	private val GQContractName: String = "ghostquest"
 
+  private def defaultThreadSleep(): Unit = Thread.sleep(1000)
+
 	def battleAction(users: Seq[(String, String)], id: UUID): Future[Option[PushedTransaction]] = {
+    support.unlockWalletAPI()
+    defaultThreadSleep()
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
     val query: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(id.toString))
 
@@ -44,20 +48,23 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
           packedTx.setMaxCpuUsageMs(0)
           packedTx.setActions(actions)
       // check if transaction is successful
-      try {
+      val result = try {
         val signedPackedTx: SignedPackedTransaction = support.signTransaction(
-          packedTx,
-          Seq(support.publicKey),
-          support.clientNodeosAPI.getChainInfo().getChainId())
+            packedTx,
+            Seq(support.publicKey),
+            support.clientNodeosAPI.getChainInfo().getChainId())
 
         Some(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
-      }
-      catch { case e: EosApiException => None }
+      } catch { case e: EosApiException => None }
+
+      support.lockAllWallets()
+      result
     }
   }
 
   // TODO: Please check if character exists on users table...
   def removeCharacter(player: String, characterKey: String): Future[Option[PushedTransaction]] = {
+    support.unlockWalletAPI()
   	val query = Seq(JsString(player), JsString(characterKey))
 
     support.abiJsonToBin(GQContractName, "eliminate", query).map { abiJsonToBinResult =>
@@ -77,15 +84,19 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
           packedTx.setMaxCpuUsageMs(0)
           packedTx.setActions(actions)
       // check if transaction is successful
-      try {
+      val result = try {
         val signedPackedTx: SignedPackedTransaction = support.signTransaction(
           packedTx,
           Seq(support.publicKey),
           support.clientNodeosAPI.getChainInfo().getChainId())
 
         Some(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
-      }
-      catch { case e: EosApiException => None }
+      } catch { case e: EosApiException =>
+      println(e)
+      None }
+
+      support.lockAllWallets()
+      result
     }
   }
 

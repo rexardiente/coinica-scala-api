@@ -275,7 +275,39 @@ trait CommonImplicits {
 		"last_match" -> tx.last_match)
 		// "match_history" -> tx.match_history)
 	}
-	implicit def implGQCharacterGameHistory = Json.format[GQCharacterGameHistory]
+	implicit def implGQGameStatus = Json.format[GQGameStatus]
+	implicit val implicitGQCharacterGameHistoryReads: Reads[GQCharacterGameHistory] = new Reads[GQCharacterGameHistory] {
+		override def reads(js: JsValue): JsResult[GQCharacterGameHistory] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(GQCharacterGameHistory(
+						(json \ "game_id").as[String],
+						(json \ "player1").as[String],
+						(json \ "player1_id").as[String],
+						(json \ "player2").as[String],
+						(json \ "player2_id").as[String],
+						(json \ "time_executed").as[Long],
+						(json \ "gameplay_log").as[List[String]],
+						(json \ "status").as[List[GQGameStatus]]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitGQCharacterGameHistoryWrites = new Writes[GQCharacterGameHistory] {
+	  def writes(tx: GQCharacterGameHistory): JsValue = Json.obj(
+		"game_id" -> tx.id,
+		"player1" -> tx.player1,
+		"player1_id" -> tx.player1ID,
+		"player2" -> tx.player2,
+		"player2_id" -> tx.player2ID,
+		"time_executed" -> tx.timeExecuted,
+		"gameplay_log" -> tx.log,
+		"status" -> tx.status)
+	}
+
 	implicit def implGQCharacterDataHistory = Json.format[GQCharacterDataHistory]
 
 	implicit val implicitGQCharacterDataHistoryLogsReads: Reads[GQCharacterDataHistoryLogs] = new Reads[GQCharacterDataHistoryLogs] {
@@ -284,7 +316,7 @@ trait CommonImplicits {
 				try {
 					JsSuccess(GQCharacterDataHistoryLogs(
 						(json \ "game_id").as[String],
-						(json \ "is_win").as[Boolean],
+						(json \ "is_win").as[List[GQGameStatus]],
 						(json \ "logs").as[List[String]]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))

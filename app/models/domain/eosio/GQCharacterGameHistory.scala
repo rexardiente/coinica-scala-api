@@ -2,16 +2,18 @@ package models.domain.eosio
 
 import play.api.libs.json._
 
+object GQGameStatus extends utils.CommonImplicits
 object GQCharacterGameHistory extends utils.CommonImplicits
 
+case class GQGameStatus(player: String, isWin: Boolean)
 case class GQCharacterGameHistory(
-    game_id: String,
-    player: String,
-    enemy: String,
-    player_id: String,
-    enemy_id: String,
-    time_executed: Long,
-    gameplay_log: List[String],
-    isWin: Boolean) { // String Long value from smartcontract
+    id: String,
+    player1: String,
+    player1ID: String,
+    player2: String,
+    player2ID: String,
+    timeExecuted: Long,
+    log: List[String],
+    status: List[GQGameStatus]) {
   def toJson(): JsValue = Json.toJson(this)
 }
