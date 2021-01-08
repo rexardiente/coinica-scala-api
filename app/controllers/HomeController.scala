@@ -11,6 +11,7 @@ import play.api.data.Form
 import play.api.data.Forms._
 // import play.api.data.format.Formats._
 import play.api.libs.json._
+import play.api.libs.json.JsValue
 import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, InEvent, OutEvent }
 import models.repo.{ LoginRepo, GameRepo, GenreRepo, TaskRepo, ReferralRepo, RankingRepo, TransactionRepo, ChallengeRepo }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo, GQCharacterDataHistoryRepo }
@@ -76,7 +77,7 @@ private def referralForm = Form(tuple(
     "description" -> optional(text)))
   private def taskForm = Form(tuple(
     "gameid" -> uuid,
-    "info" -> nonEmptyText,
+    "info" -> optional(text),
     "isValid" -> boolean,
     "datecreated" -> number))
   private def genreForm = Form(tuple(
@@ -194,6 +195,7 @@ private def referralForm = Form(tuple(
     def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
       rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
+  
   
   def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
