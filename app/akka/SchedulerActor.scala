@@ -41,10 +41,10 @@ class SchedulerActor @Inject()(
                                                   None,
                                                   None,
                                                   None)
-    self ! VerifyGQUserTable(eosTblRowsRequest)
+    // self ! VerifyGQUserTable(eosTblRowsRequest)
 
     // scheduled on every 5 minutes
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
+    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
 
     // scheduled on every 1 hr to verify data integrity..
     // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.hour, interval = 1.hour)(() => self ! VerifyGQUserTable(eosTblRowsRequest))

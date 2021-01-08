@@ -91,9 +91,7 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
           support.clientNodeosAPI.getChainInfo().getChainId())
 
         Some(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
-      } catch { case e: EosApiException =>
-      println(e)
-      None }
+      } catch { case e: EosApiException => None }
 
       support.lockAllWallets()
       result
