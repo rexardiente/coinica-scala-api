@@ -77,7 +77,7 @@ private def referralForm = Form(tuple(
     "description" -> optional(text)))
   private def taskForm = Form(tuple(
     "gameid" -> uuid,
-    "info" -> optional(text),
+    "info" -> nonEmptyText,
     "isValid" -> boolean,
     "datecreated" -> number))
   private def genreForm = Form(tuple(
