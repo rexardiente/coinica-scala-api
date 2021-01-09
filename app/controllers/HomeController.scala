@@ -51,7 +51,7 @@ private def referralForm = Form(tuple(
     "referrallink" -> nonEmptyText,
     "rate" -> number,
     "feeamount" -> number,
-    "referralcreated" -> number))
+    "referralcreated" -> longNumber))
 
   private def challengeForm = Form(tuple(
     "name" -> nonEmptyText,
@@ -59,14 +59,14 @@ private def referralForm = Form(tuple(
     "profit" -> number,
     "ratio" -> number,
     "vippoints" -> number,
-    "challengecreated" -> number))
+    "challengecreated" -> longNumber))
 
   private def rankingForm = Form(tuple(
     "name" -> nonEmptyText,
     "bets" -> number,
     "profit" -> number,
     "multiplieramount" -> number,
-    "rankingcreated" -> number))
+    "rankingcreated" -> longNumber))
 
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
@@ -78,7 +78,7 @@ private def referralForm = Form(tuple(
     "gameid" -> uuid,
     "info" -> nonEmptyText,
     "isValid" -> boolean,
-    "datecreated" -> number))
+    "datecreated" -> longNumber))
   private def genreForm = Form(tuple(
     "name" -> nonEmptyText,
     "description" -> optional(text)))
@@ -150,7 +150,31 @@ private def referralForm = Form(tuple(
    def challengedaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
   }
-
+def addTask = Action.async { implicit request =>
+    taskForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (gameID, info, isValid, datecreated)  =>
+        taskRepo
+          .add(Task(UUID.randomUUID, gameID, info, isValid, datecreated))
+          .map(r => if(r < 0) InternalServerError else Created )
+      }
+    )
+  }
+  def updateTask(id: UUID) = Action.async { implicit request =>
+    taskForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (gameID, info, isValid, datecreated) =>
+        taskRepo
+          .update(Task(id, gameID, info, isValid, datecreated))
+          .map(r => if(r < 0) NotFound else Ok)
+      }
+    )
+  }
+  def removeTask(id: UUID) = Action.async { implicit request =>
+    taskRepo
+      .delete(id)
+      .map(r => if(r < 0) NotFound else Ok)
+  }
   def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
     taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
   }
