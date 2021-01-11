@@ -8,7 +8,7 @@ import models.dao._
 
 @Singleton
 class Generator @Inject()(
-
+    login : LoginDAO,
     user: UserDAO,
     game: GameDAO,
     genre: GenreDAO,
@@ -27,6 +27,7 @@ class Generator @Inject()(
 
   def createDDLScript() = {
     val schemas =
+     login.Query.schema ++
       user.Query.schema ++
       game.Query.schema ++
       genre.Query.schema ++

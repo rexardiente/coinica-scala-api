@@ -31,8 +31,16 @@ class LoginRepo @Inject()(
       .take(limit)
       .result)
 
- 
- 
+ def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Login]] =
+   db.run(dao.Query.filter(r => r.logincreated >= startdate && r.logincreated <= enddate ) 
+     .drop(offset)
+     .take(limit)
+     .result)
+ def findByDaily( currentdate: Long, limit: Int, offset: Int): Future[Seq[Login]] = 
+   db.run(dao.Query.filter(r =>  r.logincreated === currentdate) 
+     .drop(offset)
+     .take(limit)
+     .result)
 
   def findAll(limit: Int, offset: Int): Future[Seq[Login]] = 
     db.run(dao.Query.drop(offset).take(limit).result)

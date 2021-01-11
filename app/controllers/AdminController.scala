@@ -17,14 +17,15 @@ class AdminController @Inject()(loginRepo: LoginRepo, val controllerComponents: 
 
   private def loginForm = Form(tuple(
     "username" -> nonEmptyText,
-    "password" -> nonEmptyText))
+    "password" -> nonEmptyText,
+    "logincreated" -> longNumber))
 
   def addLogin = Action.async { implicit request =>
     loginForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (username, password)  =>
+      { case (username, password, logincreated)  =>
         loginRepo
-          .add(Login(UUID.randomUUID, username, password))
+          .add(Login(UUID.randomUUID, username, password, logincreated))
           .map(r => if(r < 0) InternalServerError else Created )
       }
     )
@@ -33,9 +34,9 @@ class AdminController @Inject()(loginRepo: LoginRepo, val controllerComponents: 
   def updateLogin(id: UUID) = Action.async { implicit request =>
     loginForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (username, password) =>
+      { case (username, password, logincreated) =>
         loginRepo
-          .update(Login( id,username, password))
+          .update(Login( id,username, password, logincreated))
           .map(r => if(r < 0) NotFound else Ok)
       }
     )

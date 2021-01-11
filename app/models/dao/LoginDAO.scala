@@ -19,9 +19,9 @@ final class LoginDAO @Inject()(
     def id = column[UUID] ("ID", O.PrimaryKey)
     def username = column[String] ("USERNAME")
     def password = column[String] ("PASSWORD")
-    
+    def logincreated = column[Long] ("LOGINCREATED")
 
-   def * = ( id,username, password) <> ((Login.apply _).tupled, Login.unapply)
+   def * = ( id,username, password, logincreated) <> ((Login.apply _).tupled, Login.unapply)
   }
 
   object Query extends TableQuery(new LoginTable(_)) {
