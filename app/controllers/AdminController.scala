@@ -2,6 +2,7 @@ package controllers
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api._
@@ -11,9 +12,11 @@ import play.api.data.Forms._
 import play.api.libs.json._
 import models.domain.Login
 import models.repo.LoginRepo
+import models.service.LoginService
+
 
 @Singleton
-class AdminController @Inject()(loginRepo: LoginRepo, val controllerComponents: ControllerComponents) extends BaseController {
+class AdminController @Inject()(loginRepo: LoginRepo,loginService: LoginService, val controllerComponents: ControllerComponents) extends BaseController {
 
   private def loginForm = Form(tuple(
     "username" -> nonEmptyText,
@@ -46,6 +49,9 @@ class AdminController @Inject()(loginRepo: LoginRepo, val controllerComponents: 
     loginRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
+  }
+  def logindate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    loginService.getLoginByDate(start, end, limit, offset).map(Ok(_))
   }
   
 }
