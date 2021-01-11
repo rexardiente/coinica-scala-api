@@ -27,7 +27,7 @@ class RankingService @Inject()(rankingRepo: RankingRepo ) {
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
 
-  def getReferralByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
+  def getRankingByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   	try {
   		for {
 	      txs <- rankingRepo.findByDateRange(
@@ -43,7 +43,7 @@ class RankingService @Inject()(rankingRepo: RankingRepo ) {
   	}
   }
  
-  def getReferralByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
+  def getRankingByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
 
     try {
       for {

@@ -213,10 +213,10 @@ def addTask = Action.async { implicit request =>
       .map(r => if(r < 0) NotFound else Ok)
   }
   def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
-    rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+    rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
   }
     def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
-      rankingService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+      rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
   }
 
   def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
