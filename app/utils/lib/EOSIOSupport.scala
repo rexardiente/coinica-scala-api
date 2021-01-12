@@ -30,13 +30,10 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val clientNodeosAPI   : EosApi = EosApiFactory.create(nodeosApiBaseURL)
   val mapper            : ObjectMapper = EosApiServiceGenerator.getMapper()
 
-  def defaultThreadSleep(): Unit = Thread.sleep(2000)
-
   // unlock the creator's wallet
   def unlockWalletAPI(): Either[EosApiException, Int] =
     try {
       clientKeosdAPI.unlockWallet("default", privateKey)
-      defaultThreadSleep()
       Right(1)
     } catch {
       case e: EosApiException => Left(e)
@@ -45,7 +42,6 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   def lockAllWallets(): Either[EosApiException, Int] =
     try {
       clientKeosdAPI.lockWallet("default")
-      defaultThreadSleep()
       Right(1)
     } catch {
       case e: EosApiException => Left(e)

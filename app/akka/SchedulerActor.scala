@@ -30,7 +30,7 @@ class SchedulerActor @Inject()(
     println("SchedulerActor Initialized!!!")
 
     // make sure all wallets are locked to avoid tx error..
-    support.lockAllWallets()
+    // support.lockAllWallets()
     // load GhostQuest users to DB update for one time.. in case server is down..
     val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
@@ -45,9 +45,6 @@ class SchedulerActor @Inject()(
 
     // scheduled on every 5 minutes
     actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
-
-    // scheduled on every 1 hr to verify data integrity..
-    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 1.hour, interval = 1.hour)(() => self ! VerifyGQUserTable(eosTblRowsRequest))
   }
 
   def receive: Receive = {
@@ -112,9 +109,8 @@ class SchedulerActor @Inject()(
             } catch { // TODO: save failed insertion data..
               case e: Throwable => println(e)
             }
-            // defaultThreadSleep() // help prevent from overlapping existing process..
+            defaultThreadSleep() // help prevent from overlapping existing process..
           }
-           defaultThreadSleep()
         }
 
         _ <- {
@@ -174,7 +170,7 @@ class SchedulerActor @Inject()(
 
     case BattleScheduler =>
       for  {
-        // _ <- Future.successful(support.unlockWalletAPI().map(_ => defaultThreadSleep()))
+        _ <- Future(support.unlockWalletAPI()).map(_ => defaultThreadSleep())
         // get latest history data..
         gameHistory <- gQGameHistoryRepo.all()
 
@@ -241,14 +237,13 @@ class SchedulerActor @Inject()(
                 }
               }
 
-          // _ <- Future.successful(support.lockAllWallets())
-          // update database ..
-          _ <- Future.successful(self ! VerifyGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)))
+          _ <- Future(self ! VerifyGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)))
       } yield ()
 
     case RemoveCharacterWithNoLife =>
       // unlock your wallet..
       for {
+        // _ <- Future(support.unlockWalletAPI())
         _ <- {
           // get all characters that has no life on DB
           characterRepo.getNoLifeCharacters.map { characters =>
@@ -288,6 +283,7 @@ class SchedulerActor @Inject()(
             // support.lockAllWallets()
           }
         }
+        _ <- Future(support.lockAllWallets())
       } yield ()
 
     case VerifyGQUserTable(request) =>
@@ -297,5 +293,5 @@ class SchedulerActor @Inject()(
       println("Error: Unkown data received")
   }
 
-  def defaultThreadSleep(): Unit = Thread.sleep(2000)
+  def defaultThreadSleep(): Unit = Thread.sleep(1500)
 }
