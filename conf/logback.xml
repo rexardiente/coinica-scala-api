@@ -34,6 +34,7 @@
   <logger name="play" level="INFO" />
   <logger name="application" level="DEBUG" />
   <!-- <logger name="akka.SchedulerActor" level="INFO" /> -->
+  <logger name="akka.WebSocketActor" level="TRACE" />
   <logger name="akka.SchedulerActor" level="TRACE" />
 
   <root level="WARN">

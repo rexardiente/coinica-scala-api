@@ -9,10 +9,9 @@ import play.api._
 import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
-// import play.api.data.format.Formats._
 import play.api.libs.json._
 import play.api.libs.json.JsValue
-import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, InEvent, OutEvent }
+import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, Event }
 import models.repo.{ LoginRepo, GameRepo, GenreRepo, TaskRepo, ReferralRepo, RankingRepo, TransactionRepo, ChallengeRepo }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.service.{ TaskService, ReferralService, RankingService, TransactionService, ChallengeService, GQGameService }
@@ -41,8 +40,7 @@ class HomeController @Inject()(
       implicit val system: akka.actor.ActorSystem,
       mat: akka.stream.Materializer,
       val controllerComponents: ControllerComponents) extends BaseController {
-  import models.domain.Event._
-  implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[InEvent, OutEvent]
+  implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
 
   /*  CUSTOM FORM VALIDATION */
 
@@ -83,7 +81,7 @@ private def referralForm = Form(tuple(
     "name" -> nonEmptyText,
     "description" -> optional(text)))
 
-  def socket = WebSocket.accept[InEvent, OutEvent] { implicit request =>
+  def socket = WebSocket.accept[Event, Event] { implicit request =>
     play.api.libs.streams.ActorFlow.actorRef { out => WebSocketActor.props(out) }
   }
 
