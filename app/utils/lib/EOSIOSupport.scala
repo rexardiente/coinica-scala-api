@@ -240,5 +240,3 @@ class EOSIOSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .map(_.json.asOpt[BinaryArgs])
   }
 }
-
-// what mechanism is used to serialise the transaction JSON into packed_trx? chainId
