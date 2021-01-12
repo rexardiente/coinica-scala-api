@@ -16,7 +16,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
   protected class GQCharacterDataHistoryTable(tag: Tag) extends Table[GQCharacterDataHistory](tag, "GQ_CHARACTER_DATA_HISTORY") {
     def id = column[String] ("CHARACTER_ID", O.PrimaryKey)
     def player = column[String] ("PLAYER")
-    def life = column[Int] ("ENEMY")
+    def life = column[Int] ("LIFE")
     def hp = column[Int] ("HP")
     def ghostClass = column[Int] ("CLASS")
     def level = column[Int] ("LEVEL")
