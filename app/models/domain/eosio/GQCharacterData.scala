@@ -6,19 +6,20 @@ object GQCharacterData extends utils.CommonImplicits
 
 case class GQCharacterData(
     id: String,
-    owner: String, 
+    owner: String,
     character_life: Int,
-    initial_hp: Int, 
-    ghost_class: Int, 
-    ghost_level: Int, 
-    status: Int, 
-    attack: Int, 
-    defense: Int, 
-    speed: Int, 
-    luck: Int, 
-    prize: String, 
-    battle_limit: Int, 
-    battle_count: Int, 
-    last_match: Long) { // String Long value from smartcontract
+    initial_hp: Int,
+    ghost_class: Int,
+    ghost_level: Int,
+    status: Int,
+    attack: Int,
+    defense: Int,
+    speed: Int,
+    luck: Int,
+    prize: String,
+    battle_limit: Int,
+    battle_count: Int,
+    last_match: Long,
+    created_at: Long) { // String Long value from smartcontract
   def toJson(): JsValue = Json.toJson(this)
 }

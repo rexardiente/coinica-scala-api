@@ -3,6 +3,7 @@ package utils
 import java.time.Instant
 import java.util.UUID
 import play.api.libs.json._
+import play.api.libs.functional.syntax._
 import models.domain._
 import models.domain.eosio._
 
@@ -111,7 +112,7 @@ trait CommonImplicits {
 	  		Json.obj("id" -> tx.id, "input" -> tx.input)
 	  }
 	}
-  	implicit val implicitOutEventReads: Reads[OutEvent] = new Reads[OutEvent] {
+  implicit val implicitOutEventReads: Reads[OutEvent] = new Reads[OutEvent] {
 		override def reads(js: JsValue): JsResult[OutEvent] = js match {
 			case json: JsValue => {
 				try {
@@ -131,6 +132,21 @@ trait CommonImplicits {
 	  		Json.obj("id" -> tx.id, "response" -> tx.response)
 	  }
 	}
+
+	implicit val implicitEventReads: Reads[Event] = {
+    Json.format[InEvent].map(x => x: Event) or
+    Json.format[OutEvent].map(x => x: Event)
+  }
+
+  implicit val implicitEventWrites = new Writes[Event] {
+    def writes(event: Event): JsValue = {
+      event match {
+        case m: InEvent => Json.toJson(m)
+        case m: OutEvent => Json.toJson(m)
+        case _ => Json.obj("error" -> "wrong Json")
+      }
+    }
+  }
 
 	// EOSIO Tables..
 	implicit val implicitGQCharacterPrevMatchDataReads: Reads[GQCharacterPrevMatchData] = new Reads[GQCharacterPrevMatchData] {
@@ -180,7 +196,8 @@ trait CommonImplicits {
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
 						(json \ "last_match").asOpt[String].map(_.toLong).getOrElse(0),
-						(json \ "match_history").as[Seq[GQCharacterPrevMatch]]))
+						(json \ "match_history").as[Seq[GQCharacterPrevMatch]],
+						(json \ "created_at").as[String]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -204,7 +221,8 @@ trait CommonImplicits {
 		"battle_limit" -> tx.battle_limit,
 		"battle_count" -> tx.battle_count,
 		"last_match" -> tx.last_match,
-		"match_history" -> tx.match_history)
+		"match_history" -> tx.match_history,
+		"created_at" -> tx.created_at)
 	}
 	// implicit def implGQGhost = Json.format[GQGhost]
 	implicit val implicitGQGhostReads: Reads[GQGhost] = new Reads[GQGhost] {
@@ -248,7 +266,8 @@ trait CommonImplicits {
 						(json \ "prize").as[String],
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
-						(json \ "last_match").as[Long]))
+						(json \ "last_match").as[Long],
+						(json \ "created_at").as[Long]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -272,7 +291,8 @@ trait CommonImplicits {
 		"prize" -> tx.prize,
 		"battle_limit" -> tx.battle_limit,
 		"battle_count" -> tx.battle_count,
-		"last_match" -> tx.last_match)
+		"last_match" -> tx.last_match,
+		"created_at" -> tx.created_at)
 		// "match_history" -> tx.match_history)
 	}
 	implicit def implGQGameStatus = Json.format[GQGameStatus]

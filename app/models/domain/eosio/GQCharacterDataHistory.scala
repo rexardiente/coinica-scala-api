@@ -3,7 +3,7 @@ package models.domain.eosio
 import play.api.libs.json._
 
 object GQCharacterDataHistory extends utils.CommonImplicits {
-  val tupled = (apply: (String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, String, Int, Int, Long) => GQCharacterDataHistory).tupled
+  val tupled = (apply: (String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, String, Int, Int, Long, Long) => GQCharacterDataHistory).tupled
   def apply(v: GQCharacterData): GQCharacterDataHistory =
       new GQCharacterDataHistory(
           v.id,
@@ -20,7 +20,8 @@ object GQCharacterDataHistory extends utils.CommonImplicits {
           v.prize,
           v.battle_limit,
           v.battle_count,
-          v.last_match)
+          v.last_match,
+          v.created_at)
 
   def toCharacterData(v: GQCharacterDataHistory): GQCharacterData =
     new GQCharacterData(
@@ -38,7 +39,8 @@ object GQCharacterDataHistory extends utils.CommonImplicits {
         v.prize,
         v.battle_limit,
         v.battle_count,
-        v.last_match)
+        v.last_match,
+        v.created_at)
 }
 
 case class GQCharacterDataHistory(
@@ -56,6 +58,7 @@ case class GQCharacterDataHistory(
     prize: String,
     battle_limit: Int,
     battle_count: Int,
-    last_match: Long) {
+    last_match: Long,
+    created_at: Long) {
     def toJson(): JsValue = Json.toJson(this)
 }

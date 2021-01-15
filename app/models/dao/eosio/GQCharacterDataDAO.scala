@@ -29,6 +29,7 @@ final class GQCharacterDataDAO @Inject()(
     def battle_limit = column[Int] ("BATTLE_LIMIT")
     def battle_count = column[Int] ("BATTLE_COUNT")
     def last_match = column[Long] ("LAST_MATCH")
+    def created_at = column[Long] ("CREATED_AT")
 
     def * = (id,
             owner,
@@ -44,10 +45,11 @@ final class GQCharacterDataDAO @Inject()(
             prize,
             battle_limit,
             battle_count,
-            last_match) <> ((GQCharacterData.apply _).tupled, GQCharacterData.unapply)
+            last_match,
+            created_at) <> ((GQCharacterData.apply _).tupled, GQCharacterData.unapply)
   }
 
   object Query extends TableQuery(new GQCharacterDataTable(_)) {
     def apply(id: String) = this.withFilter(_.id === id)
-  } 
+  }
 }
