@@ -63,6 +63,7 @@ class SchedulerActor @Inject()(
             val gameData: GQGame = row.game_data
 
             gameData.character.foreach { ch =>
+              val createdAt: Long = ch.value.created_at.slice(0, 10).toLong
               val chracterInfo = new GQCharacterData(
                                     ch.key,
                                     ch.value.owner,
@@ -78,7 +79,8 @@ class SchedulerActor @Inject()(
                                     ch.value.prize,
                                     ch.value.battle_limit,
                                     ch.value.battle_count,
-                                    ch.value.last_match)
+                                    ch.value.last_match,
+                                    createdAt)
 
               seqCharacters.append(chracterInfo)
 
@@ -238,7 +240,8 @@ class SchedulerActor @Inject()(
                   }
                 }
               }
-
+          // broadcast to all connected client that GQResetScheduler has been triggered/reset
+          _ <- Future(self ! GQResetScheduler)
           _ <- Future(self ! VerifyGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)))
       } yield ()
 
@@ -286,6 +289,10 @@ class SchedulerActor @Inject()(
 
     case VerifyGQUserTable(request) =>
       eosio.getGQUsers(request).map(_.map(self ! _))
+
+    case GQResetScheduler =>
+      // TODO HERE...
+
 
     case e =>
       println("Error: Unkown data received")
