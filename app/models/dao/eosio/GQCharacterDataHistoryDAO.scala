@@ -21,7 +21,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
     def ghostClass = column[Int] ("CLASS")
     def level = column[Int] ("LEVEL")
     def status = column[Int] ("STATUS")
-    def attack = column[Int] ("ATTACT")
+    def attack = column[Int] ("ATTACK")
     def defense = column[Int] ("DEFENSE")
     def speed = column[Int] ("SPEED")
     def luck = column[Int] ("LUCK")

@@ -4,6 +4,7 @@ import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
+// import scala.jdk.CollectionConverters._
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props }
 import akka.event.{ Logging, LoggingAdapter }
@@ -13,7 +14,7 @@ import models.domain.eosio._
 import models.repo.eosio._
 import models.service.GQSmartContractAPI
 import akka.domain.common.objects._
-import utils.lib.EOSIOSupport
+import utils.lib.{ EOSIOSupport, GQBattleCalculation }
 
 object SchedulerActor {
   def props = Props[SchedulerActor]
@@ -29,9 +30,6 @@ class SchedulerActor @Inject()(
   val log: LoggingAdapter = Logging(context.system, this)
   override def preStart: Unit = {
     super.preStart
-    // make sure all wallets are locked to avoid tx error..
-    // support.lockAllWallets()
-
     // load GhostQuest users to DB update for one time.. in case server is down..
     val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
@@ -186,7 +184,7 @@ class SchedulerActor @Inject()(
                   // character of the loop is the player (current index)
                   // and the rest will serve as the enemy..
                   val filtered:Seq[GQCharacterData] = response.filter(_.character_life > 0)
-                  val characters: Seq[GQCharacterData] = scala.util.Random.shuffle(filtered)
+                  val characters: Seq[GQCharacterData] =  scala.util.Random.shuffle(filtered)
                   val currentlyPlayed: HashMap[String, String] = new HashMap[String, String]() // chracter_ID and player_name
 
                   characters.foreach { character =>
@@ -205,33 +203,50 @@ class SchedulerActor @Inject()(
                       val checkedHistoryDB: Seq[GQCharacterData] =
                         removedOwnCharacters.filterNot(ch => gameHistories.map(_.player2ID).contains(ch.id))
 
-                      // remove played character on current characters list from currentlyPlayed.. (ON TEST)
+                      // remove played character on current characters list from currentlyPlayed
                       val checkedCurrentCycle: Seq[GQCharacterData] =
                         checkedHistoryDB.filterNot(ch => currentlyPlayed.map(_._1).toSeq.contains(ch.id))
 
                       if (!checkedCurrentCycle.isEmpty) {
                          try {
                           val enemy: GQCharacterData = checkedCurrentCycle.head
-                          val req: Seq[(String, String)] = Seq(
-                            (character.id.toString, character.owner.toString),
-                            (enemy.id.toString, enemy.owner.toString))
+                          val battle = new GQBattleCalculation[GQCharacterData](character, enemy)
 
-                          // enhancements needed here ..
-                          // issue with battle action succesful but returns error in the server
-                          eosio.battleAction(req, UUID.randomUUID()).map {
-                            // add to finished list after succesful battle ACTION..
-                            // and remove both characters in the current game rotation..
-                            case Some(e) =>
-                              currentlyPlayed(character.id) = character.owner
-                              currentlyPlayed(enemy.id) = enemy.owner
+                          // if battle is success then update smartcontract table..
+                          if (!battle.getBattleResult.equals(None)) {
+                            // compose smartcontract battle action parameters..
+                            battle.getBattleResult.map { result =>
 
-                            case None =>
-                              log.error("Error: Battle " + character.id + " ~~> " + enemy.id)
+                              // if true then character is winner else loser..
+                              val request: Seq[(String, String)] =
+                                if (result.characters(character.id))
+                                  Seq((character.id.toString, character.owner.toString),
+                                      (enemy.id.toString, enemy.owner.toString))
+                                else
+                                  Seq((enemy.id.toString, enemy.owner.toString),
+                                      (character.id.toString, character.owner.toString))
+                              // val req: Seq[(String, String)] = Seq(
+                              // (character.id.toString, character.owner.toString),
+                              // (enemy.id.toString, enemy.owner.toString))
+                              eosio.battleAction(request, result.logs).map {
+                                case Some(e) =>
+                                  currentlyPlayed(character.id) = character.owner
+                                  currentlyPlayed(enemy.id) = enemy.owner
+                                case e => log.error("Error: Battle " + character.id + " ~~> " + enemy.id)
+                              }
+                            }
+                            // .getOrElse(throw new Exception)
+                            // println(Json.toJson(battle.getBattleResult))
                           }
+                          else log.error("Error: Battle " + character.id + " ~~> " + enemy.id)
                         }
-                        catch { case e: Throwable => log.error("Error: System is not responding.") }
+                        catch { case e: Throwable => log.error(e.toString) }
                       } else {
-                        log.info("No available enemy for ~~> " + character.id)
+                        // check if player hasnt played yet else show error
+                        // if (checkedHistoryDB.filter(ch => currentlyPlayed.map(_._1).toSeq.contains(character.id)).size == 0)
+                        if (!currentlyPlayed.map(_._1).toList.contains(character.id))
+                          log.info("No available enemy for ~~> " + character.id)
+
                         currentlyPlayed(character.id) = character.owner
                       }
 
@@ -241,7 +256,7 @@ class SchedulerActor @Inject()(
                 }
               }
           // broadcast to all connected client that GQResetScheduler has been triggered/reset
-          _ <- Future(self ! GQResetScheduler)
+          // _ <- Future(self ! GQResetScheduler)
           _ <- Future(self ! VerifyGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)))
       } yield ()
 
