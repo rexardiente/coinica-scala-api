@@ -45,10 +45,10 @@ class SchedulerActor @Inject()(
   override def preStart: Unit = {
     super.preStart
     // load GhostQuest users to DB update for one time.. in case server is down..
-    // self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+    self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
 
     // scheduled on every 5 minutes
-    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
+    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
     log.info("Ghost Quest Scheduler Actor Initialized")
   }
 
