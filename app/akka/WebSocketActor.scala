@@ -67,7 +67,8 @@ class WebSocketActor@Inject()(
                 // if server got a WS message for newly created character
                 // try to update character DB
                 characterUpdateActor ! akka.domain.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
-                log.info("new character created")
+                out ! OutEvent(JsString(code.toString), JsString("characters list updated"))
+                // log.info("new character created")
 
               case _ =>
             }
