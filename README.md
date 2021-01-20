@@ -26,3 +26,13 @@
 
 
 Note: the WebSocket protocol does not implement Same Origin Policy, and so does not protect against Cross-Site WebSocket Hijacking. To secure a websocket against hijacking, the Origin header in the request must be checked against the server’s origin, and manual authentication (including CSRF tokens) should be implemented. If a WebSocket request does not pass the security checks, then acceptOrResult should reject the request by returning a Forbidden result.
+
+subscribe WS
+{
+  "id": "user1",
+  "input": {
+  	"character_created": true
+  }
+}
+
+sbt run -Dplay.server.http.idleTimeout=180s

@@ -3,8 +3,8 @@ package akka
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-// import scala.jdk.CollectionConverters._
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props }
 import akka.event.{ Logging, LoggingAdapter }
@@ -17,21 +17,7 @@ import akka.domain.common.objects._
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
 
 object SchedulerActor {
-  def props = Props[SchedulerActor]
-}
-
-@Singleton
-class SchedulerActor @Inject()(
-      characterRepo: GQCharacterDataRepo,
-      gQGameHistoryRepo: GQCharacterGameHistoryRepo,
-      support: EOSIOSupport,
-      eosio: GQSmartContractAPI)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) extends Actor {
-
-  val log: LoggingAdapter = Logging(context.system, this)
-  override def preStart: Unit = {
-    super.preStart
-    // load GhostQuest users to DB update for one time.. in case server is down..
-    val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
+  val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
                                                   "users",
                                                   "ghostquest",
@@ -40,10 +26,29 @@ class SchedulerActor @Inject()(
                                                   None,
                                                   None,
                                                   None)
-    self ! VerifyGQUserTable(eosTblRowsRequest)
+  def props(
+      characterRepo: GQCharacterDataRepo,
+      historyRepo: GQCharacterGameHistoryRepo,
+      eosio: EOSIOSupport,
+      smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
+    Props(classOf[WebSocketActor], characterRepo, historyRepo, eosio, smartcontract, system)
+}
+
+@Singleton
+class SchedulerActor @Inject()(
+      characterRepo: GQCharacterDataRepo,
+      gQGameHistoryRepo: GQCharacterGameHistoryRepo,
+      support: EOSIOSupport,
+      eosio: GQSmartContractAPI)(implicit actorSystem: ActorSystem) extends Actor {
+
+  val log: LoggingAdapter = Logging(context.system, this)
+  override def preStart: Unit = {
+    super.preStart
+    // load GhostQuest users to DB update for one time.. in case server is down..
+    // self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
 
     // scheduled on every 5 minutes
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
+    // actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
     log.info("Ghost Quest Scheduler Actor Initialized")
   }
 
@@ -109,7 +114,7 @@ class SchedulerActor @Inject()(
               }
             }
             catch { case e: Throwable => log.error(e.toString) }
-            defaultThreadSleep() // help prevent from overlapping existing process..
+            // defaultThreadSleep() // help prevent from overlapping existing process..
           }
         }
 

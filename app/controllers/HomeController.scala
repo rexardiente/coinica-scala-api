@@ -12,9 +12,25 @@ import play.api.data.Forms._
 import play.api.libs.json._
 import play.api.libs.json.JsValue
 import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, Event }
-import models.repo.{ LoginRepo, GameRepo, GenreRepo, TaskRepo, ReferralRepo, RankingRepo, TransactionRepo, ChallengeRepo }
+import models.repo.{
+  LoginRepo,
+  GameRepo,
+  GenreRepo,
+  TaskRepo,
+  ReferralRepo,
+  RankingRepo,
+  TransactionRepo,
+  ChallengeRepo }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import models.service.{ TaskService, ReferralService, RankingService, TransactionService, ChallengeService, GQGameService }
+import models.service.{
+  TaskService,
+  ReferralService,
+  RankingService,
+  TransactionService,
+  ChallengeService,
+  GQGameService,
+  GQSmartContractAPI }
+import utils.lib.EOSIOSupport
 import akka.WebSocketActor
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -37,8 +53,10 @@ class HomeController @Inject()(
       gQCharacterDataRepo: GQCharacterDataRepo,
       gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
       gqGameService: GQGameService,
-      implicit val system: akka.actor.ActorSystem,
+      eosio: EOSIOSupport,
+      gqSmartContractAPI: GQSmartContractAPI,
       mat: akka.stream.Materializer,
+      implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
 
@@ -82,7 +100,9 @@ private def referralForm = Form(tuple(
     "description" -> optional(text)))
 
   def socket = WebSocket.accept[Event, Event] { implicit request =>
-    play.api.libs.streams.ActorFlow.actorRef { out => WebSocketActor.props(out) }
+    play.api.libs.streams.ActorFlow.actorRef { out =>
+      WebSocketActor.props(out, gQCharacterDataRepo, gQCharacterGameHistoryRepo, eosio, gqSmartContractAPI)
+    }
   }
 
   def index() = Action.async { implicit request =>

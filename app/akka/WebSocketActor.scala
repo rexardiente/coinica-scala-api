@@ -1,20 +1,46 @@
 package akka
 
-import javax.inject.Singleton
+import javax.inject.{ Singleton, Inject }
+import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor._
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
-import models.domain.{ Event, OutEvent, InEvent }
+import models.domain.{ Event, OutEvent, ConnectionAlive, InEvent, GQCharacterCreated, InEventMessage }
 import models.domain.Event._
+import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
+import models.service.GQSmartContractAPI
+import utils.lib.EOSIOSupport
 
 object WebSocketActor {
-  def props[T <: ActorRef](out: T) = Props(classOf[WebSocketActor], out)
+  def props(
+      out: ActorRef,
+      characterRepo: GQCharacterDataRepo,
+      historyRepo: GQCharacterGameHistoryRepo,
+      eosio: EOSIOSupport,
+      smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
+    Props(classOf[WebSocketActor], out, characterRepo, historyRepo, eosio, smartcontract, system)
 }
 
 @Singleton
-class WebSocketActor(out: ActorRef) extends Actor {
+class WebSocketActor@Inject()(
+      out: ActorRef,
+      characterRepo: GQCharacterDataRepo,
+      historyRepo: GQCharacterGameHistoryRepo,
+      eosio: EOSIOSupport,
+      gqSmartContractAPI: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor {
+  // val pinger = system.actorOf(Props[SchedulerActor](), "pinger")
+
   val code: Int = out.hashCode
   val log: LoggingAdapter = Logging(context.system, this)
+  val characterUpdateActor: ActorRef = system.actorOf(
+                                        Props(classOf[SchedulerActor],
+                                              characterRepo,
+                                              historyRepo,
+                                              eosio,
+                                              gqSmartContractAPI,
+                                              system))
+  // system.actorOf(Props(classOf[SchedulerActor], characterRepo, historyRepo, eosio, gqSmartContractAPI, system), "GQCharacterUpdateActor")
+
   override def preStart(): Unit = {
     super.preStart
     // Insert into the db active users..
@@ -22,31 +48,44 @@ class WebSocketActor(out: ActorRef) extends Actor {
     // else send message and close connection
   	// generate new session and send to user
   	// use it for the next ws request...
-  	out ! OutEvent(JsNull, JsString("connected"))
+  	out ! OutEvent(JsNull, JsString("subscribed"))
     log.info(s"${code} ~> WebSocket Actor Initialized")
   }
 
   override def postStop(): Unit = {
     // Remove user from db active users..
-    log.error(s"${code} ~> disconnected")
+    log.error(s"${code} ~> Connection closed")
   }
 
   def receive: Receive = {
     case ev: Event =>
       // TODO: check if user is subscribed else do not allow..
-      ev match {
-        case in: InEvent =>
-          log.info(in.toJson.toString)
-          out ! OutEvent(JsString(code.toString), JsString("subscribed"))
+      try {
+        ev match {
+          case in: InEvent => in.input.as[InEventMessage] match {
+              case cc: GQCharacterCreated =>
+                // if server got a WS message for newly created character
+                // try to update character DB
+                characterUpdateActor ! akka.domain.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+                log.info("new character created")
 
-        case oe: OutEvent =>
-          log.info(oe.toJson.toString)
+              case _ =>
+            }
 
-        case _ =>
-          log.info("Unknown")
+          case oe: OutEvent =>
+            log.info(oe.toJson.toString)
+
+          case ca: ConnectionAlive =>
+            log.info(s"${code} ~> Connection Reset")
+
+          case _ =>
+            log.info("Unknown")
+        }
+      } catch {
+        case e: Throwable => out ! OutEvent(JsNull, JsString("invalid"))
       }
 
-    case _ => out ! OutEvent(JsNull, JsString("Invalid Request"))
+    case _ => out ! OutEvent(JsNull, JsString("invalid"))
   }
 }
 
