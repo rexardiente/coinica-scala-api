@@ -78,6 +78,7 @@ class WebSocketActor@Inject()(
 
           case ca: ConnectionAlive =>
             log.info(s"${code} ~> Connection Reset")
+            out ! OutEvent(JsString(code.toString), JsString("connection reset"))
 
           case _ =>
             log.info("Unknown")
