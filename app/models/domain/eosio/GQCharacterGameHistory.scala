@@ -5,7 +5,7 @@ import play.api.libs.json._
 object GQGameStatus extends utils.CommonImplicits
 object GQCharacterGameHistory extends utils.CommonImplicits
 
-case class GQGameStatus(player: String, isWin: Boolean)
+case class GQGameStatus(player: String, char_id: String, isWin: Boolean)
 case class GQCharacterGameHistory(
     id: String,
     player1: String,

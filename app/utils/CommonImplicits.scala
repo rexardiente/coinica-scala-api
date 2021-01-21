@@ -282,6 +282,7 @@ trait CommonImplicits {
 					JsSuccess(GQCharacterDataHistoryLogs(
 						(json \ "game_id").as[String],
 						(json \ "is_win").as[List[GQGameStatus]],
+						(json \ "time_executed").as[Long],
 						(json \ "logs").as[List[String]]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
@@ -294,6 +295,7 @@ trait CommonImplicits {
 	  def writes(tx: GQCharacterDataHistoryLogs): JsValue = Json.obj(
 		"game_id" -> tx.gameID,
 		"is_win" -> tx.isWin,
+		"time_executed" -> tx.timeExecuted,
 		"logs" -> tx.logs)
 	}
 

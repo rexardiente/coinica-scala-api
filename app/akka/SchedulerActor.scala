@@ -139,8 +139,8 @@ class SchedulerActor @Inject()(
                 player2._1._2,
                 player1._2.value.time_executed,
                 player1._2.value.gameplay_log,
-                List(new GQGameStatus(player1._1._1, player1._2.value.isWin),
-                    new GQGameStatus(player2._1._1, player2._2.value.isWin)))
+                List(new GQGameStatus(player1._1._1, player1._1._2, player1._2.value.isWin),
+                    new GQGameStatus(player2._1._1, player2._1._2, player2._2.value.isWin)))
             }
             else null
           }

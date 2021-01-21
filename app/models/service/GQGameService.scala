@@ -45,7 +45,7 @@ class GQGameService @Inject()(
             // get all history of character
             val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs.map(v => (character.toJson, Json.toJson(v)))
           }))
@@ -68,7 +68,7 @@ class GQGameService @Inject()(
             // get all history of character
             val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs.map(v => (character.toJson, Json.toJson(v)))
           }))
@@ -91,7 +91,7 @@ class GQGameService @Inject()(
               // get all history of character
               val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
               val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-                seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.log)))
+                seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
               // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
               seqLogs.map(v => (character.toJson, Json.toJson(v)))
             }))
@@ -114,7 +114,7 @@ class GQGameService @Inject()(
               // get all history of character
               val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
               val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-                seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.log)))
+                seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
               // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
               seqLogs.map(v => (character.toJson, Json.toJson(v)))
             }))
@@ -139,7 +139,7 @@ class GQGameService @Inject()(
             // get all history of character
             val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs.map(v => (character.toJson, Json.toJson(v)))
           }))
