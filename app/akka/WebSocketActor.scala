@@ -28,18 +28,15 @@ class WebSocketActor@Inject()(
       historyRepo: GQCharacterGameHistoryRepo,
       eosio: EOSIOSupport,
       gqSmartContractAPI: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor {
-  // val pinger = system.actorOf(Props[SchedulerActor](), "pinger")
-
-  val code: Int = out.hashCode
-  val log: LoggingAdapter = Logging(context.system, this)
-  val characterUpdateActor: ActorRef = system.actorOf(
+  private val code: Int = out.hashCode
+  private val log: LoggingAdapter = Logging(context.system, this)
+  private val characterUpdateActor: ActorRef = system.actorOf(
                                         Props(classOf[SchedulerActor],
                                               characterRepo,
                                               historyRepo,
                                               eosio,
                                               gqSmartContractAPI,
                                               system))
-  // system.actorOf(Props(classOf[SchedulerActor], characterRepo, historyRepo, eosio, gqSmartContractAPI, system), "GQCharacterUpdateActor")
 
   override def preStart(): Unit = {
     super.preStart

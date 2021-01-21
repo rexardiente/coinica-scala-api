@@ -2,10 +2,12 @@ package akka
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.util._
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
+import akka.util.Timeout
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props }
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.ws.WSClient
@@ -17,6 +19,7 @@ import akka.domain.common.objects._
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
 
 object SchedulerActor {
+  var isIntialized: Boolean = false
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
                                                   "users",
@@ -26,11 +29,10 @@ object SchedulerActor {
                                                   None,
                                                   None,
                                                   None)
-  def props(
-      characterRepo: GQCharacterDataRepo,
-      historyRepo: GQCharacterGameHistoryRepo,
-      eosio: EOSIOSupport,
-      smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
+  def props(characterRepo: GQCharacterDataRepo,
+            historyRepo: GQCharacterGameHistoryRepo,
+            eosio: EOSIOSupport,
+            smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor], characterRepo, historyRepo, eosio, smartcontract, system)
 }
 
@@ -41,14 +43,25 @@ class SchedulerActor @Inject()(
       support: EOSIOSupport,
       eosio: GQSmartContractAPI)(implicit actorSystem: ActorSystem) extends Actor {
 
-  val log: LoggingAdapter = Logging(context.system, this)
+  implicit val timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
+  private val log: LoggingAdapter = Logging(context.system, this)
   override def preStart: Unit = {
     super.preStart
-    // load GhostQuest users to DB update for one time.. in case server is down..
-    self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+    // check if intializer is the SchedulerActor module..
+    actorSystem.actorSelection("/user/SchedulerActor").resolveOne().onComplete {
+      case Success(actor) =>
+        if (!SchedulerActor.isIntialized) {
+          // load GhostQuest users to DB update for one time.. in case server is down..
+          self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+          // scheduled on every 5 minutes
+          actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
+          // set true if actor already initialized
+          SchedulerActor.isIntialized = true
+        }
+      case Failure(ex) =>
+        // if actor is not yet created do nothing..
+    }
 
-    // scheduled on every 5 minutes
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
     log.info("Ghost Quest Scheduler Actor Initialized")
   }
 
