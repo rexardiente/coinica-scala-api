@@ -101,7 +101,7 @@ trait CommonImplicits {
 					JsSuccess(GQCharacterPrevMatchData(
 						(json \ "enemy").as[String],
 						(json \ "enemy_id").as[String],
-						(json \ "time_executed").as[String].toLong,
+						(json \ "time_executed").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0),
 						(json \ "gameplay_log").as[List[String]],
 						(if ((json \ "isWin").as[Int] > 0) true else false)
 					))
