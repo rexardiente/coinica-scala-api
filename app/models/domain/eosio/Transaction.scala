@@ -1,4 +1,4 @@
-package models.domain
+package models.domain.eosio
 
 import java.util.UUID
 import java.time.Instant

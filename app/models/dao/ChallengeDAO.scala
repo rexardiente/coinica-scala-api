@@ -17,12 +17,13 @@ final class ChallengeDAO @Inject()(
   protected class ChallengeTable(tag: Tag) extends Table[Challenge](tag, "CHALLENGE") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def name = column[String] ("NAME")
-    def gameID = column[UUID] ("GAME_ID") 
-    def reward = column[Double] ("REWARD")
-    def rankname = column[String] ("RANKNAME")
+    def bets = column[Double] ("BETS")
+    def profit = column[Double] ("PROFIT")
+    def ratio = column[Double] ("RATIO")
+    def vippoints = column[Double] ("VIPPOINTS")
     def challengecreated = column[Long] ("CHALLENGECREATED")
 
-    def * = (id, name, gameID, reward, rankname, challengecreated) <> ((Challenge.apply _).tupled, Challenge.unapply) 
+    def * = (id, name, bets, profit, ratio, vippoints, challengecreated) <> ((Challenge.apply _).tupled, Challenge.unapply) 
   }
 
   object Query extends TableQuery(new ChallengeTable(_)) {

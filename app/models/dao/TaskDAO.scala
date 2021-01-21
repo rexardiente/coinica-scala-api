@@ -19,7 +19,7 @@ final class TaskDAO @Inject()(
   protected class TaskTable(tag: Tag) extends Table[Task](tag, "TASK") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def gameID = column[UUID] ("GAME_ID") 
-    def info = column[JsValue] ("INFO")
+    def info = column[String] ("INFO")
     def isValid = column[Boolean] ("IS_VALID")
     def datecreated = column[Long] ("DATECREATED")
 

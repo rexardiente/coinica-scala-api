@@ -7,7 +7,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.json.{ JsValue, Json, JsNull }
-import models.domain.{ PaginatedResult, Transaction }
+import models.domain.PaginatedResult
+import models.domain.eosio.Transaction
 import models.repo.TransactionRepo
 
 @Singleton

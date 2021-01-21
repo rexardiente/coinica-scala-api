@@ -17,12 +17,12 @@ final class RankingDAO @Inject()(
   protected class RankingTable(tag: Tag) extends Table[Ranking](tag, "RANKING") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def name = column[String] ("NAME")
-    def gameID = column[UUID] ("GAME_ID") 
-    def rate = column[Double] ("RATE")
-    def amount = column[Double] ("AMOUNT")
+    def bets = column[Double] ("BETS")
+    def profit = column[Double] ("PROFIT")
+    def multiplieramount = column[Double] ("MULTIPLIERAMOUNT")
     def rankingcreated = column[Long] ("RANKINGCREATED")
 
-    def * = (id, name, gameID, rate, amount, rankingcreated) <> ((Ranking.apply _).tupled, Ranking.unapply) 
+    def * = (id, name, bets, profit, multiplieramount, rankingcreated) <> ((Ranking.apply _).tupled, Ranking.unapply) 
   }
 
   object Query extends TableQuery(new RankingTable(_)) {
