@@ -66,7 +66,6 @@ class SchedulerActor @Inject()(
             val gameData: GQGame = row.game_data
 
             gameData.character.foreach { ch =>
-              val createdAt: Long = ch.value.created_at.slice(0, 10).toLong
               val chracterInfo = new GQCharacterData(
                                     ch.key,
                                     ch.value.owner,
@@ -83,7 +82,7 @@ class SchedulerActor @Inject()(
                                     ch.value.battle_limit,
                                     ch.value.battle_count,
                                     ch.value.last_match,
-                                    createdAt)
+                                    ch.value.created_at)
 
               seqCharacters.append(chracterInfo)
 

@@ -140,9 +140,9 @@ trait CommonImplicits {
 						(json \ "prize").as[String],
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
-						(json \ "last_match").asOpt[String].map(_.toLong).getOrElse(0),
+						(json \ "last_match").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0),
 						(json \ "match_history").as[Seq[GQCharacterPrevMatch]],
-						(json \ "created_at").as[String]))
+						(json \ "created_at").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0)))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
