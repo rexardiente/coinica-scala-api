@@ -356,6 +356,10 @@ def addTask = Action.async { implicit request =>
     gqGameService.getCharacterDataByID(id).map(Ok(_))
   }
 
+  def getCharacterByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
+    gqGameService.getCharacterByUserAndID(user, id).map(Ok(_))
+  }
+
   def getCharacterHistoryByUser(user: String) = Action.async { implicit request =>
     gqGameService.getAllEliminatedCharacters(user).map(Ok(_))
   }

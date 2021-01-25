@@ -57,6 +57,38 @@ class GQGameService @Inject()(
     } yield logs
   }
 
+  def getCharacterByUserAndID[T <: String](user: T, id: T): Future[JsValue] = {
+    for {
+      // get all characters that are still alive
+      alive <- charDataRepo.getByUserAndID(user, id)
+      // get all characters that are already eliminated and
+      // convert to GQCharacterData from GQCharacterDataHistory
+      eliminated <- charDataRepo
+        .getCharacterHistoryByUserAndID(user, id)
+        .map(_.map(GQCharacterDataHistory.toCharacterData))
+
+      // merge two Future[Seq] in single Future[Seq]
+      logs <- {
+        val characters: Seq[GQCharacterData] = mergeSeq[GQCharacterData, Seq[GQCharacterData]](alive, eliminated)
+
+        // iterate each characters games history..
+        val tupled: Future[Seq[(JsValue, JsValue)]] =
+          Future.sequence(characters.map({ character =>
+            // get all history of character
+            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
+            val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
+            // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
+            seqLogs.map(v => (character.toJson, Json.toJson(v)))
+          }))
+
+        // convert Seq[JSON] to JsArray
+        tupled.map(x => Json.toJson(x))
+      }
+
+    } yield logs
+  }
+
   def getAliveCharacters(user: String): Future[JsValue] = {
     for {
       characters <- charDataRepo.getByUser(user)
