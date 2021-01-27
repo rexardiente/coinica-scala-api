@@ -9,8 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import akka.util.Timeout
-import akka.actor.{ ActorRef, Actor, ActorSystem, Props }
-import akka.event.{ Logging, LoggingAdapter }
+import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import models.domain.eosio._
@@ -42,10 +41,9 @@ class SchedulerActor @Inject()(
       characterRepo: GQCharacterDataRepo,
       gQGameHistoryRepo: GQCharacterGameHistoryRepo,
       support: EOSIOSupport,
-      eosio: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor {
+      eosio: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor with ActorLogging {
 
-  implicit val timeout: Timeout        = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
-  private val log     : LoggingAdapter = Logging(context.system, this)
+  implicit val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
 
   override def preStart: Unit = {
     super.preStart
@@ -54,25 +52,25 @@ class SchedulerActor @Inject()(
       case Success(actor) =>
         if (!SchedulerActor.isIntialized) {
 
-          // load GhostQuest users to DB update for one time.. in case server is down..
-          self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
-          // scheduled on every 5 minutes
-          system.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
+          // // load GhostQuest users to DB update for one time.. in case server is down..
+          // self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+          // // scheduled on every 5 minutes
+          // system.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
 
-          // 24hrs Scheduler at 6:00AM in the morning daily..
-          val dailySchedInterval: FiniteDuration = 24.hours
-          val dailySchedDelay   : FiniteDuration = {
-              val time = LocalTime.of(17, 0).toSecondOfDay
-              val now = LocalTime.now().toSecondOfDay
-              val fullDay = 60 * 60 * 24
-              val difference = time - now
-              if (difference < 0) {
-                fullDay + difference
-              } else {
-                time - now
-              }
-            }.seconds
-          system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => self ! DailyScheduler)
+          // // 24hrs Scheduler at 6:00AM in the morning daily..
+          // val dailySchedInterval: FiniteDuration = 24.hours
+          // val dailySchedDelay   : FiniteDuration = {
+          //     val time = LocalTime.of(17, 0).toSecondOfDay
+          //     val now = LocalTime.now().toSecondOfDay
+          //     val fullDay = 60 * 60 * 24
+          //     val difference = time - now
+          //     if (difference < 0) {
+          //       fullDay + difference
+          //     } else {
+          //       time - now
+          //     }
+          //   }.seconds
+          // system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => self ! DailyScheduler)
 
           // set true if actor already initialized
           SchedulerActor.isIntialized = true

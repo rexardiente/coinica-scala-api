@@ -36,6 +36,7 @@
   <!-- <logger name="akka.SchedulerActor" level="INFO" /> -->
   <logger name="akka.WebSocketActor" level="TRACE" />
   <logger name="akka.SchedulerActor" level="TRACE" />
+  <logger name="utils.db.schema.VIPBenefitGenerator" level="TRACE" />
 
   <root level="WARN">
     <!--<appender-ref ref="ASYNCFILE" />-->

@@ -57,18 +57,18 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val vipMapper = MappedColumnType.base[VIP.value, String](
     e => e.toString,
     s => VIP.withName(s))
-  implicit val vipBenefitsAmountMapper = MappedColumnType.base[VIPBenefitsAmount.value, Long](
+  implicit val vipBenefitAmountMapper = MappedColumnType.base[VIPBenefitAmount.value, Int](
     e => (try {
-          e.toString.toLong
+          e.id
         } catch {
-          case _: Throwable => 0L
+          case _: Throwable => 0
         }),
-    s => VIPBenefitsAmount.withName(s.toString))
-  implicit val vipBenefitsPointsMapper = MappedColumnType.base[VIPBenefitsPoints.value, Long](
+    s => VIPBenefitAmount.withName(s.toString))
+  implicit val vipBenefitPointsMapper = MappedColumnType.base[VIPBenefitPoints.value, Int](
     e => (try {
-          e.toString.toLong
+          e.id
         } catch {
-          case _: Throwable => 0L
+          case _: Throwable => 0
         }),
-    s => VIPBenefitsPoints.withName(s.toString))
+    s => VIPBenefitPoints.withName(s.toString))
 }
