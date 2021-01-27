@@ -11,3 +11,4 @@ case class SetOfGQCharacterGameHistory(list: Seq[GQCharacterPrevMatch]) extends 
 object BattleScheduler
 object RemoveCharacterWithNoLife
 object GQResetScheduler
+object DailyScheduler

@@ -8,7 +8,8 @@ import play.api.mvc._
 import play.api.mvc.Results
 import cats.data.OptionT
 import cats.implicits._
-import models.domain.{ Admin, Security, Roles }
+import models.domain.{ Admin, Security }
+import models.domain.enum.Roles
 import models.repo.AdminRepo
 
 case class SecureAdmin[A](

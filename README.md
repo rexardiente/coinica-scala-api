@@ -39,4 +39,4 @@ subscribe WS
 "message": "connection_reset"
 }
 
-sbt run -Dplay.server.http.idleTimeout=180s
+sbt runProd -Dplay.server.http.idleTimeout=180s

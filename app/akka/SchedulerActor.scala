@@ -2,10 +2,13 @@ package akka
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import scala.concurrent.{ ExecutionContext, Future }
+import java.time.LocalTime
+import scala.util._
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
+import akka.util.Timeout
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props }
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.ws.WSClient
@@ -17,6 +20,7 @@ import akka.domain.common.objects._
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
 
 object SchedulerActor {
+  var isIntialized: Boolean = false
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
                                                   "users",
@@ -26,11 +30,10 @@ object SchedulerActor {
                                                   None,
                                                   None,
                                                   None)
-  def props(
-      characterRepo: GQCharacterDataRepo,
-      historyRepo: GQCharacterGameHistoryRepo,
-      eosio: EOSIOSupport,
-      smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
+  def props(characterRepo: GQCharacterDataRepo,
+            historyRepo: GQCharacterGameHistoryRepo,
+            eosio: EOSIOSupport,
+            smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor], characterRepo, historyRepo, eosio, smartcontract, system)
 }
 
@@ -39,16 +42,45 @@ class SchedulerActor @Inject()(
       characterRepo: GQCharacterDataRepo,
       gQGameHistoryRepo: GQCharacterGameHistoryRepo,
       support: EOSIOSupport,
-      eosio: GQSmartContractAPI)(implicit actorSystem: ActorSystem) extends Actor {
+      eosio: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor {
 
-  val log: LoggingAdapter = Logging(context.system, this)
+  implicit val timeout: Timeout        = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
+  private val log     : LoggingAdapter = Logging(context.system, this)
+
   override def preStart: Unit = {
     super.preStart
-    // load GhostQuest users to DB update for one time.. in case server is down..
-    self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+    // check if intializer is the SchedulerActor module..
+    system.actorSelection("/user/SchedulerActor").resolveOne().onComplete {
+      case Success(actor) =>
+        if (!SchedulerActor.isIntialized) {
 
-    // scheduled on every 5 minutes
-    actorSystem.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
+          // load GhostQuest users to DB update for one time.. in case server is down..
+          self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+          // scheduled on every 5 minutes
+          system.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
+
+          // 24hrs Scheduler at 6:00AM in the morning daily..
+          val dailySchedInterval: FiniteDuration = 24.hours
+          val dailySchedDelay   : FiniteDuration = {
+              val time = LocalTime.of(17, 0).toSecondOfDay
+              val now = LocalTime.now().toSecondOfDay
+              val fullDay = 60 * 60 * 24
+              val difference = time - now
+              if (difference < 0) {
+                fullDay + difference
+              } else {
+                time - now
+              }
+            }.seconds
+          system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => self ! DailyScheduler)
+
+          // set true if actor already initialized
+          SchedulerActor.isIntialized = true
+        }
+      case Failure(ex) =>
+        // if actor is not yet created do nothing..
+    }
+
     log.info("Ghost Quest Scheduler Actor Initialized")
   }
 
@@ -165,7 +197,14 @@ class SchedulerActor @Inject()(
         _ <- Future.successful {
           // check if the first result still hasnext data
           if (hasNext)
-            self ! VerifyGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, Some(nextKey)))
+            self ! VerifyGQUserTable(new TableRowsRequest("ghostquest",
+                                                          "users",
+                                                          "ghostquest",
+                                                          None,
+                                                          Some("uint64_t"),
+                                                          None,
+                                                          None,
+                                                          Some(nextKey)))
           // remove eliminated chracter from users table..
           else
             self ! RemoveCharacterWithNoLife
@@ -189,7 +228,8 @@ class SchedulerActor @Inject()(
                   // and the rest will serve as the enemy..
                   val filtered:Seq[GQCharacterData] = response.filter(_.character_life > 0)
                   val characters: Seq[GQCharacterData] =  scala.util.Random.shuffle(filtered)
-                  val currentlyPlayed: HashMap[String, String] = new HashMap[String, String]() // chracter_ID and player_name
+                  // chracter_ID and player_name
+                  val currentlyPlayed: HashMap[String, String] = new HashMap[String, String]()
 
                   characters.foreach { character =>
                     // dont include character that has already reached its game limit..
@@ -247,7 +287,6 @@ class SchedulerActor @Inject()(
                         catch { case e: Throwable => log.error(e.toString) }
                       } else {
                         // check if player hasnt played yet else show error
-                        // if (checkedHistoryDB.filter(ch => currentlyPlayed.map(_._1).toSeq.contains(character.id)).size == 0)
                         if (!currentlyPlayed.map(_._1).toList.contains(character.id))
                           log.info("No available enemy for ~~> " + character.id)
 
@@ -261,7 +300,14 @@ class SchedulerActor @Inject()(
               }
           // broadcast to all connected client that GQResetScheduler has been triggered/reset
           // _ <- Future(self ! GQResetScheduler)
-          _ <- Future(self ! VerifyGQUserTable(new TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)))
+          _ <- Future(self ! VerifyGQUserTable(new TableRowsRequest("ghostquest",
+                                                                    "users",
+                                                                    "ghostquest",
+                                                                    None,
+                                                                    Some("uint64_t"),
+                                                                    None,
+                                                                    None,
+                                                                    None)))
       } yield ()
 
     case RemoveCharacterWithNoLife =>
@@ -311,6 +357,9 @@ class SchedulerActor @Inject()(
 
     case GQResetScheduler =>
       // TODO HERE...
+
+    case DailyScheduler =>
+      log.warning("Tracker every 5PM daily!!!!")
 
 
     case e =>

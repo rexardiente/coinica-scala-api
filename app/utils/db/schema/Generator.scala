@@ -20,7 +20,9 @@ class Generator @Inject()(
     gqCharacterData: GQCharacterDataDAO,
     gqCharacterGameHistory: GQCharacterGameHistoryDAO,
     gqCharacterDataHistory: GQCharacterDataHistoryDAO,
-    adminDAO: AdminDAO,
+    admin: AdminDAO,
+    vipUser: VIPUserDAO,
+    vipBenefits: VIPBenefitsDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
@@ -39,7 +41,9 @@ class Generator @Inject()(
       gqCharacterData.Query.schema ++
       gqCharacterGameHistory.Query.schema ++
       gqCharacterDataHistory.Query.schema ++
-      adminDAO.Query.schema
+      admin.Query.schema ++
+      vipUser.Query.schema ++
+      vipBenefits.Query.schema
 
 
     val writer = new java.io.PrintWriter("target/schema.sql")

@@ -99,20 +99,20 @@ private def referralForm = Form(tuple(
     "name" -> nonEmptyText,
     "description" -> optional(text)))
 
-  def socket = WebSocket.accept[Event, Event] { implicit request =>
+  def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
       WebSocketActor.props(out, gQCharacterDataRepo, gQCharacterGameHistoryRepo, eosio, gqSmartContractAPI)
     }
   }
 
-  def index() = Action.async { implicit request =>
+  def index() = Action.async { implicit req =>
     Future.successful(Ok(views.html.index()))
   }
 
-  def paginatedResult(limit: Int, offset: Int) = Action.async { implicit request =>
+  def paginatedResult(limit: Int, offset: Int) = Action.async { implicit req =>
     taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
   }
-  def addReferral = Action.async { implicit request =>
+  def addReferral = Action.async { implicit req =>
     referralForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (referralname, referrallink,rate,feeamount,referralcreated)  =>
@@ -122,7 +122,7 @@ private def referralForm = Form(tuple(
       }
     )
   }
-  def updateReferral(id: UUID) = Action.async { implicit request =>
+  def updateReferral(id: UUID) = Action.async { implicit req =>
     referralForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (referralname, referrallink,rate,feeamount,referralcreated) =>
@@ -132,12 +132,12 @@ private def referralForm = Form(tuple(
       }
     )
   }
-  def removeReferral(id: UUID) = Action.async { implicit request =>
+  def removeReferral(id: UUID) = Action.async { implicit req =>
     referralRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-  def addChallenge = Action.async { implicit request =>
+  def addChallenge = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, bets,profit,ratio,vippoints,challengecreated)  =>
@@ -147,7 +147,7 @@ private def referralForm = Form(tuple(
       }
     )
   }
-  def updateChallenge(id: UUID) = Action.async { implicit request =>
+  def updateChallenge(id: UUID) = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, bets,profit,ratio,vippoints,challengecreated) =>
@@ -157,18 +157,18 @@ private def referralForm = Form(tuple(
       }
     )
   }
-  def removeChallenge(id: UUID) = Action.async { implicit request =>
+  def removeChallenge(id: UUID) = Action.async { implicit req =>
     challengeRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-   def challengedate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+   def challengedate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
   }
-   def challengedaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+   def challengedaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
   }
-def addTask = Action.async { implicit request =>
+def addTask = Action.async { implicit req =>
     taskForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (gameID, info, isValid, datecreated)  =>
@@ -178,7 +178,7 @@ def addTask = Action.async { implicit request =>
       }
     )
   }
-  def updateTask(id: UUID) = Action.async { implicit request =>
+  def updateTask(id: UUID) = Action.async { implicit req =>
     taskForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (gameID, info, isValid, datecreated) =>
@@ -188,24 +188,24 @@ def addTask = Action.async { implicit request =>
       }
     )
   }
-  def removeTask(id: UUID) = Action.async { implicit request =>
+  def removeTask(id: UUID) = Action.async { implicit req =>
     taskRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-  def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+  def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
   }
-  def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+  def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
   }
-  def referraldate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+  def referraldate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
-    def referraldaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    def referraldaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
        referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
-  def addRanking = Action.async { implicit request =>
+  def addRanking = Action.async { implicit req =>
     rankingForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, bets,profit,multiplieramount,rankingcreated)  =>
@@ -215,7 +215,7 @@ def addTask = Action.async { implicit request =>
       }
     )
   }
-  def updateRanking(id: UUID) = Action.async { implicit request =>
+  def updateRanking(id: UUID) = Action.async { implicit req =>
     rankingForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, bets,profit,multiplieramount,rankingcreated) =>
@@ -225,30 +225,30 @@ def addTask = Action.async { implicit request =>
       }
     )
   }
-  def removeRanking(id: UUID) = Action.async { implicit request =>
+  def removeRanking(id: UUID) = Action.async { implicit req =>
     rankingRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-  def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+  def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
   }
-    def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+    def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
       rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
   }
 
-  def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+  def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
   }
-  def referralmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+  def referralmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
 
-  def games() = Action.async { implicit request =>
+  def games() = Action.async { implicit req =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
   }
 
-  def addGame() = Action.async { implicit request =>
+  def addGame() = Action.async { implicit req =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (game, imgURL, path, genre, description)  =>
@@ -266,11 +266,11 @@ def addTask = Action.async { implicit request =>
     )
   }
 
-  def findGameByID(id: UUID) = Action.async { implicit request =>
+  def findGameByID(id: UUID) = Action.async { implicit req =>
     gameRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
 
-  def updateGame(id: UUID) = Action.async { implicit request =>
+  def updateGame(id: UUID) = Action.async { implicit req =>
     gameForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (game, imgURL, path, genre, description) =>
@@ -289,22 +289,22 @@ def addTask = Action.async { implicit request =>
     )
   }
 
-  def removeGame(id: UUID) = Action.async { implicit request =>
+  def removeGame(id: UUID) = Action.async { implicit req =>
     gameRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
 
   /* GENRE API */
-  def genres() = Action.async { implicit request =>
+  def genres() = Action.async { implicit req =>
     genreRepo.all().map(genre => Ok(Json.toJson(genre)))
   }
 
-  def findGenreByID(id: UUID) = Action.async { implicit request =>
+  def findGenreByID(id: UUID) = Action.async { implicit req =>
     genreRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
 
-  def addGenre() = Action.async { implicit request =>
+  def addGenre() = Action.async { implicit req =>
     genreForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description)  =>
@@ -315,7 +315,7 @@ def addTask = Action.async { implicit request =>
     )
   }
 
-  def updateGenre(id: UUID) = Action.async { implicit request =>
+  def updateGenre(id: UUID) = Action.async { implicit req =>
     genreForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description) =>
@@ -326,56 +326,60 @@ def addTask = Action.async { implicit request =>
     )
   }
 
-  def removeGenre(id: UUID) = Action.async { implicit request =>
+  def removeGenre(id: UUID) = Action.async { implicit req =>
     genreRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
 
-  def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit request =>
+  def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     transactionService.getTxByDateRange(start, end, limit, offset).map(Ok(_))
   }
 
-  def transactionByTraceID(id: String) = Action.async { implicit request =>
+  def transactionByTraceID(id: String) = Action.async { implicit req =>
     transactionService.getByTxTraceID(id).map(Ok(_))
   }
 
-  def getAllCharacters() = Action.async { implicit request =>
+  def getAllCharacters() = Action.async { implicit req =>
     gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x)))
   }
 
-  def getAllCharactersByUser[T <: String](user: T) = Action.async { implicit request =>
+  def getAllCharactersByUser[T <: String](user: T) = Action.async { implicit req =>
     gqGameService.getAllCharactersDataAndHistoryLogsByUser(user).map(Ok(_))
   }
 
-  def getCharactersByUser[T <: String](user: T) = Action.async { implicit request =>
+  def getCharactersByUser[T <: String](user: T) = Action.async { implicit req =>
     gqGameService.getAliveCharacters(user).map(Ok(_))
   }
 
-  def getCharacterByID(id: String) = Action.async { implicit request =>
+  def getCharacterByID(id: String) = Action.async { implicit req =>
     gqGameService.getCharacterDataByID(id).map(Ok(_))
   }
 
-  def getCharacterHistoryByUser(user: String) = Action.async { implicit request =>
+  def getCharacterByUserAndID[T <: String](user: T, id: T) = Action.async { implicit req =>
+    gqGameService.getCharacterByUserAndID(user, id).map(Ok(_))
+  }
+
+  def getCharacterHistoryByUser(user: String) = Action.async { implicit req =>
     gqGameService.getAllEliminatedCharacters(user).map(Ok(_))
   }
 
-  def getCharacterHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit request =>
+  def getCharacterHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit req =>
     gqGameService.getCharacterHistoryByUserAndID(user, id).map(Ok(_))
   }
 
-  def getAllGQGameHistory() = Action.async { implicit request =>
+  def getAllGQGameHistory() = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.all().map(x => Ok(Json.toJson(x)))
   }
 
-  def getGQGameHistoryByUser(user: String) = Action.async { implicit request =>
+  def getGQGameHistoryByUser(user: String) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.getByUser(user).map(x => Ok(Json.toJson(x)))
   }
 
-  def getGQGameHistoryByUserAndCharacterID[T <: String](user: T, id: T) = Action.async { implicit request =>
+  def getGQGameHistoryByUserAndCharacterID[T <: String](user: T, id: T) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(id, user).map(x => Ok(Json.toJson(x)))
   }
-  def getGQGameHistoryByGameID(id: String) = Action.async { implicit request =>
+  def getGQGameHistoryByGameID(id: String) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.filteredByID(id).map(x => Ok(Json.toJson(x)))
   }
 }

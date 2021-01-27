@@ -1,4 +1,4 @@
-package models.domain
+package models.domain.enum
 
 object Roles extends Enumeration {
   type Role = Value
