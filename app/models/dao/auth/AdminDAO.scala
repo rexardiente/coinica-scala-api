@@ -9,6 +9,7 @@ import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import ejisan.scalauthx.HashedCredential
 import ejisan.kuro.otp.OTPKey
 import models.domain._
+import models.domain.enum.Roles
 import utils.auth._
 
 @Singleton

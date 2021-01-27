@@ -2,6 +2,7 @@ package models.domain
 
 import java.util.UUID
 import java.time.Instant
+import models.domain.enum.Roles
 
 object Admin extends utils.CommonImplicits {
 	val tupled = (apply: (UUID, String, Roles.Value, Instant) => Admin).tupled
