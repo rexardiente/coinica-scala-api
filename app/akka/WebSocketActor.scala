@@ -20,7 +20,7 @@ object WebSocketActor {
       smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor], out, characterRepo, historyRepo, eosio, smartcontract, system)
 
-  val subscribers = scala.collection.mutable.ArrayBuffer[String]()
+  val subscribers = scala.collection.mutable.HashMap.empty[String, ActorRef]
 }
 
 @Singleton
@@ -47,13 +47,17 @@ class WebSocketActor@Inject()(
     // else send message and close connection
   	// generate new session and send to user
   	// use it for the next ws request...
-  	out ! OutEvent(JsNull, JsString("connected"))
     log.info(s"${code} ~> WebSocket Actor Initialized")
+  	out ! OutEvent(JsNull, JsString("connected"))
   }
 
   override def postStop(): Unit = {
-    // Remove user from db active users..
     log.error(s"${code} ~> Connection closed")
+    // Remove user from subscribers
+    WebSocketActor
+      .subscribers
+      .filter(x => x._2 == out)
+      .map(user => WebSocketActor.subscribers.remove(user._1))
   }
 
   def receive: Receive = {
@@ -63,18 +67,20 @@ class WebSocketActor@Inject()(
           case in: InEvent =>
             val user: String = in.id.as[String]
             // check if id/user is subscribed else do not allow
-            WebSocketActor.subscribers.find(_ == user) match {
-              case Some(id) =>
+            WebSocketActor.subscribers.exists(x => x._1 == user) match {
+              case false => out ! OutEvent(JsString(user), JsString("unauthorized"))
+              case true =>
                 in.input.as[InEventMessage] match {
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    characterUpdateActor ! akka.domain.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+                    characterUpdateActor ! akka.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
                     out ! OutEvent(JsNull, JsString("characters updated"))
 
-                  case _ =>
+                  // send out the message to self and process separately..
+                  case vip: VIPWSRequest => self ! vip
+                  case _ => self ! "invalid"
                 }
-              case _ => out ! OutEvent(JsString(user), JsString("unauthorized"))
             }
 
           case oe: OutEvent =>
@@ -87,12 +93,13 @@ class WebSocketActor@Inject()(
           case Subscribe(id, msg) =>
             log.info(s"${id} ~> Subscribe")
             // add subscriber to subscribers list
-            WebSocketActor.subscribers.find(_ == id) match {
-              case Some(id) =>
+            WebSocketActor.subscribers.exists(x => x._1 == id) match {
+              case true =>
+                // update its akka actorRef if already exists
+                WebSocketActor.subscribers(id) = out
                 out ! OutEvent(JsString(id), JsString("already subscribed"))
-
-              case  _ =>
-                WebSocketActor.subscribers.append(id)
+              case _ =>
+                WebSocketActor.subscribers.addOne(id -> out)
                 out ! OutEvent(JsString(id), JsString(msg))
             }
 
@@ -104,6 +111,14 @@ class WebSocketActor@Inject()(
           println(e)
           // out ! OutEvent(JsNull, JsString("invalid"))
       }
+
+    case VIPWSRequest(id, cmd, req) => req match {
+      case "info" =>
+      case "current_rank" =>
+      case "next_rank" =>
+      case "payout" =>
+      case "point" =>
+    }
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))
   }

@@ -6,13 +6,27 @@ import play.api.libs.json._
 object InEventMessage extends utils.CommonImplicits
 object GQBattleTime
 object GQCharacterCreated
+object VIPWSRequest
 
 sealed trait InEventMessage {
   def toJson(): JsValue = Json.toJson(this)
 }
 case class GQBattleTime(battle_time: String) extends InEventMessage
 case class GQCharacterCreated(character_created: Boolean) extends InEventMessage {
-	require(character_created == true, "Character Creation: Invalid message received")
+	require(character_created == true, "Character Creation: invalid request")
+}
+
+// VIP objects
+case class VIPWSRequest(user: String, command: String, request: String) extends InEventMessage {
+	require(command == "vip", "VIP Command: invalid request")
+	require(!akka.WebSocketActor.subscribers.filter(x => x._1 == user).isEmpty, "VIP: invalid request")
+	require(
+		request == "info" ||
+		request == "current_rank" ||
+		request == "payout" ||
+		request == "point" ||
+		request == "next_rank",
+		"VIP Request: invalid request")
 }
 
 object Event extends utils.CommonImplicits

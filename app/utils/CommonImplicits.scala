@@ -332,27 +332,20 @@ trait CommonImplicits {
 
 	implicit val implGQCharacterCreated = Json.format[GQCharacterCreated]
 	implicit val implGQBattleTime = Json.format[GQBattleTime]
+	implicit val implVIPWSRequest = Json.format[VIPWSRequest]
 
 	implicit val implicitInEventMessageReads: Reads[InEventMessage] = {
-		// override def reads(js: JsValue): JsResult[InEventMessage] = js match {
-		// 	case json: JsValue => {
-		// 		try {
-		// 			JsSuccess(json.as[GQCharacterCreated])
-		// 		} catch {
-		// 			case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
-		// 		}
-		// 	}
-		// 	case e => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
-		// }
     Json.format[GQCharacterCreated].map(x => x: InEventMessage) or
-    Json.format[GQBattleTime].map(x => x: InEventMessage)
+    Json.format[GQBattleTime].map(x => x: InEventMessage) or
+    Json.format[VIPWSRequest].map(x => x: InEventMessage)
   }
 
   implicit val implicitInEventMessageWrites = new Writes[InEventMessage] {
     def writes(event: InEventMessage): JsValue = {
       event match {
         case m: GQCharacterCreated => Json.toJson(m)
-        // case m: GQBattleTime => Json.toJson(m)
+        case m: GQBattleTime => Json.toJson(m)
+        case m: VIPWSRequest => Json.toJson(m)
         case _ => Json.obj("error" -> "wrong Json")
       }
     }
