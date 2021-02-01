@@ -5,7 +5,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor._
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
-import models.domain.{ Event, OutEvent, ConnectionAlive, InEvent, GQCharacterCreated, InEventMessage }
+import models.domain._
 import models.domain.Event._
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.service.GQSmartContractAPI
@@ -19,6 +19,8 @@ object WebSocketActor {
       eosio: EOSIOSupport,
       smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor], out, characterRepo, historyRepo, eosio, smartcontract, system)
+
+  val subscribers = scala.collection.mutable.ArrayBuffer[String]()
 }
 
 @Singleton
@@ -45,7 +47,7 @@ class WebSocketActor@Inject()(
     // else send message and close connection
   	// generate new session and send to user
   	// use it for the next ws request...
-  	out ! OutEvent(JsNull, JsString("subscribed"))
+  	out ! OutEvent(JsNull, JsString("connected"))
     log.info(s"${code} ~> WebSocket Actor Initialized")
   }
 
@@ -56,18 +58,23 @@ class WebSocketActor@Inject()(
 
   def receive: Receive = {
     case ev: Event =>
-      // TODO: check if user is subscribed else do not allow..
       try {
         ev match {
-          case in: InEvent => in.input.as[InEventMessage] match {
-              case cc: GQCharacterCreated =>
-                // if server got a WS message for newly created character
-                // try to update character DB
-                characterUpdateActor ! akka.domain.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
-                out ! OutEvent(JsString(code.toString), JsString("characters list updated"))
-                // log.info("new character created")
+          case in: InEvent =>
+            val user: String = in.id.as[String]
+            // check if id/user is subscribed else do not allow
+            WebSocketActor.subscribers.find(_ == user) match {
+              case Some(id) =>
+                in.input.as[InEventMessage] match {
+                  // if server got a WS message for newly created character
+                  // try to update character DB
+                  case cc: GQCharacterCreated =>
+                    characterUpdateActor ! akka.domain.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+                    out ! OutEvent(JsNull, JsString("characters updated"))
 
-              case _ =>
+                  case _ =>
+                }
+              case _ => out ! OutEvent(JsString(user), JsString("unauthorized"))
             }
 
           case oe: OutEvent =>
@@ -77,11 +84,25 @@ class WebSocketActor@Inject()(
             log.info(s"${code} ~> Connection Reset")
             out ! OutEvent(JsString(code.toString), JsString("connection reset"))
 
+          case Subscribe(id, msg) =>
+            log.info(s"${id} ~> Subscribe")
+            // add subscriber to subscribers list
+            WebSocketActor.subscribers.find(_ == id) match {
+              case Some(id) =>
+                out ! OutEvent(JsString(id), JsString("already subscribed"))
+
+              case  _ =>
+                WebSocketActor.subscribers.append(id)
+                out ! OutEvent(JsString(id), JsString(msg))
+            }
+
           case _ =>
             log.info("Unknown")
         }
       } catch {
-        case e: Throwable => out ! OutEvent(JsNull, JsString("invalid"))
+        case e: Throwable =>
+          println(e)
+          // out ! OutEvent(JsNull, JsString("invalid"))
       }
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))

@@ -15,17 +15,20 @@ case class GQCharacterCreated(character_created: Boolean) extends InEventMessage
 	require(character_created == true, "Character Creation: Invalid message received")
 }
 
-
 object Event extends utils.CommonImplicits
-object InEvent
-object OutEvent
-object ConnectionAlive
+object InEvent extends utils.CommonImplicits
+object OutEvent extends utils.CommonImplicits
+object Subscribe extends utils.CommonImplicits
+object ConnectionAlive extends utils.CommonImplicits
 
 sealed trait Event {
   def toJson(): JsValue = Json.toJson(this)
 }
 case class InEvent(id: JsValue, input: JsValue) extends Event
 case class OutEvent(id: JsValue, response: JsValue) extends Event
+case class Subscribe(id: String, message: String) extends Event {
+	require(message == "subscribe", "Subscribe: Invalid message received")
+}
 case class ConnectionAlive(message: String) extends Event {
 	require(message == "connection_reset", "Connection Alive: Invalid message received")
 }

@@ -358,6 +358,8 @@ trait CommonImplicits {
     }
   }
 
+  implicit val implSubscribe = Json.format[Subscribe]
+	implicit val implConnectionAlive = Json.format[ConnectionAlive]
   implicit val implicitInEventReads: Reads[InEvent] = new Reads[InEvent] {
 		override def reads(js: JsValue): JsResult[InEvent] = js match {
 			case json: JsValue => {
@@ -399,10 +401,10 @@ trait CommonImplicits {
 	  		Json.obj("id" -> tx.id, "response" -> tx.response)
 	  }
 	}
-	implicit val implConnectionAlive = Json.format[ConnectionAlive]
 	implicit val implicitEventReads: Reads[Event] = {
-    Json.format[InEvent].map(x => x: Event) or
+		Json.format[InEvent].map(x => x: Event) or
     Json.format[OutEvent].map(x => x: Event) or
+    Json.format[Subscribe].map(x => x: Event) or
     Json.format[ConnectionAlive].map(x => x: Event)
   }
 
@@ -411,6 +413,8 @@ trait CommonImplicits {
       event match {
         case m: InEvent => Json.toJson(m)
         case m: OutEvent => Json.toJson(m)
+        case m: Subscribe => Json.toJson(m)
+        case m: ConnectionAlive => Json.toJson(m)
         case _ => Json.obj("error" -> "wrong Json")
       }
     }
