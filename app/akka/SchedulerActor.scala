@@ -15,7 +15,7 @@ import play.api.libs.json._
 import models.domain.eosio._
 import models.repo.eosio._
 import models.service.GQSmartContractAPI
-import akka.domain.common.objects._
+import akka.common.objects._
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
 
 object SchedulerActor {

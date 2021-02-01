@@ -1,4 +1,4 @@
-package akka.domain.common.objects
+package akka.common.objects
 
 import akka.actor.ActorRef
 import models.domain.eosio.{ TableRowsRequest, GQRowsResponse, GQCharacterData, GQCharacterPrevMatch }
