@@ -4,6 +4,7 @@ import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
 import models.repo.eosio._
@@ -56,6 +57,10 @@ class GQGameService @Inject()(
 
     } yield logs
   }
+
+  // Top 10 results
+  def highEarnAllTime(): Future[Seq[GQCharacterDataTrait]] =
+    charDataRepo.dynamicDataSort().map(_.sortBy(- _.prize).take(10))
 
   def getCharacterByUserAndID[T <: String](user: T, id: T): Future[JsValue] = {
     for {

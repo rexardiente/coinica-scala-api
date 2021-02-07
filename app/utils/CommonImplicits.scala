@@ -137,7 +137,12 @@ trait CommonImplicits {
 						(json \ "defense").as[Int],
 						(json \ "speed").as[Int],
 						(json \ "luck").as[Int],
-						(json \ "prize").as[String],
+						(try {
+							val prize: String = (json \ "prize").as[String]
+							prize.substring(0, prize.size - 4).toLong
+						} catch {
+							case _: Throwable => 0
+						}),
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
 						(json \ "last_match").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0),
@@ -208,7 +213,7 @@ trait CommonImplicits {
 						(json \ "defense").as[Int],
 						(json \ "speed").as[Int],
 						(json \ "luck").as[Int],
-						(json \ "prize").as[String],
+						(json \ "prize").as[Double],
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
 						(json \ "last_match").as[Long],
@@ -410,6 +415,19 @@ trait CommonImplicits {
         case m: ConnectionAlive => Json.toJson(m)
         case _ => Json.obj("error" -> "wrong Json")
       }
+    }
+  }
+
+  implicit val implicitGQCharacterDataTraitReads: Reads[GQCharacterDataTrait] = {
+		Json.format[GQCharacterData].map(x => x: GQCharacterDataTrait) or
+    Json.format[GQCharacterDataHistory].map(x => x: GQCharacterDataTrait)
+  }
+
+  implicit val implicitGQCharacterDataTraitWrites = new Writes[GQCharacterDataTrait] {
+    def writes(v: GQCharacterDataTrait): JsValue = v match {
+      case m: GQCharacterData => Json.toJson(m)
+      case m: GQCharacterDataHistory => Json.toJson(m)
+      case _ => Json.obj("error" -> "wrong Json")
     }
   }
 

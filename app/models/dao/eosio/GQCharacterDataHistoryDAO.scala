@@ -13,7 +13,9 @@ final class GQCharacterDataHistoryDAO @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
-  protected class GQCharacterDataHistoryTable(tag: Tag) extends Table[GQCharacterDataHistory](tag, "GQ_CHARACTER_DATA_HISTORY") {
+  protected class GQCharacterDataHistoryTable(tag: Tag)
+          extends Table[GQCharacterDataHistory](tag, "GQ_CHARACTER_DATA_HISTORY")
+          with models.service.DynamicSortBySupport.ColumnSelector {
     def id = column[String] ("CHARACTER_ID", O.PrimaryKey)
     def player = column[String] ("PLAYER")
     def life = column[Int] ("LIFE")
@@ -25,7 +27,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
     def defense = column[Int] ("DEFENSE")
     def speed = column[Int] ("SPEED")
     def luck = column[Int] ("LUCK")
-    def prize = column[String] ("PRIZE")
+    def prize = column[Double] ("PRIZE")
     def battleLimit = column[Int] ("BATTLE_LIMIT")
     def battleCount = column[Int] ("BATTLE_COUNT")
     def lastMatch = column[Long] ("LAST_MATCH")
@@ -47,6 +49,23 @@ final class GQCharacterDataHistoryDAO @Inject()(
             battleCount,
             lastMatch,
             createdAt) <> (GQCharacterDataHistory.tupled, GQCharacterDataHistory.unapply)
+
+    val select = Map("id" -> (this.id),
+                    "player" -> (this.player),
+                    "life" -> (this.life),
+                    "hp" -> (this.hp),
+                    "ghostClass" -> (this.ghostClass),
+                    "level" -> (this.level),
+                    "status" -> (this.status),
+                    "attack" -> (this.attack),
+                    "defense" -> (this.defense),
+                    "speed" -> (this.speed),
+                    "luck" -> (this.luck),
+                    "prize" -> (this.prize),
+                    "battleLimit" -> (this.battleLimit),
+                    "battleCount" -> (this.battleCount),
+                    "lastMatch" -> (this.lastMatch),
+                    "createdAt" -> (this.createdAt))
   }
 
   object Query extends TableQuery(new GQCharacterDataHistoryTable(_)) {

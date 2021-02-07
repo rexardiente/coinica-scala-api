@@ -13,29 +13,31 @@ final class GQCharacterDataDAO @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
-  protected class GQCharacterDataTable(tag: Tag) extends Table[GQCharacterData](tag, "GQ_CHARACTER_DATA") {
+  protected class GQCharacterDataTable(tag: Tag)
+            extends Table[GQCharacterData](tag, "GQ_CHARACTER_DATA")
+            with models.service.DynamicSortBySupport.ColumnSelector {
     def id = column[String] ("CHARACTER_ID", O.PrimaryKey)
-    def owner = column[String] ("OWNER")
+    def player = column[String] ("PLAYER")
     def life = column[Int] ("LIFE")
-    def initial_hp = column[Int] ("INITIAL_HP")
-    def `class` = column[Int] ("CLASS")
+    def hp = column[Int] ("HP")
+    def ghostClass= column[Int] ("CLASS")
     def level = column[Int] ("LEVEL")
     def status = column[Int] ("STATUS")
     def attack = column[Int] ("ATTACK")
     def defense = column[Int] ("DEFENSE")
     def speed = column[Int] ("SPEED")
     def luck = column[Int] ("LUCK")
-    def prize = column[String] ("PRIZE")
-    def battle_limit = column[Int] ("BATTLE_LIMIT")
-    def battle_count = column[Int] ("BATTLE_COUNT")
-    def last_match = column[Long] ("LAST_MATCH")
-    def created_at = column[Long] ("CREATED_AT")
+    def prize = column[Double] ("PRIZE")
+    def battleLimit = column[Int] ("BATTLE_LIMIT")
+    def battleCount = column[Int] ("BATTLE_COUNT")
+    def lastMatch = column[Long] ("LAST_MATCH")
+    def createdAt = column[Long] ("CREATED_AT")
 
     def * = (id,
-            owner,
+            player,
             life,
-            initial_hp,
-            `class`,
+            hp,
+            ghostClass,
             level,
             status,
             attack,
@@ -43,10 +45,27 @@ final class GQCharacterDataDAO @Inject()(
             speed,
             luck,
             prize,
-            battle_limit,
-            battle_count,
-            last_match,
-            created_at) <> ((GQCharacterData.apply _).tupled, GQCharacterData.unapply)
+            battleLimit,
+            battleCount,
+            lastMatch,
+            createdAt) <> ((GQCharacterData.apply _).tupled, GQCharacterData.unapply)
+
+    val select = Map("id" -> (this.id),
+                    "player" -> (this.player),
+                    "life" -> (this.life),
+                    "hp" -> (this.hp),
+                    "ghostClass" -> (this.ghostClass),
+                    "level" -> (this.level),
+                    "status" -> (this.status),
+                    "attack" -> (this.attack),
+                    "defense" -> (this.defense),
+                    "speed" -> (this.speed),
+                    "luck" -> (this.luck),
+                    "prize" -> (this.prize),
+                    "battleLimit" -> (this.battleLimit),
+                    "battleCount" -> (this.battleCount),
+                    "lastMatch" -> (this.lastMatch),
+                    "createdAt" -> (this.createdAt))
   }
 
   object Query extends TableQuery(new GQCharacterDataTable(_)) {

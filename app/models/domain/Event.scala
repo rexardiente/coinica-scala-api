@@ -2,7 +2,6 @@ package models.domain
 
 import play.api.libs.json._
 
-
 object InEventMessage extends utils.CommonImplicits
 object GQBattleTime
 object GQCharacterCreated
