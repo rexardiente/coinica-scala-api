@@ -382,4 +382,16 @@ def addTask = Action.async { implicit req =>
   def getGQGameHistoryByGameID(id: String) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.filteredByID(id).map(x => Ok(Json.toJson(x)))
   }
+
+  def highEarnCharactersAllTime() = Action.async { implicit req =>
+    gqGameService.highEarnCharactersAllTime().map(x => Ok(Json.toJson(x)))
+  }
+
+  def highEarnCharactersDaily() = Action.async { implicit req =>
+    gqGameService.highEarnCharactersDaily().map(x => Ok(Json.toJson(x)))
+  }
+
+  def highEarnCharactersWeekly() = Action.async { implicit req =>
+    gqGameService.highEarnCharactersWeekly().map(x => Ok(Json.toJson(x)))
+  }
 }

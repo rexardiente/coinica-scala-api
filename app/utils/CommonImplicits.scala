@@ -431,6 +431,5 @@ trait CommonImplicits {
     }
   }
 
-	// implicit def implAdminAuth = Json.format[AdminAuth]
-
+  implicit def implGQCharactersRank = Json.format[GQCharactersRank]
 }

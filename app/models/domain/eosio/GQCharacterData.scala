@@ -45,7 +45,11 @@ object GQCharacterDataHistory {
         v.created_at)
 }
 trait GQCharacterDataTrait {
+    val id: String
+    val owner: String
     val prize: Double
+    val ghost_class: Int
+    val ghost_level: Int
     def toJson(): JsValue = Json.toJson(this)
 }
 case class GQCharacterData(

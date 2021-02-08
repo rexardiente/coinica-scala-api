@@ -58,9 +58,51 @@ class GQGameService @Inject()(
     } yield logs
   }
 
-  // Top 10 results
-  def highEarnAllTime(): Future[Seq[GQCharacterDataTrait]] =
-    charDataRepo.dynamicDataSort().map(_.sortBy(- _.prize).take(10))
+  // Top 10 results of characters
+  def highEarnCharactersAllTime(): Future[Seq[GQCharactersRank]] = {
+    for {
+      characters <- charDataRepo.dynamicDataSort("prize", 10)
+      process <- Future.successful(characters.map(c => GQCharactersRank(c.id, c.owner, c.ghost_level, c.ghost_class, c.prize)))
+    } yield (process)
+  }
+
+  def highEarnCharactersDaily(): Future[Seq[GQCharactersRank]] = {
+    for {
+      perDay <- charDataRepo.highestPerWeekOrDay((24*60*60), 10)
+      getCharaterInfo <- Future.sequence {
+        perDay.map { case (id, (player, amount)) =>
+          for {
+            alive <- charDataRepo.getByUserAndID(player, id)
+            eliminated <- charDataRepo
+              .getCharacterHistoryByUserAndID(player, id)
+              .map(_.map(GQCharacterDataHistory.toCharacterData))
+          } yield ((mergeSeq[GQCharacterData, Seq[GQCharacterData]](alive, eliminated)).head, amount)
+        }
+      }
+      ranks <- Future.successful {
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRank(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
+      }
+    } yield (ranks)
+  }
+
+  def highEarnCharactersWeekly(): Future[Seq[GQCharactersRank]] = {
+    for {
+      perWeek <- charDataRepo.highestPerWeekOrDay((24*60*60) * 7, 10)
+      getCharaterInfo <- Future.sequence {
+        perWeek.map { case (id, (player, amount)) =>
+          for {
+            alive <- charDataRepo.getByUserAndID(player, id)
+            eliminated <- charDataRepo
+              .getCharacterHistoryByUserAndID(player, id)
+              .map(_.map(GQCharacterDataHistory.toCharacterData))
+          } yield ((mergeSeq[GQCharacterData, Seq[GQCharacterData]](alive, eliminated)).head, amount)
+        }
+      }
+      ranks <- Future.successful {
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRank(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
+      }
+    } yield (ranks)
+  }
 
   def getCharacterByUserAndID[T <: String](user: T, id: T): Future[JsValue] = {
     for {
