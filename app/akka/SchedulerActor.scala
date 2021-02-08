@@ -52,25 +52,25 @@ class SchedulerActor @Inject()(
       case Success(actor) =>
         if (!SchedulerActor.isIntialized) {
 
-          // // load GhostQuest users to DB update for one time.. in case server is down..
-          // self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
-          // // scheduled on every 5 minutes
-          // system.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
+          // load GhostQuest users to DB update for one time.. in case server is down..
+          self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+          // scheduled on every 5 minutes
+          system.scheduler.scheduleAtFixedRate(initialDelay = 5.minute, interval = 5.minute)(() => self ! BattleScheduler)
 
-          // // 24hrs Scheduler at 6:00AM in the morning daily..
-          // val dailySchedInterval: FiniteDuration = 24.hours
-          // val dailySchedDelay   : FiniteDuration = {
-          //     val time = LocalTime.of(17, 0).toSecondOfDay
-          //     val now = LocalTime.now().toSecondOfDay
-          //     val fullDay = 60 * 60 * 24
-          //     val difference = time - now
-          //     if (difference < 0) {
-          //       fullDay + difference
-          //     } else {
-          //       time - now
-          //     }
-          //   }.seconds
-          // system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => self ! DailyScheduler)
+          // 24hrs Scheduler at 6:00AM in the morning daily..
+          val dailySchedInterval: FiniteDuration = 24.hours
+          val dailySchedDelay   : FiniteDuration = {
+              val time = LocalTime.of(17, 0).toSecondOfDay
+              val now = LocalTime.now().toSecondOfDay
+              val fullDay = 60 * 60 * 24
+              val difference = time - now
+              if (difference < 0) {
+                fullDay + difference
+              } else {
+                time - now
+              }
+            }.seconds
+          system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => self ! DailyScheduler)
 
           // set true if actor already initialized
           SchedulerActor.isIntialized = true
