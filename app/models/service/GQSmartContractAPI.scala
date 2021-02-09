@@ -25,10 +25,10 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
 	private val GQContractName: String = "ghostquest"
 
 
-	def battleAction(users: Seq[(String, String)], logs: scala.collection.immutable.List[GameLog]): Future[Option[PushedTransaction]] = {
+	def battleAction(gameID: UUID, users: Seq[(String, String)], logs: scala.collection.immutable.List[GameLog]): Future[Option[PushedTransaction]] = {
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
     // val query1: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(UUID.randomUUID.toString))
-    val query: Seq[JsValue] = Seq(JsString(UUID.randomUUID.toString), JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))), JsArray(logs.map(x => JsString(Json.toJson(x).toString))))
+    val query: Seq[JsValue] = Seq(JsString(gameID.toString), JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))), JsArray(logs.map(x => JsString(Json.toJson(x).toString))))
 
     support.abiJsonToBin(GQContractName, "battle", query).map { abiJsonToBinResult =>
       val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(

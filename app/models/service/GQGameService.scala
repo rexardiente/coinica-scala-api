@@ -61,7 +61,7 @@ class GQGameService @Inject()(
   // Top 10 results of characters
   def highEarnCharactersAllTime(): Future[Seq[GQCharactersRank]] = {
     for {
-      characters <- charDataRepo.dynamicDataSort("prize", 10)
+      characters <- charDataRepo.dynamicDataSort("prize", 10).map(_.sortBy(-_.prize).take(10))
       process <- Future.successful(characters.map(c => GQCharactersRank(c.id, c.owner, c.ghost_level, c.ghost_class, c.prize)))
     } yield (process)
   }

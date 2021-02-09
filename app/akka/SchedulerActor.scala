@@ -255,9 +255,9 @@ class SchedulerActor @Inject()(
                           val battle = new GQBattleCalculation[GQCharacterData](character, enemy)
 
                           // if battle is success then update smartcontract table..
-                          if (!battle.getBattleResult.equals(None)) {
+                          if (!battle.result.equals(None)) {
                             // compose smartcontract battle action parameters..
-                            battle.getBattleResult.map { result =>
+                            battle.result.map { result =>
 
                               // if true then character is winner else loser..
                               val request: Seq[(String, String)] =
@@ -270,7 +270,7 @@ class SchedulerActor @Inject()(
                               // val req: Seq[(String, String)] = Seq(
                               // (character.id.toString, character.owner.toString),
                               // (enemy.id.toString, enemy.owner.toString))
-                              eosio.battleAction(request, result.logs).map {
+                              eosio.battleAction(result.id, request, result.logs).map {
                                 case Some(e) =>
                                   currentlyPlayed(character.id) = character.owner
                                   currentlyPlayed(enemy.id) = enemy.owner

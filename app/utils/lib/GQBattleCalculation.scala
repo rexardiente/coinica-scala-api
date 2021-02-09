@@ -1,5 +1,6 @@
 package utils.lib
 
+import java.util.UUID
 import scala.util.Random
 import scala.collection.mutable.ListBuffer
 import models.domain.eosio.{ GQCharacterData, GameLog, GQBattleResult }
@@ -7,10 +8,11 @@ import models.domain.eosio.{ GQCharacterData, GameLog, GQBattleResult }
 @javax.inject.Singleton
 class GQBattleCalculation[T <: GQCharacterData](plyr1: T, plyr2: T) {
 	// Initialize game default values..
-	private val characters: Map[String, T] = Map(plyr1.id -> plyr1, plyr2.id -> plyr2)
-	private val logs: ListBuffer[GameLog] = ListBuffer.empty[GameLog]
-	private var battleResult: Option[GQBattleResult] = None
-	private var gameRounds: Int = 1
+	private val gameID 			 : UUID 									= java.util.UUID.randomUUID
+	private val characters 	 : Map[String, T] 				= Map(plyr1.id -> plyr1, plyr2.id -> plyr2)
+	private val logs  			 : ListBuffer[GameLog] 		= ListBuffer.empty[GameLog]
+	private var battleResult : Option[GQBattleResult] = None
+	private var gameRounds   : Int = 1
 	private var plyr1TotalDmg: Int = 0
 	private var plyr2TotalDmg: Int = 0
 
@@ -33,9 +35,17 @@ class GQBattleCalculation[T <: GQCharacterData](plyr1: T, plyr2: T) {
 						gameRounds += 1
 
 						if (characters(plyr1.id).initial_hp < plyr1TotalDmg)
-							battleResult = Some(result(characters(plyr1.id), characters(plyr2.id)))
+							battleResult = Some(GQBattleResult(
+																	gameID,
+																	Map(characters(plyr1.id).id -> true,
+																			characters(plyr2.id).id -> false),
+																	logs.toList))
 					}
-					else battleResult = Some(result(characters(plyr2.id), characters(plyr1.id)))
+					else battleResult = Some(GQBattleResult(
+																	gameID,
+																	Map(characters(plyr2.id).id -> true,
+																			characters(plyr1.id).id -> false),
+																	logs.toList))
 	      }
 
 	      else
@@ -52,9 +62,17 @@ class GQBattleCalculation[T <: GQCharacterData](plyr1: T, plyr2: T) {
 						gameRounds += 1
 
 						if (characters(plyr2.id).initial_hp < plyr2TotalDmg)
-							battleResult = Some(result(characters(plyr2.id), characters(plyr1.id)))
-				  }
-				  else battleResult = Some(result(characters(plyr1.id), characters(plyr2.id)))
+							battleResult = Some(GQBattleResult(
+																	gameID,
+																	Map(characters(plyr2.id).id -> true,
+																			characters(plyr1.id).id -> false),
+																	logs.toList))
+					}
+				  else battleResult = Some(GQBattleResult(
+														  		gameID,
+																	Map(characters(plyr1.id).id -> true,
+																			characters(plyr2.id).id -> false),
+																	logs.toList))
 				}
 			}
 	}
@@ -75,23 +93,16 @@ class GQBattleCalculation[T <: GQCharacterData](plyr1: T, plyr2: T) {
 	  // componse battle log and overall damage taken..
 	  (new GameLog(gameRounds, attacker.owner, defender.owner, overAllDmg._1, overAllDmg._2), overAllDmg._1)
 	}
-
-	private def result(loser: T, winner: T): GQBattleResult = {
-		var winnerCharacter: GQCharacterData = winner.copy(status = 4, character_life = (winner.character_life + 1))
-		val loserCharacter: GQCharacterData =
-			if (loser.character_life == 1)
-				loser.copy(status = 6, character_life = 0)
-			else
-				loser.copy(status = 5, character_life = (loser.character_life - 1))
-
-		GQBattleResult(
-			java.util.UUID.randomUUID,
-			Map(winnerCharacter.id -> true, loserCharacter.id -> false),
-			logs.toList)
-	}
-
-	def getBattleResult(): Option[GQBattleResult] = battleResult
-
+	// private def result(loser: T, winner: T): GQBattleResult = {
+	// 	var winnerCharacter: GQCharacterData = winner.copy(status = 4, character_life = (winner.character_life + 1))
+	// 	val loserCharacter: GQCharacterData =
+	// 		if (loser.character_life == 1)
+	// 			loser.copy(status = 6, character_life = 0)
+	// 		else
+	// 			loser.copy(status = 5, character_life = (loser.character_life - 1))
+	// 	GQBattleResult(gameID, Map(winner.id -> true, loser.id -> false), logs.toList)
+	// }
+	def result(): Option[GQBattleResult] = battleResult
 	// start battle..
 	run()
 }

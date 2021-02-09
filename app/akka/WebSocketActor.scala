@@ -92,16 +92,19 @@ class WebSocketActor@Inject()(
 
           case Subscribe(id, msg) =>
             log.info(s"${id} ~> Subscribe")
-            // add subscriber to subscribers list
-            WebSocketActor.subscribers.exists(x => x._1 == id) match {
-              case true =>
-                // update its akka actorRef if already exists
-                WebSocketActor.subscribers(id) = out
-                out ! OutEvent(JsString(id), JsString("already subscribed"))
-              case _ =>
-                WebSocketActor.subscribers.addOne(id -> out)
-                out ! OutEvent(JsString(id), JsString(msg))
-            }
+            if (id == "default")
+              out ! OutEvent(JsString(id), JsNull)
+            else
+              // add subscriber to subscribers list
+              WebSocketActor.subscribers.exists(x => x._1 == id) match {
+                case true =>
+                  // update its akka actorRef if already exists
+                  WebSocketActor.subscribers(id) = out
+                  out ! OutEvent(JsString(id), JsString("already subscribed"))
+                case _ =>
+                  WebSocketActor.subscribers.addOne(id -> out)
+                  out ! OutEvent(JsString(id), JsString(msg))
+              }
 
           case _ =>
             log.info("Unknown")
