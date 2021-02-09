@@ -91,7 +91,6 @@ class GQCharacterDataRepo @Inject()(
         alive <- db.run(dataDAO.Query.dynamicSortBy(sortsBy).result)
         eliminated <- db.run(dataHistoryDAO.Query.dynamicSortBy(sortsBy).result)
     } yield (alive ++ eliminated))
-    .map(_.sortBy(- _.prize).take(limit))
   }
 
   def highestPerWeekOrDay(range: Long, limit: Int): Future[Seq[(String, (String, Double))]] = {
