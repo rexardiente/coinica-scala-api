@@ -2,8 +2,10 @@ package models.service
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.collection.mutable.{ HashMap, ListBuffer }
 import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
@@ -14,9 +16,6 @@ class GQGameService @Inject()(
       charDataRepo: GQCharacterDataRepo,
       // charDataHistoryRepo: GQCharacterDataHistoryRepo,
       charGameHistoryRepo: GQCharacterGameHistoryRepo ) {
-
-  // def getCharacterWinAndLostHistory(user: String, characterID: String) = ???
-  // def getGameLogs(gameID: String) = ???
 
   def getHistoryByCharacterID(id: String): Future[Seq[GQCharacterGameHistory]] = {
     charGameHistoryRepo.getByCharacterID(id)
@@ -59,14 +58,14 @@ class GQGameService @Inject()(
   }
 
   // Top 10 results of characters
-  def highEarnCharactersAllTime(): Future[Seq[GQCharactersRank]] = {
+  def highEarnCharactersAllTime(): Future[Seq[GQCharactersRankByEarned]] = {
     for {
       characters <- charDataRepo.dynamicDataSort("prize", 10).map(_.sortBy(-_.prize).take(10))
-      process <- Future.successful(characters.map(c => GQCharactersRank(c.id, c.owner, c.ghost_level, c.ghost_class, c.prize)))
+      process <- Future.successful(characters.map(c => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, c.prize)))
     } yield (process)
   }
 
-  def highEarnCharactersDaily(): Future[Seq[GQCharactersRank]] = {
+  def highEarnCharactersDaily(): Future[Seq[GQCharactersRankByEarned]] = {
     for {
       perDay <- charDataRepo.highestPerWeekOrDay((24*60*60), 10)
       getCharaterInfo <- Future.sequence {
@@ -80,12 +79,12 @@ class GQGameService @Inject()(
         }
       }
       ranks <- Future.successful {
-        getCharaterInfo.map{ case (c, amount) => GQCharactersRank(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
       }
     } yield (ranks)
   }
 
-  def highEarnCharactersWeekly(): Future[Seq[GQCharactersRank]] = {
+  def highEarnCharactersWeekly(): Future[Seq[GQCharactersRankByEarned]] = {
     for {
       perWeek <- charDataRepo.highestPerWeekOrDay((24*60*60) * 7, 10)
       getCharaterInfo <- Future.sequence {
@@ -99,7 +98,7 @@ class GQGameService @Inject()(
         }
       }
       ranks <- Future.successful {
-        getCharaterInfo.map{ case (c, amount) => GQCharactersRank(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
       }
     } yield (ranks)
   }
@@ -161,22 +160,21 @@ class GQGameService @Inject()(
 
   def getCharacterDataByID(id: String): Future[JsValue] = {
       for {
-        characters <- charDataRepo.getByID(id)
+        character <- charDataRepo.getByID(id)
 
         logs <- {
           // iterate each characters games history..
-          val tupled: Future[Seq[(JsValue, JsValue)]] =
-            Future.sequence(characters.map({ character =>
-              // get all history of character
-              val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
-              val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-                seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
-              // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
-              seqLogs.map(v => (character.toJson, Json.toJson(v)))
-            }))
-
-          // convert Seq[JSON] to JsArray
-          tupled.map(x => Json.toJson(x))
+          character.map({ character =>
+            // get all history of character
+            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
+            val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
+            // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
+            seqLogs
+            .map(v => (character.toJson, Json.toJson(v)))
+            .map(Json.toJson(_))
+          })
+          .getOrElse(Future(JsNull))
         }
 
       } yield logs
@@ -229,4 +227,107 @@ class GQGameService @Inject()(
 
     } yield logs
   }
+
+  // TOD: scheduled process (Weekly for Lifetime Win Streak)
+  // get overall history in a week, process and save it to WinStreak tbl
+  // charDataRepo.historyByDateRange(from, to)
+  def separateHistoryByCharID(seq: Seq[GQCharacterGameHistory]): HashMap[String, ListBuffer[(String, Boolean, Long)]] = {
+    val counter = HashMap.empty[String, ListBuffer[(String, Boolean, Long)]]
+    // process -> seq of history
+    seq.foreach(history => {
+      // separate all losers and winners with game ID
+      history.status.foreach(status => {
+        // GameID, isWin, timeExecuted
+        val id = status.char_id
+        val isWin = if (status.isWin) true else false
+
+        counter.addOne(id -> {
+          if (counter.exists(_._1 == id))
+            counter(id) += ((history.id, isWin, history.timeExecuted))
+          else
+            ListBuffer(("default1", isWin, history.timeExecuted))
+        })
+      })
+    })
+    // return list of charactes
+    counter
+  }
+
+  def calcWinStreak(characters: HashMap[String, ListBuffer[(String, Boolean, Long)]]): HashMap[String, Int] = {
+    characters.map { character =>
+      val status       : ListBuffer[(String, Boolean, Long)] = character._2
+      val streakCounter: ListBuffer[Int] = ListBuffer.empty[Int]
+      val tempList     : ListBuffer[Int] = ListBuffer.empty[Int]
+
+      status.zipWithIndex.map {
+        case (v, i) =>
+          if (v._2)
+            tempList.addOne(i)
+          else {
+            // overall charcter info in winstreak will be shown for simplicity
+            // updateCharacters.addOne(character._1 -> {
+            //   if (updateCharacters.exists(_._1 == character._1))
+            // })
+            val range = status.slice(tempList.headOption.getOrElse(0), tempList.lastOption.getOrElse(0))
+
+            if (!range.isEmpty) {
+              streakCounter += range.size
+              tempList.clear()
+            }
+          }
+          // check if it is the last itr to finallized the list result
+          if (status.last == v && !tempList.isEmpty) {
+            streakCounter += tempList.size
+            tempList.clear()
+          }
+      }
+      (character._1, streakCounter)
+    }
+    .map { case (id, list) => (id, list.maxOption.getOrElse(0)) }
+  }
+
+  def winStreakPerDay(): Future[List[GQCharactersRankByWinStreak]] = {
+    val today: Long = Instant.now().getEpochSecond
+    for {
+      history <- charDataRepo.historyByDateRange(today - (24*60*60), today)
+      separatedHistory <- Future.successful(separateHistoryByCharID(history))
+      calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
+      result <- calcStreakToStreakObject(calcWinStreak)
+    } yield result
+  }
+
+  def winStreakPerWeekly(): Future[List[GQCharactersRankByWinStreak]] = {
+    val today: Long = Instant.now().getEpochSecond
+    for {
+      history <- charDataRepo.historyByDateRange(today - ((24*60*60) * 7), today)
+      separatedHistory <- Future.successful(separateHistoryByCharID(history))
+      calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
+      result <- calcStreakToStreakObject(calcWinStreak)
+    } yield result
+  }
+
+  // get character info
+  // convert iterable to List[object]
+  // filter and remove win_streak = 0
+  // sort by high to low and take only top 10 results
+  def calcStreakToStreakObject(v: HashMap[String,Int]): Future[List[GQCharactersRankByWinStreak]] =
+    Future.sequence {
+      v.map { v =>
+        for {
+          al <- charDataRepo.getByID(v._1)
+          el <- charDataRepo.getCharacterHistoryByID(v._1)
+          either <- Future.successful(al.getOrElse(el.get))
+          winstreak <- Future.successful {
+            GQCharactersRankByWinStreak(v._1,
+                                        either.owner,
+                                        either.ghost_level,
+                                        either.ghost_class,
+                                        v._2)
+          }
+        } yield winstreak
+      }.toList
+    }
+    .map(_.filterNot(_.win_streak == 0).sortBy(- _.win_streak).take(10))
+
+  def winStreakLifeTime(): Unit = ???
 }

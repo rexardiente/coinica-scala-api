@@ -10,7 +10,6 @@ import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.libs.json._
-import play.api.libs.json.JsValue
 import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, Event }
 import models.repo.{
   LoginRepo,
@@ -393,5 +392,13 @@ def addTask = Action.async { implicit req =>
 
   def highEarnCharactersWeekly() = Action.async { implicit req =>
     gqGameService.highEarnCharactersWeekly().map(x => Ok(Json.toJson(x)))
+  }
+
+  def winStreakPerDay() = Action.async { implicit req =>
+    gqGameService.winStreakPerDay().map(x => Ok(Json.toJson(x)))
+  }
+
+  def winStreakPerWeekly() = Action.async { implicit req =>
+    gqGameService.winStreakPerWeekly().map(x => Ok(Json.toJson(x)))
   }
 }

@@ -47,8 +47,8 @@ class GQCharacterDataRepo @Inject()(
   def getByUserAndID(user: String, id: String): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.filter(x => x.player === user && x.id === id).result)
 
-  def getByID(id: String): Future[Seq[GQCharacterData]] =
-    db.run(dataDAO.Query.filter(_.id === id).result)
+  def getByID(id: String): Future[Option[GQCharacterData]] =
+    db.run(dataDAO.Query.filter(_.id === id).result.headOption)
 
   def getByUser(user: String): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.filter(_.player === user).result)
@@ -65,6 +65,9 @@ class GQCharacterDataRepo @Inject()(
 
   def getCharacterHistoryByUserAndID(user: String, id: String): Future[Seq[GQCharacterDataHistory]] =
     db.run(dataHistoryDAO.Query.filter(v => v.player === user && v.id === id).result)
+
+  def getCharacterHistoryByID(id: String): Future[Option[GQCharacterDataHistory]] =
+    db.run(dataHistoryDAO.Query.filter(_.id === id).result.headOption)
 
   // // Advanced table sorting..
   // def extremeN[T](n: Int, li: List[T]) (comp1: ((T, T) => Boolean), comp2: ((T, T) => Boolean)): List[T] = {
@@ -117,4 +120,7 @@ class GQCharacterDataRepo @Inject()(
       }
     } yield (characters.toSeq.sortBy(- _._2._2).take(limit))
   }
+
+  def historyByDateRange(from: Long, to: Long): Future[Seq[GQCharacterGameHistory]] =
+    db.run(gameHistoryDAO.Query.filter(x => x.timeExecuted >= from && x.timeExecuted <= to).result)
 }

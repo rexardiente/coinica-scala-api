@@ -431,5 +431,7 @@ trait CommonImplicits {
     }
   }
 
-  implicit def implGQCharactersRank = Json.format[GQCharactersRank]
+  implicit def implGQCharactersRankByEarned = Json.format[GQCharactersRankByEarned]
+  implicit def implGQCharactersRankByWinStreak = Json.format[GQCharactersRankByWinStreak]
+  implicit def implGQCharactersLifeTimeWinStreak = Json.format[GQCharactersLifeTimeWinStreak]
 }
