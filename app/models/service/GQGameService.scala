@@ -59,10 +59,42 @@ class GQGameService @Inject()(
 
   // Top 10 results of characters
   def highEarnCharactersAllTime(): Future[Seq[GQCharactersRankByEarned]] = {
+    // for {
+    //   characters <- charDataRepo.dynamicDataSort("prize", 10).map(_.sortBy(-_.prize).take(10))
+    //   process <- Future.successful(characters.map(c => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, c.prize)))
+    // } yield (process)
     for {
-      characters <- charDataRepo.dynamicDataSort("prize", 10).map(_.sortBy(-_.prize).take(10))
-      process <- Future.successful(characters.map(c => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, c.prize)))
-    } yield (process)
+      txs <- charDataRepo.getAllGameHistory()
+      grouped <- Future.successful {
+        val characters: HashMap[String, (String, Double)] = HashMap.empty[String, (String, Double)]
+        txs.map { tx =>
+          // processTxStatus
+          tx.status.foreach({ stat =>
+            // check if it exists on HashMap
+            if (!characters.exists(_._1 == stat.char_id)) characters(stat.char_id) = (stat.player, 0)
+
+            val (player, amount) = characters(stat.char_id)
+            // update characters balances on HashMap
+            if (stat.isWin) characters.update(stat.char_id, (player, amount + 1))
+            else characters.update(stat.char_id, (player, amount - 1))
+          })
+        }
+        characters.toSeq.sortBy(- _._2._2).take(10)
+      }
+      getCharaterInfo <- Future.sequence {
+        grouped.map { case (id, (player, amount)) =>
+          for {
+            alive <- charDataRepo.getByUserAndID(player, id)
+            eliminated <- charDataRepo
+              .getCharacterHistoryByUserAndID(player, id)
+              .map(_.map(GQCharacterDataHistory.toCharacterData))
+          } yield ((mergeSeq[GQCharacterData, Seq[GQCharacterData]](alive, eliminated)).head, amount)
+        }
+      }
+      ranks <- Future.successful {
+        getCharaterInfo.map { case (c, amount) => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
+      }
+    } yield (ranks)
   }
 
   def highEarnCharactersDaily(): Future[Seq[GQCharactersRankByEarned]] = {
