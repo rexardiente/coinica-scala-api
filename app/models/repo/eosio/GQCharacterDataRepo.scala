@@ -57,7 +57,7 @@ class GQCharacterDataRepo @Inject()(
     db.run(dataDAO.Query.filter(_.life < 1).result)
 
   // History Functions...
-  def insertHistory(data: GQCharacterDataHistory): Future[Int] =
+  def insertDataHistory(data: GQCharacterDataHistory): Future[Int] =
     db.run(dataHistoryDAO.Query += data)
 
   def getHistoryByUser(user: String): Future[Seq[GQCharacterDataHistory]] =
@@ -121,6 +121,9 @@ class GQCharacterDataRepo @Inject()(
     } yield (characters.toSeq.sortBy(- _._2._2).take(limit))
   }
 
-  def historyByDateRange(from: Long, to: Long): Future[Seq[GQCharacterGameHistory]] =
+  def getGameHistoryByDateRange(from: Long, to: Long): Future[Seq[GQCharacterGameHistory]] =
     db.run(gameHistoryDAO.Query.filter(x => x.timeExecuted >= from && x.timeExecuted <= to).result)
+
+  def getAllGameHistory(): Future[Seq[GQCharacterGameHistory]] =
+    db.run(gameHistoryDAO.Query.result)
 }

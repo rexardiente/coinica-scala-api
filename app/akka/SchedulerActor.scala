@@ -326,7 +326,7 @@ class SchedulerActor @Inject()(
                           // check if Successfully removed the add to game data history..
                           _ <-  {
                             if (isDeleted > 0)
-                              characterRepo.insertHistory(GQCharacterDataHistory(ch))
+                              characterRepo.insertDataHistory(GQCharacterDataHistory(ch))
                             else
                               Future(None)
                           }

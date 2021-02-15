@@ -401,4 +401,8 @@ def addTask = Action.async { implicit req =>
   def winStreakPerWeekly() = Action.async { implicit req =>
     gqGameService.winStreakPerWeekly().map(x => Ok(Json.toJson(x)))
   }
+
+  def winStreakLifeTime() = Action.async { implicit req =>
+    gqGameService.winStreakLifeTime().map(x => Ok(Json.toJson(x)))
+  }
 }

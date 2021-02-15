@@ -230,7 +230,7 @@ class GQGameService @Inject()(
 
   // TOD: scheduled process (Weekly for Lifetime Win Streak)
   // get overall history in a week, process and save it to WinStreak tbl
-  // charDataRepo.historyByDateRange(from, to)
+  // charDataRepo.getGameHistoryByDateRange(from, to)
   def separateHistoryByCharID(seq: Seq[GQCharacterGameHistory]): HashMap[String, ListBuffer[(String, Boolean, Long)]] = {
     val counter = HashMap.empty[String, ListBuffer[(String, Boolean, Long)]]
     // process -> seq of history
@@ -289,7 +289,7 @@ class GQGameService @Inject()(
   def winStreakPerDay(): Future[List[GQCharactersRankByWinStreak]] = {
     val today: Long = Instant.now().getEpochSecond
     for {
-      history <- charDataRepo.historyByDateRange(today - (24*60*60), today)
+      history <- charDataRepo.getGameHistoryByDateRange(today - (24*60*60), today)
       separatedHistory <- Future.successful(separateHistoryByCharID(history))
       calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
       result <- calcStreakToStreakObject(calcWinStreak)
@@ -299,13 +299,21 @@ class GQGameService @Inject()(
   def winStreakPerWeekly(): Future[List[GQCharactersRankByWinStreak]] = {
     val today: Long = Instant.now().getEpochSecond
     for {
-      history <- charDataRepo.historyByDateRange(today - ((24*60*60) * 7), today)
+      history <- charDataRepo.getGameHistoryByDateRange(today - ((24*60*60) * 7), today)
       separatedHistory <- Future.successful(separateHistoryByCharID(history))
       calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
       result <- calcStreakToStreakObject(calcWinStreak)
     } yield result
   }
 
+  def winStreakLifeTime(): Future[List[GQCharactersRankByWinStreak]] = {
+    for {
+      history <- charDataRepo.getAllGameHistory()
+      separatedHistory <- Future.successful(separateHistoryByCharID(history))
+      calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
+      result <- calcStreakToStreakObject(calcWinStreak)
+    } yield result
+  }
   // get character info
   // convert iterable to List[object]
   // filter and remove win_streak = 0
@@ -328,6 +336,4 @@ class GQGameService @Inject()(
       }.toList
     }
     .map(_.filterNot(_.win_streak == 0).sortBy(- _.win_streak).take(10))
-
-  def winStreakLifeTime(): Unit = ???
 }
