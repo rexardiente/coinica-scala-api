@@ -84,43 +84,16 @@ class GQCharacterDataRepo @Inject()(
   //   extremeN (n, li) (ord.gt (_, _), ord.lt (_, _))
   // }
 
-  import slick.ast.Ordering.Direction
-  import slick.ast.Ordering
-
+  // import slick.ast.Ordering.Direction
+  // import slick.ast.Ordering
   // sort by charcters
-  def dynamicDataSort(query: String, limit: Int): Future[Seq[GQCharacterDataTrait]] = {
-    val sortsBy = Seq[(String, Direction)]((query, Ordering.Desc))
-    (for {
-        alive <- db.run(dataDAO.Query.dynamicSortBy(sortsBy).result)
-        eliminated <- db.run(dataHistoryDAO.Query.dynamicSortBy(sortsBy).result)
-    } yield (alive ++ eliminated))
-  }
-
-  def highestPerWeekOrDay(range: Long, limit: Int): Future[Seq[(String, (String, Double))]] = {
-    // { if (query == "week") ((24*60*60) * 7) else (24*60*60) }
-    val characters = HashMap.empty[String, (String, Double)]
-    val coverage   = Instant.now().getEpochSecond - range
-
-    // get all charcters involved in 1 week transactions
-    for {
-      txs <- db.run(gameHistoryDAO.Query.filter(_.timeExecuted >= coverage).result)
-      calculate <- Future.successful {
-        txs.map { tx =>
-          // processTxStatus
-          tx.status.foreach({ stat =>
-            // check if it exists on HashMap
-            if (!characters.exists(_._1 == stat.char_id)) characters(stat.char_id) = (stat.player, 0)
-
-            val (player, amount) = characters(stat.char_id)
-            // update characters balances on HashMap
-            if (stat.isWin) characters.update(stat.char_id, (player, amount + 1))
-            else characters.update(stat.char_id, (player, amount - 1))
-          })
-        }
-      }
-    } yield (characters.toSeq.sortBy(- _._2._2).take(limit))
-  }
-
+  // def dynamicDataSort(query: String, limit: Int): Future[Seq[GQCharacterDataTrait]] = {
+  //   val sortsBy = Seq[(String, Direction)]((query, Ordering.Desc))
+  //   (for {
+  //       alive <- db.run(dataDAO.Query.dynamicSortBy(sortsBy).result)
+  //       eliminated <- db.run(dataHistoryDAO.Query.dynamicSortBy(sortsBy).result)
+  //   } yield (alive ++ eliminated))
+  // }
   def getGameHistoryByDateRange(from: Long, to: Long): Future[Seq[GQCharacterGameHistory]] =
     db.run(gameHistoryDAO.Query.filter(x => x.timeExecuted >= from && x.timeExecuted <= to).result)
 
