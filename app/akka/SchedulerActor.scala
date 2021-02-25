@@ -74,12 +74,11 @@ class SchedulerActor @Inject()(
 
           // set true if actor already initialized
           SchedulerActor.isIntialized = true
+          log.info("Ghost Quest Scheduler Actor Initialized")
         }
       case Failure(ex) =>
         // if actor is not yet created do nothing..
     }
-
-    log.info("Ghost Quest Scheduler Actor Initialized")
   }
 
   def receive: Receive = {
@@ -224,14 +223,14 @@ class SchedulerActor @Inject()(
                   // loop chracters in the database
                   // character of the loop is the player (current index)
                   // and the rest will serve as the enemy..
-                  val filtered:Seq[GQCharacterData] = response.filter(_.character_life > 0)
+                  val filtered: Seq[GQCharacterData] = response.filter(v => v.character_life > 0 && v.battle_count < v.battle_limit)
                   val characters: Seq[GQCharacterData] =  scala.util.Random.shuffle(filtered)
                   // chracter_ID and player_name
                   val currentlyPlayed: HashMap[String, String] = new HashMap[String, String]()
 
                   characters.foreach { character =>
                     // dont include character that has already reached its game limit..
-                    if (!character.battle_limit.equals(character.battle_count)) {
+                    // if (character.battle_count < character.battle_limit) {
                       // remove his own characters from the list
                       // all characters from other players...(DONE)
                       val removedOwnCharacters: Seq[GQCharacterData] =
@@ -292,7 +291,7 @@ class SchedulerActor @Inject()(
                       }
 
                       defaultThreadSleep()
-                    }
+                    // }
                   }
                 }
               }
