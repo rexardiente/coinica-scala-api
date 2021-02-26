@@ -137,12 +137,10 @@ trait CommonImplicits {
 						(json \ "defense").as[Int],
 						(json \ "speed").as[Int],
 						(json \ "luck").as[Int],
-						(try {
+						{
 							val prize: String = (json \ "prize").as[String]
-							prize.substring(0, prize.size - 4).toLong
-						} catch {
-							case _: Throwable => 0
-						}),
+							prize.splitAt(prize.size - 4)._1.toDoubleOption.getOrElse(0D)
+						},
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
 						(json \ "last_match").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0),
