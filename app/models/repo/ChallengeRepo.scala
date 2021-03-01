@@ -17,8 +17,21 @@ class ChallengeRepo @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
+  private val createAtFn = SimpleFunction.unary[Instant, Long]("CREATED_AT")
+
   def add(challenge: Challenge): Future[Int] =
     db.run(dao.Query += challenge)
+
+  def ++=(challenges: Seq[Challenge]): Future[Seq[Int]] = {
+    for {
+      hasExists <- Future.sequence(challenges.map(x => db.run(dao.Query.filter(_.name === x.name).exists.result)))
+      checker <- Future.successful(hasExists.filter(_ == true))
+      toInsert <- {
+        if (checker.isEmpty) Future.sequence(challenges.map(v => add(v)))
+        else Future(Seq.empty)
+      }
+    } yield (toInsert)
+  }
 
   def delete(id: UUID): Future[Int] =
     db.run(dao.Query(id).delete)
@@ -32,33 +45,30 @@ class ChallengeRepo @Inject()(
       .take(limit)
       .result)
 
-  def exist(id: UUID): Future[Boolean] = 
+  def exist(id: UUID): Future[Boolean] =
     db.run(dao.Query(id).exists.result)
 
   def findByID(id: UUID, limit: Int, offset: Int): Future[Seq[Challenge]] =
-    db.run(dao.Query.filter(r => r.id === id  )
+    db.run(dao.Query.filter(r => r.id === id)
       .drop(offset)
       .take(limit)
       .result)
-      
-  def findByDaily( currentdate: Long, limit: Int, offset: Int): Future[Seq[Challenge]] = 
-   db.run(dao.Query.filter(r =>  r.challengecreated === currentdate) 
-     .drop(offset)
-     .take(limit)
-     .result)
-      
- 
-  def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Challenge]] =
-   db.run(dao.Query.filter(r => r.challengecreated >= startdate && r.challengecreated <= enddate ) 
+
+  def findByDaily(currentdate: Long, limit: Int, offset: Int): Future[Seq[Challenge]] =
+   db.run(dao.Query.filter(r => createAtFn(r.createdAt) === currentdate)
      .drop(offset)
      .take(limit)
      .result)
 
-  def findAll(limit: Int, offset: Int): Future[Seq[Challenge]] = 
+  def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Challenge]] =
+   db.run(dao.Query.filter(r => createAtFn(r.createdAt) >= startdate && createAtFn(r.createdAt) <= enddate )
+     .drop(offset)
+     .take(limit)
+     .result)
+
+  def findAll(limit: Int, offset: Int): Future[Seq[Challenge]] =
     db.run(dao.Query.drop(offset).take(limit).result)
 
-  def getSize(): Future[Int] =  
+  def getSize(): Future[Int] =
     db.run(dao.Query.length.result)
-
-  
 }

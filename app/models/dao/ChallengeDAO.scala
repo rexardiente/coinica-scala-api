@@ -9,25 +9,23 @@ import models.domain.Challenge
 
 @Singleton
 final class ChallengeDAO @Inject()(
-    protected val dbConfigProvider: DatabaseConfigProvider,
+    protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
-
 
   protected class ChallengeTable(tag: Tag) extends Table[Challenge](tag, "CHALLENGE") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def name = column[String] ("NAME")
-    def bets = column[Double] ("BETS")
-    def profit = column[Double] ("PROFIT")
-    def ratio = column[Double] ("RATIO")
-    def vippoints = column[Double] ("VIPPOINTS")
-    def challengecreated = column[Long] ("CHALLENGECREATED")
+    def description = column[String] ("DESCRIPTION")
+    def startAt = column[Instant] ("START_AT")
+    def expireAt = column[Instant] ("EXPIRE_AT")
+    def isAvailable = column[Boolean] ("IS_AVAILABLE")
+    def createdAt = column[Instant] ("CREATED_AT")
 
-    def * = (id, name, bets, profit, ratio, vippoints, challengecreated) <> ((Challenge.apply _).tupled, Challenge.unapply) 
+    def * = (id, name, description, startAt, expireAt, isAvailable, createdAt) <> (Challenge.tupled, Challenge.unapply)
   }
 
   object Query extends TableQuery(new ChallengeTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
- 
 }

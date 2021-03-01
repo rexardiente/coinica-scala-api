@@ -24,7 +24,6 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
 	private val support: EOSIOSupport = new EOSIOSupport()
 	private val GQContractName: String = "ghostquest"
 
-
 	def battleAction(gameID: UUID, users: Seq[(String, String)], logs: scala.collection.immutable.List[GameLog]): Future[Option[PushedTransaction]] = {
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
     // val query1: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(UUID.randomUUID.toString))
@@ -54,7 +53,9 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
             support.clientNodeosAPI.getChainInfo().getChainId())
 
         Some(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
-      } catch { case e: EosApiException => None }
+      } catch { case e: EosApiException =>
+      println(e)
+      None }
     }
   }
 

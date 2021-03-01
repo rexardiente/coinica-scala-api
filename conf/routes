@@ -20,9 +20,9 @@ POST    /donut/api/v1/challenge/add                   controllers.HomeController
 PUT     /donut/api/v1/challenge/update               controllers.HomeController.updateChallenge(id: UUID)
 POST    /donut/api/v1/challenge/remove                controllers.HomeController.removeChallenge(id: UUID)
 
-GET     /donut/api/v1/challenge/weekly               controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-GET     /donut/api/v1/challenge/daily                controllers.HomeController.challengedaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-GET     /donut/api/v1/challenge/monthly              controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+GET     /donut/api/v1/challenge               controllers.HomeController.getChallengeByDate(start: java.time.Instant, end: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+# GET     /donut/api/v1/challenge/daily                controllers.HomeController.challengedaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+# GET     /donut/api/v1/challenge/monthly              controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 
 GET     /                                        controllers.HomeController.index
 # Ranking API
@@ -46,7 +46,6 @@ GET     /donut/api/v1/referral/monthly              controllers.HomeController.r
 
 GET     /                                        controllers.HomeController.index
 # Task API
-GET     /donut/api/v1/tasks                      controllers.HomeController.paginatedResult(limit: Int ?= 10, offset: Int ?= 1)
 GET     /donut/api/v1/task/weekly                controllers.HomeController.taskdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/task/daily                controllers.HomeController.taskdaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/task/monthly                controllers.HomeController.taskmonthly(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
@@ -92,6 +91,9 @@ GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/weekly controllers.Hom
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/weekly controllers.HomeController.winStreakPerDay
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily controllers.HomeController.winStreakPerWeekly
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime controllers.HomeController.winStreakLifeTime
+
+# TODO: News with pagination
+GET   /donut/api/v1/news controllers.HomeController.news
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

@@ -17,12 +17,15 @@ class Generator @Inject()(
     referral: ReferralDAO,
     ranking: RankingDAO,
     challenge: ChallengeDAO,
+    challengeHistory: ChallengeHistoryDAO,
     gqCharacterData: GQCharacterDataDAO,
     gqCharacterGameHistory: GQCharacterGameHistoryDAO,
     gqCharacterDataHistory: GQCharacterDataHistoryDAO,
+    // gqCharactersLifeTimeWinStreakDAO: GQCharactersLifeTimeWinStreakDAO,
     admin: AdminDAO,
     vipUser: VIPUserDAO,
     vipBenefit: VIPBenefitDAO,
+    news: NewsDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
@@ -38,12 +41,15 @@ class Generator @Inject()(
       referral.Query.schema ++
       ranking.Query.schema ++
       challenge.Query.schema ++
+      challengeHistory.Query.schema ++
       gqCharacterData.Query.schema ++
       gqCharacterGameHistory.Query.schema ++
       gqCharacterDataHistory.Query.schema ++
+      // gqCharactersLifeTimeWinStreakDAO.Query.schema ++
       admin.Query.schema ++
       vipUser.Query.schema ++
-      vipBenefit.Query.schema
+      vipBenefit.Query.schema ++
+      news.Query.schema
 
 
     val writer = new java.io.PrintWriter("target/schema.sql")

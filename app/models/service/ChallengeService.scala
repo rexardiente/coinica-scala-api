@@ -13,16 +13,12 @@ import play.api.libs.json.{ Json, JsValue }
 import models.domain.{ PaginatedResult, Challenge }
 import models.repo.ChallengeRepo
 
-// import java.time.{ Instant, ZoneId }
-// Instant.now().atZone(ZoneId.systemDefault)
-
-@Singleton 
-class ChallengeService @Inject()(challengeRepo: ChallengeRepo ) {
+@Singleton
+class ChallengeService @Inject()(repo: ChallengeRepo ) {
   def paginatedResult[T >: Challenge](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
-  	  
 	  for {
-      tasks <- challengeRepo.findAll(limit, offset)
-      size <- challengeRepo.getSize()
+      tasks <- repo.findAll(limit, offset)
+      size <- repo.getSize()
       hasNext <- Future(size - (offset + limit) > 0)
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
@@ -30,29 +26,27 @@ class ChallengeService @Inject()(challengeRepo: ChallengeRepo ) {
   def getChallengeByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   	try {
   		for {
-	      txs <- challengeRepo.findByDateRange(
-	      	start.getEpochSecond, 
+	      txs <- repo.findByDateRange(
+	      	start.getEpochSecond,
 	      	end.map(_.getEpochSecond).getOrElse(start.getEpochSecond),
-	      	limit, 
+	      	limit,
 	      	offset)
-	      size <- challengeRepo.getSize()
+	      size <- repo.getSize()
 	      hasNext <- Future(size - (offset + limit) > 0)
 	    } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
   	} catch {
   		case e: Throwable => Future(Json.obj("err" -> e.toString))
   	}
   }
- 
-  def getChallengeByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
-
-    try {
-      for {
-        txs <- challengeRepo.findByDaily(start.getEpochSecond, limit, offset)
-        size <- challengeRepo.getSize()
-        hasNext <- Future(size - (offset + limit) > 0)
-      } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
-    } catch {
-      case e: Throwable => Future(Json.obj("err" -> e.toString))
-    }
-  }
+  // def getChallengeByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
+  //   try {
+  //     for {
+  //       txs <- repo.findByDaily(start.getEpochSecond, limit, offset)
+  //       size <- challengeRepo.getSize()
+  //       hasNext <- Future(size - (offset + limit) > 0)
+  //     } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
+  //   } catch {
+  //     case e: Throwable => Future(Json.obj("err" -> e.toString))
+  //   }
+  // }
 }
