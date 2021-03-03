@@ -2,7 +2,7 @@ package akka
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.LocalTime
+import java.time.{ LocalTime, Instant }
 import scala.util._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,10 +13,22 @@ import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import models.domain.eosio._
+import models.domain.{ GameTransactionHistory, GameType }
+import models.repo.GameTransactionHistoryRepo
 import models.repo.eosio._
 import models.service.GQSmartContractAPI
 import akka.common.objects._
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
+
+// TODO:
+// - Calculate Challenge every 1hr
+//   - Save final result into Challenge History table
+//   - New Challenge for next day
+// - Game Tx History save
+//   - on update game list verify the battle result with eos net
+//   - is_confirmed to true after battle is finished
+//   - auto delete unconfirmed tx
+
 
 object SchedulerActor {
   var isIntialized: Boolean = false
@@ -31,15 +43,17 @@ object SchedulerActor {
                                                   None)
   def props(characterRepo: GQCharacterDataRepo,
             historyRepo: GQCharacterGameHistoryRepo,
+            gameTxHistory: GameTransactionHistoryRepo,
             eosio: EOSIOSupport,
             smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
-    Props(classOf[WebSocketActor], characterRepo, historyRepo, eosio, smartcontract, system)
+    Props(classOf[WebSocketActor], characterRepo, historyRepo, gameTxHistory, eosio, smartcontract, system)
 }
 
 @Singleton
 class SchedulerActor @Inject()(
       characterRepo: GQCharacterDataRepo,
       gQGameHistoryRepo: GQCharacterGameHistoryRepo,
+      gameTxHistory: GameTransactionHistoryRepo,
       support: EOSIOSupport,
       eosio: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor with ActorLogging {
 
@@ -47,6 +61,7 @@ class SchedulerActor @Inject()(
 
   override def preStart: Unit = {
     super.preStart
+
     // check if intializer is the SchedulerActor module..
     system.actorSelection("/user/SchedulerActor").resolveOne().onComplete {
       case Success(actor) =>
@@ -269,17 +284,36 @@ class SchedulerActor @Inject()(
                               // val req: Seq[(String, String)] = Seq(
                               // (character.id.toString, character.owner.toString),
                               // (enemy.id.toString, enemy.owner.toString))
-                              eosio.battleAction(result.id, request, result.logs).map {
+                              val gameID: UUID = result.id
+                              eosio.battleAction(gameID, request, result.logs).map {
                                 case Some(e) =>
                                   currentlyPlayed(character.id) = character.owner
                                   currentlyPlayed(enemy.id) = enemy.owner
                                 case e => log.error("Error: Battle " + character.id + " ~~> " + enemy.id)
                               }
+                              // TODO: add error validation
+                              // create game tx history list and
+                              // save into Game Tx History...
+                              gameTxHistory ++= Seq(
+                                GameTransactionHistory(UUID.randomUUID,
+                                                      gameID,
+                                                      "Ghost Quest",
+                                                      "https://i.imgur.com/r77fFKE.jpg",
+                                                      GameType(request(0)._2, true, 1),
+                                                      false,
+                                                      Instant.now()),
+                                GameTransactionHistory(UUID.randomUUID,
+                                                      gameID,
+                                                      "Ghost Quest",
+                                                      "https://i.imgur.com/r77fFKE.jpg",
+                                                      GameType(request(1)._2, false, -1),
+                                                      false,
+                                                      Instant.now()))
                             }
                             // .getOrElse(throw new Exception)
                             // println(Json.toJson(battle.getBattleResult))
                           }
-                          else log.error("Error: Battle " + character.id + " ~~> " + enemy.id)
+                          // else log.error("Error: Battle " + character.id + " ~~> " + enemy.id)
                         }
                         catch { case e: Throwable => log.error(e.toString) }
                       } else {

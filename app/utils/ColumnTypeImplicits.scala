@@ -7,6 +7,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus }
+import models.domain.TransactionType
 import models.domain.enum._
 import ejisan.kuro.otp.OTPKey
 import ejisan.scalauthx.HashedCredential
@@ -34,6 +35,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val actColumnMapper = MappedColumnType.base[Act, JsValue](
     s => Json.toJson(s),
     i => i.as[Act])
+  implicit val transactionTypeColumnMapper = MappedColumnType.base[TransactionType, JsValue](
+     s => s.toJson(),
+     i => i.as[TransactionType])
   implicit val gqListGameStatusColumnMapper = MappedColumnType.base[List[GQGameStatus], JsValue](
     s => Json.toJson(s),
     i => i.as[List[GQGameStatus]])

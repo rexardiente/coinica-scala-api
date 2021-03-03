@@ -26,6 +26,7 @@ class Generator @Inject()(
     vipUser: VIPUserDAO,
     vipBenefit: VIPBenefitDAO,
     news: NewsDAO,
+    gameTransactionHistory: GameTransactionHistoryDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
@@ -49,7 +50,8 @@ class Generator @Inject()(
       admin.Query.schema ++
       vipUser.Query.schema ++
       vipBenefit.Query.schema ++
-      news.Query.schema
+      news.Query.schema ++
+      gameTransactionHistory.Query.schema
 
 
     val writer = new java.io.PrintWriter("target/schema.sql")

@@ -432,4 +432,21 @@ trait CommonImplicits {
   implicit def implGQCharactersRankByEarned = Json.format[GQCharactersRankByEarned]
   implicit def implGQCharactersRankByWinStreak = Json.format[GQCharactersRankByWinStreak]
   implicit def implGQCharactersLifeTimeWinStreak = Json.format[GQCharactersLifeTimeWinStreak]
+
+  implicit def implGameType = Json.format[GameType]
+	implicit def implPaymentType = Json.format[PaymentType]
+	implicit val implicitTransactionTypeReads: Reads[TransactionType] = {
+	  Json.format[GameType].map(x => x: TransactionType) or
+	  Json.format[PaymentType].map(x => x: TransactionType)
+	}
+
+	implicit val implicitTransactionTypeWrites = new Writes[TransactionType] {
+	  def writes(event: TransactionType): JsValue = {
+	    event match {
+	      case m: GameType => Json.toJson(m)
+	      case m: PaymentType => Json.toJson(m)
+	      case _ => Json.obj("error" -> "wrong Json")
+	    }
+	  }
+	}
 }

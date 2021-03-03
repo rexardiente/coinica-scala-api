@@ -54,12 +54,6 @@ class ChallengeRepo @Inject()(
       .take(limit)
       .result)
 
-  def findByDaily(currentdate: Long, limit: Int, offset: Int): Future[Seq[Challenge]] =
-   db.run(dao.Query.filter(r => createAtFn(r.createdAt) === currentdate)
-     .drop(offset)
-     .take(limit)
-     .result)
-
   def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Challenge]] =
    db.run(dao.Query.filter(r => createAtFn(r.createdAt) >= startdate && createAtFn(r.createdAt) <= enddate )
      .drop(offset)
