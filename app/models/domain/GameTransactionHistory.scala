@@ -20,12 +20,12 @@ case class PaymentType(name: String, data: String, amount: Double) extends Trans
 	override def toJson(): JsValue = Json.toJson(this)
 }
 case class GameTransactionHistory(id: UUID,
-									gameID: UUID, // name or ID
-									game: String, // name or ID
-									icon: String, // ICON URL to use..
-									`type`: TransactionType,
-									isConfirmed: Boolean, // update `confirmed` when system get notified from EOSIO net
-									createdAt: Instant) {
+																	gameID: UUID, // name or ID
+																	game: String, // name or ID
+																	icon: String, // ICON URL to use..
+																	`type`: List[TransactionType],
+																	isConfirmed: Boolean, // update `confirmed` when system get notified from EOSIO net
+																	createdAt: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 // GAME TRANSACTION

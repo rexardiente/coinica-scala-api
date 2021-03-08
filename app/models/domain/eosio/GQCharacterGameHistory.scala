@@ -7,13 +7,12 @@ object GQCharacterGameHistory extends utils.CommonImplicits
 
 case class GQGameStatus(player: String, char_id: String, isWin: Boolean)
 case class GQCharacterGameHistory(
-    id: String,
-    player1: String,
-    player1ID: String,
-    player2: String,
-    player2ID: String,
-    timeExecuted: Long,
-    log: List[String],
-    status: List[GQGameStatus]) {
+    id: String, // Game ID
+    winner: String,
+    winnerID: String,
+    loser: String,
+    loserID: String,
+    logs: List[GameLog],
+    timeExecuted: Long) {
   def toJson(): JsValue = Json.toJson(this)
 }

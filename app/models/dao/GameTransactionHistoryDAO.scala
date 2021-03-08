@@ -17,7 +17,7 @@ final class GameTransactionHistoryDAO @Inject()(
     def gameID = column[UUID] ("GAME_ID")
     def game = column[String] ("GAME")
     def icon = column[String] ("ICON")
-    def `type` = column[TransactionType] ("TYPE")
+    def `type` = column[List[TransactionType]] ("TYPE")
     def isConfirmed = column[Boolean] ("IS_CONFIRMED")
     def createdAt = column[Instant] ("CREATED_AT")
 

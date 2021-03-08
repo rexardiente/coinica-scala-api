@@ -39,6 +39,7 @@ class WebSocketActor@Inject()(
                                         Props(classOf[SchedulerActor],
                                               characterRepo,
                                               historyRepo,
+                                              gameTransactionHistory,
                                               eosio,
                                               gqSmartContractAPI,
                                               system))
@@ -77,7 +78,8 @@ class WebSocketActor@Inject()(
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    characterUpdateActor ! akka.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest)
+                    characterUpdateActor ! akka.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some("update_characters"))
+                    Thread.sleep(2000)
                     out ! OutEvent(JsNull, JsString("characters updated"))
 
                   // send out the message to self and process separately..

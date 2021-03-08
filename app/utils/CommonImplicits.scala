@@ -6,6 +6,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import models.domain._
 import models.domain.eosio._
+import models.domain.eosio.GQ.v2._
 
 trait CommonImplicits {
 	// Common
@@ -92,60 +93,24 @@ trait CommonImplicits {
 		"block_timestamp" -> Instant.ofEpochSecond(tx.blockTimestamp),
 		"trace" -> tx.trace)
 	}
-
-	// EOSIO Tables..
-	implicit val implicitGQCharacterPrevMatchDataReads: Reads[GQCharacterPrevMatchData] = new Reads[GQCharacterPrevMatchData] {
-		override def reads(js: JsValue): JsResult[GQCharacterPrevMatchData] = js match {
-			case json: JsValue => {
-				try {
-					JsSuccess(GQCharacterPrevMatchData(
-						(json \ "enemy").as[String],
-						(json \ "enemy_id").as[String],
-						(json \ "time_executed").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0),
-						(json \ "gameplay_log").as[List[String]],
-						(if ((json \ "isWin").as[Int] > 0) true else false)
-					))
-				} catch {
-					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
-				}
-			}
-			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
-		}
-	}
-	implicit val implicitGQCharacterPrevMatchDataWrites = new Writes[GQCharacterPrevMatchData] {
-	  def writes(tx: GQCharacterPrevMatchData): JsValue = Json.obj(
-		"enemy" -> tx.enemy,
-		"enemy_id" -> tx.enemy_id,
-		"time_executed" -> tx.time_executed,
-		"gameplay_log" -> tx.gameplay_log,
-		"isWin" -> tx.isWin)
-	}
-
-	implicit def implGQCharacterPrevMatch = Json.format[GQCharacterPrevMatch]
-	implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQCharacterInfo] {
+implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQCharacterInfo] {
 		override def reads(js: JsValue): JsResult[GQCharacterInfo] = js match {
 			case json: JsValue => {
 				try {
 					JsSuccess(GQCharacterInfo(
-						(json \ "owner").as[String],
-						(json \ "character_life").as[Int],
-						(json \ "initial_hp").as[Int],
-						(json \ "ghost_class").as[Int],
-						(json \ "ghost_level").as[Int],
-						(json \ "status").as[Int],
-						(json \ "attack").as[Int],
-						(json \ "defense").as[Int],
-						(json \ "speed").as[Int],
-						(json \ "luck").as[Int],
-						{
-							val prize: String = (json \ "prize").as[String]
-							prize.splitAt(prize.size - 4)._1.toDoubleOption.getOrElse(0D)
-						},
-						(json \ "battle_limit").as[Int],
-						(json \ "battle_count").as[Int],
-						(json \ "last_match").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0),
-						(json \ "match_history").as[Seq[GQCharacterPrevMatch]],
-						(json \ "created_at").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0)))
+						(json \ "LIFE").as[Int],
+						(json \ "HP").as[Int],
+						(json \ "CLASS").as[Int],
+						(json \ "LEVEL").as[Int],
+						(json \ "STATUS").as[Int],
+						(json \ "ATTACK").as[Int],
+						(json \ "DEFENSE").as[Int],
+						(json \ "SPEED").as[Int],
+						(json \ "LUCK").as[Int],
+						(json \ "GAME_LIMIT").as[Int],
+						(json \ "GAME_COUNT").as[Int],
+						(json \ "CREATED_AT").asOpt[String].map(_.slice(0, 10).toLong).getOrElse(0)
+					))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -155,22 +120,18 @@ trait CommonImplicits {
 	}
 	implicit val implicitGQCharacterInfoWrites = new Writes[GQCharacterInfo] {
 	  def writes(tx: GQCharacterInfo): JsValue = Json.obj(
-		"owner" -> tx.owner,
-		"character_life" -> tx.character_life,
-		"initial_hp" -> tx.initial_hp,
-		"ghost_class" -> tx.ghost_class,
-		"ghost_level" -> tx.ghost_level,
-		"status" -> tx.status,
-		"attack" -> tx.attack,
-		"defense" -> tx.defense,
-		"speed" -> tx.speed,
-		"luck" -> tx.luck,
-		"prize" -> tx.prize,
-		"battle_limit" -> tx.battle_limit,
-		"battle_count" -> tx.battle_count,
-		"last_match" -> tx.last_match,
-		"match_history" -> tx.match_history,
-		"created_at" -> tx.created_at)
+			"LIFE" -> tx.life,
+			"HP" -> tx.hp,
+			"CLASS" -> tx.`class`,
+			"LEVEL" -> tx.level,
+			"STATUS" -> tx.status,
+			"ATTACK" -> tx.attack,
+			"DEFENSE" -> tx.defense,
+			"SPEED" -> tx.speed,
+			"LUCK" -> tx.luck,
+			"GAME_LIMIT" -> tx.limit,
+			"GAME_COUNT" -> tx.count,
+			"CREATED_AT" -> tx.createdAt)
 	}
 	// implicit def implGQGhost = Json.format[GQGhost]
 	implicit val implicitGQGhostReads: Reads[GQGhost] = new Reads[GQGhost] {
@@ -194,55 +155,6 @@ trait CommonImplicits {
 	implicit def implGQGame = Json.format[GQGame]
 	implicit def implGQTable = Json.format[GQTable]
 	implicit def implGQRowsResponse = Json.format[GQRowsResponse]
-
-	implicit val implicitGQCharacterDataReads: Reads[GQCharacterData] = new Reads[GQCharacterData] {
-		override def reads(js: JsValue): JsResult[GQCharacterData] = js match {
-			case json: JsValue => {
-				try {
-					JsSuccess(GQCharacterData(
-						(json \ "key").as[String],
-						(json \ "owner").as[String],
-						(json \ "character_life").as[Int],
-						(json \ "initial_hp").as[Int],
-						(json \ "ghost_class").as[Int],
-						(json \ "ghost_level").as[Int],
-						(json \ "status").as[Int],
-						(json \ "attack").as[Int],
-						(json \ "defense").as[Int],
-						(json \ "speed").as[Int],
-						(json \ "luck").as[Int],
-						(json \ "prize").as[Double],
-						(json \ "battle_limit").as[Int],
-						(json \ "battle_count").as[Int],
-						(json \ "last_match").as[Long],
-						(json \ "created_at").as[Long]))
-				} catch {
-					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
-				}
-			}
-			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
-		}
-	}
-	implicit val implicitGQCharacterDataWrites = new Writes[GQCharacterData] {
-	  def writes(tx: GQCharacterData): JsValue = Json.obj(
-		"key" -> tx.id,
-		"owner" -> tx.owner,
-		"character_life" -> tx.character_life,
-		"initial_hp" -> tx.initial_hp,
-		"ghost_class" -> tx.ghost_class,
-		"ghost_level" -> tx.ghost_level,
-		"status" -> tx.status,
-		"attack" -> tx.attack,
-		"defense" -> tx.defense,
-		"speed" -> tx.speed,
-		"luck" -> tx.luck,
-		"prize" -> tx.prize,
-		"battle_limit" -> tx.battle_limit,
-		"battle_count" -> tx.battle_count,
-		"last_match" -> tx.last_match,
-		"created_at" -> tx.created_at)
-		// "match_history" -> tx.match_history)
-	}
 	implicit def implGQGameStatus = Json.format[GQGameStatus]
 	implicit val implicitGQCharacterGameHistoryReads: Reads[GQCharacterGameHistory] = new Reads[GQCharacterGameHistory] {
 		override def reads(js: JsValue): JsResult[GQCharacterGameHistory] = js match {
@@ -250,13 +162,12 @@ trait CommonImplicits {
 				try {
 					JsSuccess(GQCharacterGameHistory(
 						(json \ "game_id").as[String],
-						(json \ "player1").as[String],
-						(json \ "player1_id").as[String],
-						(json \ "player2").as[String],
-						(json \ "player2_id").as[String],
-						(json \ "time_executed").as[Long],
-						(json \ "gameplay_log").as[List[String]],
-						(json \ "status").as[List[GQGameStatus]]))
+						(json \ "winner").as[String],
+						(json \ "winner_id").as[String],
+						(json \ "loser").as[String],
+						(json \ "loser_id").as[String],
+						(json \ "gameplay_log").as[List[GameLog]],
+						(json \ "time_executed").as[Long]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -267,16 +178,106 @@ trait CommonImplicits {
 	implicit val implicitGQCharacterGameHistoryWrites = new Writes[GQCharacterGameHistory] {
 	  def writes(tx: GQCharacterGameHistory): JsValue = Json.obj(
 		"game_id" -> tx.id,
-		"player1" -> tx.player1,
-		"player1_id" -> tx.player1ID,
-		"player2" -> tx.player2,
-		"player2_id" -> tx.player2ID,
-		"time_executed" -> tx.timeExecuted,
-		"gameplay_log" -> tx.log,
-		"status" -> tx.status)
+		"winner" -> tx.winner,
+		"winner_id" -> tx.winnerID,
+		"loser" -> tx.loser,
+		"loser_id" -> tx.loserID,
+		"gameplay_log" -> tx.logs,
+		"time_executed" -> tx.timeExecuted)
 	}
 
-	implicit def implGQCharacterDataHistory = Json.format[GQCharacterDataHistory]
+	implicit val implicitGQCharacterDataReads: Reads[GQCharacterData] = new Reads[GQCharacterData] {
+    override def reads(js: JsValue): JsResult[GQCharacterData] = js match {
+      case json: JsValue => {
+        try {
+          JsSuccess(GQCharacterData(
+            (json \ "KEY").as[String],
+            (json \ "OWNER").as[String],
+            (json \ "LIFE").as[Int],
+            (json \ "HP").as[Int],
+            (json \ "CLASS").as[Int],
+            (json \ "LEVEL").as[Int],
+            (json \ "STATUS").as[Int],
+            (json \ "ATTACK").as[Int],
+            (json \ "DEFENSE").as[Int],
+            (json \ "SPEED").as[Int],
+            (json \ "LUCK").as[Int],
+            (json \ "GAME_LIMIT").as[Int],
+            (json \ "GAME_COUNT").as[Int],
+            (json \ "IS_NEW").as[Boolean],
+            (json \ "CREATED_AT").as[Long]))
+        } catch {
+          case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+        }
+      }
+      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+    }
+  }
+  implicit val implicitGQCharacterDataWrites = new Writes[GQCharacterData] {
+    def writes(tx: GQCharacterData): JsValue = Json.obj(
+    "KEY" -> tx.key,
+    "OWNER" -> tx.owner,
+    "LIFE" -> tx.life,
+    "HP" -> tx.hp,
+    "CLASS" -> tx.`class`,
+    "LEVEL" -> tx.level,
+    "STATUS" -> tx.status,
+    "ATTACK" -> tx.attack,
+    "DEFENSE" -> tx.defense,
+    "SPEED" -> tx.speed,
+    "LUCK" -> tx.luck,
+    "GAME_LIMIT" -> tx.limit,
+    "GAME_COUNT" -> tx.count,
+    "IS_NEW" -> tx.isNew,
+    "CREATED_AT" -> tx.createdAt)
+  }
+
+  implicit val implicitGQCharacterDataHistoryReads: Reads[GQCharacterDataHistory] = new Reads[GQCharacterDataHistory] {
+    override def reads(js: JsValue): JsResult[GQCharacterDataHistory] = js match {
+      case json: JsValue => {
+        try {
+          JsSuccess(GQCharacterDataHistory(
+            (json \ "KEY").as[String],
+            (json \ "OWNER").as[String],
+            (json \ "LIFE").as[Int],
+            (json \ "HP").as[Int],
+            (json \ "CLASS").as[Int],
+            (json \ "LEVEL").as[Int],
+            (json \ "STATUS").as[Int],
+            (json \ "ATTACK").as[Int],
+            (json \ "DEFENSE").as[Int],
+            (json \ "SPEED").as[Int],
+            (json \ "LUCK").as[Int],
+            (json \ "GAME_LIMIT").as[Int],
+            (json \ "GAME_COUNT").as[Int],
+            (json \ "IS_NEW").as[Boolean],
+            (json \ "CREATED_AT").as[Long]))
+        } catch {
+          case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+        }
+      }
+      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+    }
+  }
+
+  implicit val implicitGQCharacterDataHistoryWrites = new Writes[GQCharacterDataHistory] {
+    def writes(tx: GQCharacterDataHistory): JsValue = Json.obj(
+    "KEY" -> tx.key,
+    "OWNER" -> tx.owner,
+    "LIFE" -> tx.life,
+    "HP" -> tx.hp,
+    "CLASS" -> tx.`class`,
+    "LEVEL" -> tx.level,
+    "STATUS" -> tx.status,
+    "ATTACK" -> tx.attack,
+    "DEFENSE" -> tx.defense,
+    "SPEED" -> tx.speed,
+    "LUCK" -> tx.luck,
+    "GAME_LIMIT" -> tx.limit,
+    "GAME_COUNT" -> tx.count,
+    "IS_NEW" -> tx.isNew,
+    "CREATED_AT" -> tx.createdAt)
+  }
 
 	implicit val implicitGQCharacterDataHistoryLogsReads: Reads[GQCharacterDataHistoryLogs] = new Reads[GQCharacterDataHistoryLogs] {
 		override def reads(js: JsValue): JsResult[GQCharacterDataHistoryLogs] = js match {
@@ -285,8 +286,8 @@ trait CommonImplicits {
 					JsSuccess(GQCharacterDataHistoryLogs(
 						(json \ "game_id").as[String],
 						(json \ "is_win").as[List[GQGameStatus]],
-						(json \ "time_executed").as[Long],
-						(json \ "logs").as[List[String]]))
+						(json \ "logs").as[List[GameLog]],
+						(json \ "time_executed").as[Long]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -298,8 +299,8 @@ trait CommonImplicits {
 	  def writes(tx: GQCharacterDataHistoryLogs): JsValue = Json.obj(
 		"game_id" -> tx.gameID,
 		"is_win" -> tx.isWin,
-		"time_executed" -> tx.timeExecuted,
-		"logs" -> tx.logs)
+		"logs" -> tx.logs,
+		"time_executed" -> tx.timeExecuted)
 	}
 
 	// implicit val implicitGQCharacterCreatedReads: Reads[GQCharacterCreated] = new Reads[GQCharacterCreated] {

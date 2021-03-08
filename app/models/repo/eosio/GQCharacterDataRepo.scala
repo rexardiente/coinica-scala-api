@@ -8,9 +8,10 @@ import scala.collection.mutable.HashMap
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import Ordering.Double.IeeeOrdering
+// import Ordering.Double.IeeeOrdering
 import models.service.DynamicSortBySupport._
 import models.domain.eosio._
+import models.domain.eosio.GQ.v2.{ GQCharacterData, GQCharacterDataHistory }
 
 @Singleton
 class GQCharacterDataRepo @Inject()(
@@ -27,10 +28,10 @@ class GQCharacterDataRepo @Inject()(
     db.run(dataDAO.Query += data)
 
   def remove(user: String, id: String): Future[Int] =
-    db.run(dataDAO.Query.filter(x => x.player === user && x.id === id).delete)
+    db.run(dataDAO.Query.filter(x => x.owner === user && x.key === id).delete)
 
   def update(data: GQCharacterData): Future[Int] =
-    db.run(dataDAO.Query.filter(x => x.player === data.owner && x.id === data.id).update(data))
+    db.run(dataDAO.Query.filter(x => x.owner === data.owner && x.key === data.key).update(data))
 
   def all(): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.result)
@@ -42,16 +43,16 @@ class GQCharacterDataRepo @Inject()(
     db.run(dataDAO.Query(id).result.headOption)
 
   def find(user: String, id: String): Future[Boolean] =
-    db.run(dataDAO.Query.filter(x => x.player === user && x.id === id).exists.result)
+    db.run(dataDAO.Query.filter(x => x.owner === user && x.key === id).exists.result)
 
   def getByUserAndID(user: String, id: String): Future[Seq[GQCharacterData]] =
-    db.run(dataDAO.Query.filter(x => x.player === user && x.id === id).result)
+    db.run(dataDAO.Query.filter(x => x.owner === user && x.key === id).result)
 
   def getByID(id: String): Future[Option[GQCharacterData]] =
-    db.run(dataDAO.Query.filter(_.id === id).result.headOption)
+    db.run(dataDAO.Query.filter(_.key === id).result.headOption)
 
   def getByUser(user: String): Future[Seq[GQCharacterData]] =
-    db.run(dataDAO.Query.filter(_.player === user).result)
+    db.run(dataDAO.Query.filter(_.owner === user).result)
 
   def getNoLifeCharacters(): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.filter(_.life < 1).result)
@@ -61,13 +62,13 @@ class GQCharacterDataRepo @Inject()(
     db.run(dataHistoryDAO.Query += data)
 
   def getHistoryByUser(user: String): Future[Seq[GQCharacterDataHistory]] =
-    db.run(dataHistoryDAO.Query.filter(_.player === user).result)
+    db.run(dataHistoryDAO.Query.filter(_.owner === user).result)
 
   def getCharacterHistoryByUserAndID(user: String, id: String): Future[Seq[GQCharacterDataHistory]] =
-    db.run(dataHistoryDAO.Query.filter(v => v.player === user && v.id === id).result)
+    db.run(dataHistoryDAO.Query.filter(v => v.owner === user && v.key === id).result)
 
   def getCharacterHistoryByID(id: String): Future[Option[GQCharacterDataHistory]] =
-    db.run(dataHistoryDAO.Query.filter(_.id === id).result.headOption)
+    db.run(dataHistoryDAO.Query.filter(_.key === id).result.headOption)
 
   // // Advanced table sorting..
   // def extremeN[T](n: Int, li: List[T]) (comp1: ((T, T) => Boolean), comp2: ((T, T) => Boolean)): List[T] = {

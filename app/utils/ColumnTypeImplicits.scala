@@ -6,7 +6,7 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus }
+import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus, GameLog }
 import models.domain.TransactionType
 import models.domain.enum._
 import ejisan.kuro.otp.OTPKey
@@ -38,9 +38,15 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val transactionTypeColumnMapper = MappedColumnType.base[TransactionType, JsValue](
      s => s.toJson(),
      i => i.as[TransactionType])
+  implicit val listTransactionTypeColumnMapper = MappedColumnType.base[List[TransactionType], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[TransactionType]])
   implicit val gqListGameStatusColumnMapper = MappedColumnType.base[List[GQGameStatus], JsValue](
     s => Json.toJson(s),
     i => i.as[List[GQGameStatus]])
+  implicit val gqGameLogColumnMapper = MappedColumnType.base[List[GameLog], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[GameLog]])
   implicit val jodaTimeMapping: BaseColumnType[DateTime] = MappedColumnType.base[DateTime, Timestamp](
     dateTime => new Timestamp(dateTime.getMillis),
     timeStamp => new DateTime(timeStamp.getTime))

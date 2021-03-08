@@ -9,6 +9,7 @@ import scala.collection.mutable.{ HashMap, ListBuffer }
 import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
+import models.domain.eosio.GQ.v2.{ GQCharacterData, GQCharacterDataHistory }
 import models.repo.eosio._
 
 @Singleton
@@ -43,9 +44,14 @@ class GQGameService @Inject()(
         val tupled: Future[Seq[(JsValue, JsValue)]] =
           Future.sequence(characters.map({ character =>
             // get all history of character
-            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
+            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.key)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(
+                    v.id,
+                    List(GQGameStatus(v.winner, v.winnerID, true),
+                        GQGameStatus(v.loser, v.loserID, false)),
+                    v.logs,
+                    v.timeExecuted)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs.map(v => (character.toJson, Json.toJson(v)))
           }))
@@ -73,7 +79,7 @@ class GQGameService @Inject()(
         }
       }
       ranks <- Future.successful {
-        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.key, c.owner, c.level, c.`class`, amount) }
       }
     } yield ranks
   }
@@ -93,7 +99,7 @@ class GQGameService @Inject()(
         }
       }
       ranks <- Future.successful {
-        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.key, c.owner, c.level, c.`class`, amount) }
       }
     } yield ranks
   }
@@ -113,27 +119,28 @@ class GQGameService @Inject()(
         }
       }
       ranks <- Future.successful {
-        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.id, c.owner, c.ghost_level, c.ghost_class, amount) }
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.key, c.owner, c.level, c.`class`, amount) }
       }
     } yield ranks
   }
 
   def classifyHighEarnChar(history: Seq[GQCharacterGameHistory], limit: Int): Seq[(String, (String, Double))] = {
-    val characters = HashMap.empty[String, (String, Double)]
-    history.map { tx =>
-      // processTxStatus
-      tx.status.foreach({ stat =>
-        // check if it exists on HashMap
-        if (!characters.exists(_._1 == stat.char_id)) characters(stat.char_id) = (stat.player, 0)
+    ???
+    // val characters = HashMap.empty[String, (String, Double)]
+    // history.map { tx =>
+    //   // processTxStatus
+    //   tx.status.foreach({ stat =>
+    //     // check if it exists on HashMap
+    //     if (!characters.exists(_._1 == stat.char_id)) characters(stat.char_id) = (stat.player, 0)
 
-        val (player, amount) = characters(stat.char_id)
-        // update characters balances on HashMap
-        if (stat.isWin) characters.update(stat.char_id, (player, amount + 1))
-        else characters.update(stat.char_id, (player, amount - 1))
-      })
-    }
+    //     val (player, amount) = characters(stat.char_id)
+    //     // update characters balances on HashMap
+    //     if (stat.isWin) characters.update(stat.char_id, (player, amount + 1))
+    //     else characters.update(stat.char_id, (player, amount - 1))
+    //   })
+    // }
 
-    characters.toSeq.sortBy(- _._2._2).take(limit)
+    // characters.toSeq.sortBy(- _._2._2).take(limit)
   }
 
   def getCharacterByUserAndID[T <: String](user: T, id: T): Future[JsValue] = {
@@ -154,9 +161,14 @@ class GQGameService @Inject()(
         val tupled: Future[Seq[(JsValue, JsValue)]] =
           Future.sequence(characters.map({ character =>
             // get all history of character
-            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
+            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.key)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(
+                  v.id,
+                  List(GQGameStatus(v.winner, v.winnerID, true),
+                      GQGameStatus(v.loser, v.loserID, false)),
+                  v.logs,
+                  v.timeExecuted)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs.map(v => (character.toJson, Json.toJson(v)))
           }))
@@ -177,9 +189,14 @@ class GQGameService @Inject()(
         val tupled: Future[Seq[(JsValue, JsValue)]] =
           Future.sequence(characters.map({ character =>
             // get all history of character
-            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
+            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.key)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(
+                  v.id,
+                  List(GQGameStatus(v.winner, v.winnerID, true),
+                      GQGameStatus(v.loser, v.loserID, false)),
+                  v.logs,
+                  v.timeExecuted)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs.map(v => (character.toJson, Json.toJson(v)))
           }))
@@ -199,9 +216,14 @@ class GQGameService @Inject()(
           // iterate each characters games history..
           character.map({ character =>
             // get all history of character
-            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
+            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.key)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(
+                  v.id,
+                  List(GQGameStatus(v.winner, v.winnerID, true),
+                      GQGameStatus(v.loser, v.loserID, false)),
+                  v.logs,
+                  v.timeExecuted)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs
             .map(v => (character.toJson, Json.toJson(v)))
@@ -222,9 +244,14 @@ class GQGameService @Inject()(
           val tupled: Future[Seq[(JsValue, JsValue)]] =
             Future.sequence(characters.map({ character =>
               // get all history of character
-              val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
+              val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.key)
               val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-                seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
+                seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(
+                  v.id,
+                  List(GQGameStatus(v.winner, v.winnerID, true),
+                      GQGameStatus(v.loser, v.loserID, false)),
+                  v.logs,
+                  v.timeExecuted)))
               // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
               seqLogs.map(v => (character.toJson, Json.toJson(v)))
             }))
@@ -247,9 +274,14 @@ class GQGameService @Inject()(
         val tupled: Future[Seq[(JsValue, JsValue)]] =
           Future.sequence(characters.map({ character =>
             // get all history of character
-            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.id)
+            val seqHistory: Future[Seq[GQCharacterGameHistory]] = getHistoryByCharacterID(character.key)
             val seqLogs: Future[Seq[GQCharacterDataHistoryLogs]] =
-              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(v.id, v.status, v.timeExecuted, v.log)))
+              seqHistory.map(_.map(v => new GQCharacterDataHistoryLogs(
+                  v.id,
+                  List(GQGameStatus(v.winner, v.winnerID, true),
+                      GQGameStatus(v.loser, v.loserID, false)),
+                  v.logs,
+                  v.timeExecuted)))
             // Future[(GQCharacterData, Seq[GQCharacterDataHistoryLogs])] and convert to JSON values
             seqLogs.map(v => (character.toJson, Json.toJson(v)))
           }))
@@ -265,25 +297,26 @@ class GQGameService @Inject()(
   // get overall history in a week, process and save it to WinStreak tbl
   // charDataRepo.getGameHistoryByDateRange(from, to)
   def separateHistoryByCharID(seq: Seq[GQCharacterGameHistory]): HashMap[String, ListBuffer[(String, Boolean, Long)]] = {
-    val counter = HashMap.empty[String, ListBuffer[(String, Boolean, Long)]]
-    // process -> seq of history
-    seq.foreach(history => {
-      // separate all losers and winners with game ID
-      history.status.foreach(status => {
-        // GameID, isWin, timeExecuted
-        val id = status.char_id
-        val isWin = if (status.isWin) true else false
+    ???
+    // val counter = HashMap.empty[String, ListBuffer[(String, Boolean, Long)]]
+    // // process -> seq of history
+    // seq.foreach(history => {
+    //   // separate all losers and winners with game ID
+    //   history.status.foreach(status => {
+    //     // GameID, isWin, timeExecuted
+    //     val id = status.char_id
+    //     val isWin = if (status.isWin) true else false
 
-        counter.addOne(id -> {
-          if (counter.exists(_._1 == id))
-            counter(id) += ((history.id, isWin, history.timeExecuted))
-          else
-            ListBuffer(("default1", isWin, history.timeExecuted))
-        })
-      })
-    })
-    // return list of charactes
-    counter
+    //     counter.addOne(id -> {
+    //       if (counter.exists(_._1 == id))
+    //         counter(id) += ((history.id, isWin, history.timeExecuted))
+    //       else
+    //         ListBuffer(("default1", isWin, history.timeExecuted))
+    //     })
+    //   })
+    // })
+    // // return list of charactes
+    // counter
   }
 
   def calcWinStreak(characters: HashMap[String, ListBuffer[(String, Boolean, Long)]]): HashMap[String, Int] = {
@@ -361,8 +394,8 @@ class GQGameService @Inject()(
           winstreak <- Future.successful {
             GQCharactersRankByWinStreak(v._1,
                                         either.owner,
-                                        either.ghost_level,
-                                        either.ghost_class,
+                                        either.level,
+                                        either.`class`,
                                         v._2)
           }
         } yield winstreak
