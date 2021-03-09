@@ -20,6 +20,7 @@ object GQBattleScheduler {
   var battleStatus: String = "to_update" // "to_update", "on_update", "to_battle", "on_battle"
   val characters = scala.collection.mutable.HashMap.empty[String, GQCharacterData]
   val eliminatedOrWithdrawn = scala.collection.mutable.HashMap.empty[String, GQCharacterData]
+  val isUpdatedCharacters = scala.collection.mutable.HashMap.empty[String, GQCharacterData]
   val battleCounter = scala.collection.mutable.HashMap.empty[UUID, GQBattleResult]
   val noEnemy = scala.collection.mutable.HashMap.empty[String, String] // character ID and username
   val smartcontractTxFailed = ListBuffer.empty[UUID] // character ID and username

@@ -8,7 +8,7 @@ import play.api.libs.json._
 import models.domain._
 import models.domain.Event._
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import models.repo.GameTransactionHistoryRepo
+import models.repo.OverAllGameHistoryRepo
 import models.service.GQSmartContractAPI
 import utils.lib.EOSIOSupport
 
@@ -17,10 +17,10 @@ object WebSocketActor {
       out: ActorRef,
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
-      gameTransactionHistory: GameTransactionHistoryRepo,
+      overAllGameHistory: OverAllGameHistoryRepo,
       eosio: EOSIOSupport,
       smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
-    Props(classOf[WebSocketActor], out, characterRepo, historyRepo, gameTransactionHistory, eosio, smartcontract, system)
+    Props(classOf[WebSocketActor], out, characterRepo, historyRepo, overAllGameHistory, eosio, smartcontract, system)
 
   val subscribers = scala.collection.mutable.HashMap.empty[String, ActorRef]
 }
@@ -30,7 +30,7 @@ class WebSocketActor@Inject()(
       out: ActorRef,
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
-      gameTransactionHistory: GameTransactionHistoryRepo,
+      overAllGameHistory: OverAllGameHistoryRepo,
       eosio: EOSIOSupport,
       gqSmartContractAPI: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor {
   private val code: Int = out.hashCode
@@ -39,7 +39,7 @@ class WebSocketActor@Inject()(
                                         Props(classOf[SchedulerActor],
                                               characterRepo,
                                               historyRepo,
-                                              gameTransactionHistory,
+                                              overAllGameHistory,
                                               eosio,
                                               gqSmartContractAPI,
                                               system))

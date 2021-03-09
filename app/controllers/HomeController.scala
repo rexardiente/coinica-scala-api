@@ -37,7 +37,7 @@ class HomeController @Inject()(
       challengeService: ChallengeService,
       gQCharacterDataRepo: GQCharacterDataRepo,
       gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
-      gameTransactionHistoryRepo: GameTransactionHistoryRepo,
+      overAllGameHistoryRepo: OverAllGameHistoryRepo,
       gqGameService: GQGameService,
       eosio: EOSIOSupport,
       gqSmartContractAPI: GQSmartContractAPI,
@@ -82,7 +82,7 @@ class HomeController @Inject()(
 
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
-      WebSocketActor.props(out, gQCharacterDataRepo, gQCharacterGameHistoryRepo, gameTransactionHistoryRepo, eosio, gqSmartContractAPI)
+      WebSocketActor.props(out, gQCharacterDataRepo, gQCharacterGameHistoryRepo, overAllGameHistoryRepo, eosio, gqSmartContractAPI)
     }
   }
 

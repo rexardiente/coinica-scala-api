@@ -27,8 +27,8 @@ class GQCharacterDataRepo @Inject()(
   def insert(data: GQCharacterData): Future[Int] =
     db.run(dataDAO.Query += data)
 
-  def remove(user: String, id: String): Future[Int] =
-    db.run(dataDAO.Query.filter(x => x.owner === user && x.key === id).delete)
+  def remove(user: String, key: String): Future[Int] =
+    db.run(dataDAO.Query.filter(x => x.owner === user && x.key === key).delete)
 
   def update(data: GQCharacterData): Future[Int] =
     db.run(dataDAO.Query.filter(x => x.owner === data.owner && x.key === data.key).update(data))
@@ -36,8 +36,8 @@ class GQCharacterDataRepo @Inject()(
   def all(): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.result)
 
-  def exist(id: String): Future[Boolean] =
-    db.run(dataDAO.Query(id).exists.result)
+  def exist(key: String): Future[Boolean] =
+    db.run(dataDAO.Query(key).exists.result)
 
   def find(id: String): Future[Option[GQCharacterData]] =
     db.run(dataDAO.Query(id).result.headOption)
@@ -56,6 +56,15 @@ class GQCharacterDataRepo @Inject()(
 
   def getNoLifeCharacters(): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.filter(_.life < 1).result)
+
+  def updateOrInsertAsSeq(seq: Seq[GQCharacterData]): Unit = {
+    seq.foreach { data =>
+      for {
+        isExists <- exist(data.key)
+        _ <- if (isExists) update(data) else insert(data)
+      } yield ()
+    }
+  }
 
   // History Functions...
   def insertDataHistory(data: GQCharacterDataHistory): Future[Int] =

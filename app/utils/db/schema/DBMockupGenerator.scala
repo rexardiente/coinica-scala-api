@@ -14,7 +14,7 @@ import models.domain._
 class DBMockupGenerator @Inject()(
     newsRepo: NewsRepo,
     challengeRepo: ChallengeRepo,
-    gameTxHistory: GameTransactionHistoryRepo,
+    overAllGameHistoryRepo: OverAllGameHistoryRepo,
     implicit val system: ActorSystem,
     val dbConfigProvider: DatabaseConfigProvider)
     extends HasDatabaseConfigProvider[utils.db.PostgresDriver]
@@ -53,21 +53,21 @@ class DBMockupGenerator @Inject()(
   }
 
   private def gameHistory(): Unit = {
-    gameTxHistory.getSize().map { x =>
+    overAllGameHistoryRepo.getSize().map { x =>
       if (x.equals(0)) {
-        gameTxHistory ++= Seq(
-          GameTransactionHistory(UUID.randomUUID,
+        overAllGameHistoryRepo ++= Seq(
+          OverAllGameHistory(UUID.randomUUID,
                                 UUID.randomUUID,
                                 "Ghost Quest",
                                 "https://i.imgur.com/r77fFKE.jpg", // ICON URL to use..
-                                GameType("user1", true, 3.00),
+                                List(GameType("user1", true, 3.00), GameType("user2", false, 3.00)),
                                 false, // update `confirmed` when system get notified from EOSIO net
                                 Instant.now()),
-          GameTransactionHistory(UUID.randomUUID,
+          OverAllGameHistory(UUID.randomUUID,
                                 UUID.randomUUID,
                                 "Ghost Quest",
                                 "https://i.imgur.com/vPGoLvP.jpg", // ICON URL to use..
-                                PaymentType("user2", "receive", 3.00),
+                                List(PaymentType("user2", "receive", 3.00)),
                                 true, // update `confirmed` when system get notified from EOSIO net
                                 Instant.now()))
       }

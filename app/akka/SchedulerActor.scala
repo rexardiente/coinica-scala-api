@@ -13,8 +13,8 @@ import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import models.domain.eosio._
-import models.domain.{ GameTransactionHistory, GameType }
-import models.repo.GameTransactionHistoryRepo
+import models.domain.{ OverAllGameHistory, GameType }
+import models.repo.OverAllGameHistoryRepo
 import models.repo.eosio._
 import models.service.GQSmartContractAPI
 import akka.common.objects._
@@ -35,7 +35,7 @@ object SchedulerActor {
                                                   None)
   def props(characterRepo: GQCharacterDataRepo,
             historyRepo: GQCharacterGameHistoryRepo,
-            gameTxHistory: GameTransactionHistoryRepo,
+            gameTxHistory: OverAllGameHistoryRepo,
             eosio: EOSIOSupport,
             smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor], characterRepo, historyRepo, gameTxHistory, eosio, smartcontract, system)
@@ -45,7 +45,7 @@ object SchedulerActor {
 class SchedulerActor @Inject()(
       characterRepo: GQCharacterDataRepo,
       gQGameHistoryRepo: GQCharacterGameHistoryRepo,
-      gameTxHistory: GameTransactionHistoryRepo,
+      gameTxHistory: OverAllGameHistoryRepo, // overall history for games..
       support: EOSIOSupport,
       eosio: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
@@ -61,20 +61,21 @@ class SchedulerActor @Inject()(
             GQBattleScheduler.battleStatus = "on_update"
             self ! SchedulerStatus("BattleScheduler")
           }
-          // 24hrs Scheduler at 6:00AM in the morning daily..
-          val dailySchedInterval: FiniteDuration = 24.hours
-          val dailySchedDelay   : FiniteDuration = {
-              val time = LocalTime.of(17, 0).toSecondOfDay
-              val now = LocalTime.now().toSecondOfDay
-              val fullDay = 60 * 60 * 24
-              val difference = time - now
-              if (difference < 0) {
-                fullDay + difference
-              } else {
-                time - now
-              }
-            }.seconds
-          system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => self ! DailyScheduler)
+          // // 24hrs Scheduler at 6:00AM in the morning daily.. (Platform ranking calculations)
+          // val dailySchedInterval: FiniteDuration = 24.hours
+          // val dailySchedDelay   : FiniteDuration = {
+          //     val time = LocalTime.of(17, 0).toSecondOfDay
+          //     val now = LocalTime.now().toSecondOfDay
+          //     val fullDay = 60 * 60 * 24
+          //     val difference = time - now
+          //     if (difference < 0) {
+          //       fullDay + difference
+          //     } else {
+          //       time - now
+          //     }
+          //   }.seconds
+
+          // system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => self ! DailyScheduler)
           // set true if actor already initialized
           SchedulerActor.isIntialized = true
           log.info("Ghost Quest Scheduler Actor Initialized")
@@ -116,7 +117,7 @@ class SchedulerActor @Inject()(
               // remove failed txs on the list before inserting to DB
               GQBattleScheduler.battleCounter.filterNot(ch => GQBattleScheduler.smartcontractTxFailed.contains(ch._1))
               Thread.sleep(2000)
-              // convert into GameTransactionHistory
+              // convert into OverAllGameHistory
               saveHistoryDB(GQBattleScheduler.battleCounter)
             }
 
@@ -148,7 +149,7 @@ class SchedulerActor @Inject()(
 
     case OnUpdateGQList(req) => req match {
       case "onupdate" =>
-        println("Starting onupdate")
+        log.info("Starting onupdate")
         self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some(req))
 
       case "RemoveCharacterWithNoLife" =>
@@ -176,8 +177,7 @@ class SchedulerActor @Inject()(
         GQBattleScheduler.battleStatus = "GQ_battle_finished"
         self ! SchedulerStatus("BattleScheduler")
 
-      case "Unknown" =>
-        println("OnUpdateGQList Unknown")
+      case "Unknown" => log.info("OnUpdateGQList Unknown")
     }
 
     case GQRowsResponse(rows, hasNext, nextKey, sender) => {
@@ -207,10 +207,8 @@ class SchedulerActor @Inject()(
           sender match {
             case Some("onupdate") => GQBattleScheduler.characters.addOne(key, chracterInfo)
             case Some("RemoveCharacterWithNoLife") => GQBattleScheduler.eliminatedOrWithdrawn.addOne(key, chracterInfo)
-            case Some("update_characters") =>
-              // TODO: chracters Updated on user request...
-              println("chracters Updated: "+ ch.key)
-            case _ => println("Unknown Data")
+            case Some("update_characters") => GQBattleScheduler.isUpdatedCharacters.addOne(key, chracterInfo)
+            case _ => log.info("GQRowsResponse: unknown data")
           }
         }
       }
@@ -228,15 +226,18 @@ class SchedulerActor @Inject()(
             case Some("onupdate") =>
               GQBattleScheduler.battleStatus = "to_battle"
               self ! SchedulerStatus("BattleScheduler")
-              // self ! SchedulerStatus("BattleScheduler", Some("Smart contract characters validated."))
+
             case Some("RemoveCharacterWithNoLife") =>
               GQBattleScheduler.isRemoving = false
               self ! RemoveCharacterWithNoLife
 
-            case Some("VerifyGQUserTable") =>
-              println("VerifyGQUserTable: chracters Updated")
+            case Some("update_characters") =>
+              // save to another variable and clear the dynamic result
+              val toSeq: Seq[GQCharacterData] = GQBattleScheduler.isUpdatedCharacters.map(_._2).toSeq
+              GQBattleScheduler.isUpdatedCharacters.clear
+              characterRepo.updateOrInsertAsSeq(toSeq)
+
             case _ =>
-              println("None hasNext")
           }
        }
     }
@@ -258,7 +259,7 @@ class SchedulerActor @Inject()(
             case Some(x) =>
               characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
             // TODO: check the reason why it is failed..
-            case None => println("Error: removing character from smartcontract")
+            case None => log.info("Error: removing character from smartcontract")
           }
         }
         // clean back the list to get ready for later battle schedule..
@@ -276,7 +277,7 @@ class SchedulerActor @Inject()(
       log.warning("Tracker every 5PM daily!!!!")
 
     case e =>
-      println("Error: Unkown data received")
+      log.info("Error: Unkown data received")
   }
 
   def battleProcess(params: HashMap[String, GQCharacterData]): Unit = {
@@ -327,7 +328,7 @@ class SchedulerActor @Inject()(
       val winner = count._2.characters.filter(_._2._2).head
       val loser = count._2.characters.filter(!_._2._2).head
       val time = Instant.now
-      (new GameTransactionHistory(
+      (new OverAllGameHistory(
                       UUID.randomUUID,
                       count._1,
                       "ghostquest",

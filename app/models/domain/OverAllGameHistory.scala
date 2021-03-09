@@ -7,7 +7,7 @@ import play.api.libs.json._
 object GameType
 object PaymentType
 object TransactionType extends utils.CommonImplicits
-object GameTransactionHistory { implicit def implGameTransactionHistory = Json.format[GameTransactionHistory] }
+object OverAllGameHistory { implicit def implOverAllGameHistory = Json.format[OverAllGameHistory] }
 
 sealed trait TransactionType {
 	def toJson(): JsValue = Json.toJson(this)
@@ -19,7 +19,7 @@ case class PaymentType(name: String, data: String, amount: Double) extends Trans
 	require(data == "transfer" || data == "receive" , "Payment Type Input: invalid request")
 	override def toJson(): JsValue = Json.toJson(this)
 }
-case class GameTransactionHistory(id: UUID,
+case class OverAllGameHistory(id: UUID,
 																	gameID: UUID, // name or ID
 																	game: String, // name or ID
 																	icon: String, // ICON URL to use..
