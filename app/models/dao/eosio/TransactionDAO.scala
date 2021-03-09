@@ -13,7 +13,7 @@ final class TransactionDAO @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
-  protected class TransactionTable(tag: Tag) extends Table[Transaction](tag, "TRANSACTION") {
+  protected class TransactionTable(tag: Tag) extends Table[Transaction](tag, "EOS_NET_TRANSACTION") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def traceID = column[String] ("TRACE_ID")
     def blockNum = column[Long] ("BLOCK_NUM")
@@ -26,5 +26,5 @@ final class TransactionDAO @Inject()(
   object Query extends TableQuery(new TransactionTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
     def apply(id: String) = this.withFilter(_.traceID === id)
-  } 
+  }
 }
