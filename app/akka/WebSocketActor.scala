@@ -90,6 +90,9 @@ class WebSocketActor@Inject()(
                     else
                       out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
 
+                  case e: EOSNotifyTransaction =>
+                    println("EOSNotifyTransaction" + e)
+
                   // send out the message to self and process separately..
                   case vip: VIPWSRequest => self ! vip
                   case _ => self ! "invalid"

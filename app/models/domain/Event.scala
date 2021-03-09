@@ -7,6 +7,7 @@ object GQBattleTime
 object GQCharacterCreated
 object GQGetNextBattle
 object VIPWSRequest
+object EOSNotifyTransaction
 
 sealed trait InEventMessage {
   def toJson(): JsValue = Json.toJson(this)
@@ -15,9 +16,11 @@ case class GQBattleTime(battle_time: String) extends InEventMessage
 case class GQCharacterCreated(character_created: Boolean) extends InEventMessage {
 	require(character_created == true, "Character Creation: invalid request")
 }
-
 case class GQGetNextBattle(GQ_NEXT_BATTLE: String) extends InEventMessage {
 	require(GQ_NEXT_BATTLE == "get", "GQ Next Battle: invalid request")
+}
+case class EOSNotifyTransaction(EOS_NET_TRANSACTION: JsValue) extends InEventMessage {
+	// require(GQ_NEXT_BATTLE == "get", "GQ Next Battle: invalid request")
 }
 
 // VIP objects
