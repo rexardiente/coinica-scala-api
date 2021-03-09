@@ -85,7 +85,7 @@ class WebSocketActor@Inject()(
 
                   // if result is empty it means on battle else standby mode..
                   case cc: GQGetNextBattle =>
-                    if (GQBattleScheduler.nextBattle != 0)
+                    if (GQBattleScheduler.nextBattle == 0)
                       out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
                     else
                       out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
