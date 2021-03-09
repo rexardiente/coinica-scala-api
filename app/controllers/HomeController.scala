@@ -33,7 +33,7 @@ class HomeController @Inject()(
       taskService: TaskService,
       rankingService: RankingService,
       referralService:  ReferralService,
-      transactionService: TransactionService,
+      eosNetTransaction: EOSNetTransactionService,
       challengeService: ChallengeService,
       gQCharacterDataRepo: GQCharacterDataRepo,
       gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
@@ -334,11 +334,11 @@ class HomeController @Inject()(
   }
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    transactionService.getTxByDateRange(start, end, limit, offset).map(Ok(_))
+    eosNetTransaction.getTxByDateRange(start, end, limit, offset).map(Ok(_))
   }
 
   def transactionByTraceID(id: String) = Action.async { implicit req =>
-    transactionService.getByTxTraceID(id).map(Ok(_))
+    eosNetTransaction.getByTxTraceID(id).map(Ok(_))
   }
 
   def getAllCharacters() = Action.async { implicit req =>

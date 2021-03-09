@@ -68,11 +68,11 @@ trait CommonImplicits {
 		"failed_dtrx_trace" -> tx.failedDtrxTrace,
 		"partial" -> tx.partial)
 	}
-	implicit val implicitTxReads: Reads[Transaction] = new Reads[Transaction] {
-		override def reads(js: JsValue): JsResult[Transaction] = js match {
+	implicit val implicitEOSNetTxReads: Reads[EOSNetTransaction] = new Reads[EOSNetTransaction] {
+		override def reads(js: JsValue): JsResult[EOSNetTransaction] = js match {
 			case json: JsValue => {
 				try {
-					JsSuccess(Transaction(
+					JsSuccess(EOSNetTransaction(
 						(json \ "id").as[UUID],
 						(json \ "trace_id").as[String],
 						(json \ "block_num").as[Long],
@@ -85,8 +85,8 @@ trait CommonImplicits {
 			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
 		}
 	}
-	implicit val implicitTxWrites = new Writes[Transaction] {
-	  def writes(tx: Transaction): JsValue = Json.obj(
+	implicit val implicitEOSNetTxWrites = new Writes[EOSNetTransaction] {
+	  def writes(tx: EOSNetTransaction): JsValue = Json.obj(
 		"id" -> tx.id,
 		"trace_id" -> tx.traceId,
 		"block_num" -> tx.blockNum,

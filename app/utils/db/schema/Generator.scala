@@ -13,7 +13,7 @@ class Generator @Inject()(
     game: GameDAO,
     genre: GenreDAO,
     task: TaskDAO,
-    tx: TransactionDAO,
+    eosNetTx: EOSNetTransactionDAO,
     referral: ReferralDAO,
     ranking: RankingDAO,
     challenge: ChallengeDAO,
@@ -38,7 +38,7 @@ class Generator @Inject()(
       game.Query.schema ++
       genre.Query.schema ++
       task.Query.schema ++
-      tx.Query.schema ++
+      eosNetTx.Query.schema ++
       referral.Query.schema ++
       ranking.Query.schema ++
       challenge.Query.schema ++

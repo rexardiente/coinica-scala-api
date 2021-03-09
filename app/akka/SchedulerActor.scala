@@ -134,9 +134,8 @@ class SchedulerActor @Inject()(
               // broadcast to all connected users the next GQ battle
               WebSocketActor.subscribers.foreach { case (id, actorRef) =>
                 actorRef ! OutEvent(JsString("GQ"),
-                                    Json.obj(
-                                        "STATUS" -> "BATTLE_FINISHED",
-                                        "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+                                    Json.obj("STATUS" -> "BATTLE_FINISHED",
+                                            "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
               }
               system.scheduler.scheduleOnce(SchedulerActor.defaultTimer) {
                 GQBattleScheduler.battleStatus = "on_update"
@@ -155,7 +154,6 @@ class SchedulerActor @Inject()(
 
     case OnUpdateGQList(req) => req match {
       case "onupdate" =>
-        log.info("Starting onupdate")
         self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some(req))
 
       case "RemoveCharacterWithNoLife" =>
