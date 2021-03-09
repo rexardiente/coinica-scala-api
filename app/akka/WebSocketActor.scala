@@ -10,6 +10,7 @@ import models.domain.Event._
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.repo.OverAllGameHistoryRepo
 import models.service.GQSmartContractAPI
+import akka.common.objects.GQBattleScheduler
 import utils.lib.EOSIOSupport
 
 object WebSocketActor {
@@ -82,6 +83,13 @@ class WebSocketActor@Inject()(
                     Thread.sleep(2000)
                     out ! OutEvent(JsNull, JsString("characters updated"))
 
+                  // if result is empty it means on battle else standby mode..
+                  case cc: GQGetNextBattle =>
+                    if (GQBattleScheduler.nextBattle != 0)
+                      out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
+                    else
+                      out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+
                   // send out the message to self and process separately..
                   case vip: VIPWSRequest => self ! vip
                   case _ => self ! "invalid"
@@ -93,7 +101,7 @@ class WebSocketActor@Inject()(
 
           case ca: ConnectionAlive =>
             log.info(s"${code} ~> Connection Reset")
-            out ! OutEvent(JsString(code.toString), JsString("connection reset"))
+            out ! OutEvent(JsNull, JsString("connection reset"))
 
           case Subscribe(id, msg) =>
             log.info(s"${id} ~> Subscribe")

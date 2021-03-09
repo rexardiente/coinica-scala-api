@@ -5,6 +5,7 @@ import play.api.libs.json._
 object InEventMessage extends utils.CommonImplicits
 object GQBattleTime
 object GQCharacterCreated
+object GQGetNextBattle
 object VIPWSRequest
 
 sealed trait InEventMessage {
@@ -13,6 +14,10 @@ sealed trait InEventMessage {
 case class GQBattleTime(battle_time: String) extends InEventMessage
 case class GQCharacterCreated(character_created: Boolean) extends InEventMessage {
 	require(character_created == true, "Character Creation: invalid request")
+}
+
+case class GQGetNextBattle(GQ_NEXT_BATTLE: String) extends InEventMessage {
+	require(GQ_NEXT_BATTLE == "get", "GQ Next Battle: invalid request")
 }
 
 // VIP objects

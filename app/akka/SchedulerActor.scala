@@ -12,6 +12,7 @@ import akka.util.Timeout
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
+import models.domain.OutEvent
 import models.domain.eosio._
 import models.domain.{ OverAllGameHistory, GameType }
 import models.repo.OverAllGameHistoryRepo
@@ -23,7 +24,7 @@ import models.domain.eosio.GQ.v2._
 
 object SchedulerActor {
   var isIntialized: Boolean = false
-
+  val defaultTimer: FiniteDuration = 10.minutes
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
                                                   "users",
@@ -57,10 +58,11 @@ class SchedulerActor @Inject()(
       case Success(actor) =>
         if (!SchedulerActor.isIntialized) {
           // scheduled 5minutes to start battle..
-          system.scheduler.scheduleOnce(5.minutes) {
+          system.scheduler.scheduleOnce(SchedulerActor.defaultTimer) {
             GQBattleScheduler.battleStatus = "on_update"
             self ! SchedulerStatus("BattleScheduler")
           }
+
           // // 24hrs Scheduler at 6:00AM in the morning daily.. (Platform ranking calculations)
           // val dailySchedInterval: FiniteDuration = 24.hours
           // val dailySchedDelay   : FiniteDuration = {
@@ -124,17 +126,22 @@ class SchedulerActor @Inject()(
             case "GQ_insert_DB" =>
               Thread.sleep(1000)
               support.lockAllWallets()
-
-              // scheduled on start..
+              // update latest characters on DB..
+              self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some("update_characters"))
               // on battle start reset timer to 0 and set new timer until the battle finished
               // set back the time for next battle..
               GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
-              system.scheduler.scheduleOnce(5.minutes) {
+              // broadcast to all connected users the next GQ battle
+              WebSocketActor.subscribers.foreach { case (id, actorRef) =>
+                actorRef ! OutEvent(JsString("GQ"),
+                                    Json.obj(
+                                        "STATUS" -> "BATTLE_FINISHED",
+                                        "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+              }
+              system.scheduler.scheduleOnce(SchedulerActor.defaultTimer) {
                 GQBattleScheduler.battleStatus = "on_update"
                 self ! SchedulerStatus("BattleScheduler")
               }
-              // scheduled another battle
-
             case _ => // "GQ_insert_DB"
               // do nothing
           }
@@ -145,7 +152,6 @@ class SchedulerActor @Inject()(
       // on first load, check if DB is updated
       // fetch and validate latest chracters as isNew = true on smartcontract
     }
-
 
     case OnUpdateGQList(req) => req match {
       case "onupdate" =>
@@ -158,16 +164,16 @@ class SchedulerActor @Inject()(
       case "onbattle" =>
         val characters: HashMap[String, GQCharacterData] = GQBattleScheduler.characters
         // remove characters that are newly created..
-        val removedNew = characters.filterNot(_._2.isNew)
+        // val removedNew = characters.filterNot(_._2.isNew)
+        val filtered = characters.filterNot(x => x._2.isNew == true || x._2.life <= 0 || x._2.count >= x._2.limit)
         // remove characters that has no life
-        val removedNoLife = characters.filterNot(_._2.life <= 0)
+        // val removedNoLife = removedNew.filterNot(_._2.life <= 0)
         // remove characters that exceeds battle limit
-        val removedExceedBattleLimit = characters.filter(x => x._2.count < x._2.limit)
+        // val removedExceedBattleLimit = removedNoLife.filter(x => x._2.count < x._2.limit)
         // make sure no eliminated or withdrawn characters on the list
-        val removedPlayed: HashMap[String, GQCharacterData] =
-          characters.filterNot(x => x._2.status == 2  || x._2.status == 3)
+        val isEliminatedOrWithdrawn = filtered.filterNot(x => x._2.status == 2  || x._2.status == 3)
         // shuffle all list of characters to play
-        val availableCharacters = scala.util.Random.shuffle(removedPlayed)
+        val availableCharacters = scala.util.Random.shuffle(isEliminatedOrWithdrawn)
         // start the battle..
         battleProcess(availableCharacters)
         Thread.sleep(2000)
@@ -292,15 +298,14 @@ class SchedulerActor @Inject()(
         // remove his other owned characters from the list (remove 3 and 4 remaining)
         val removedOwned: HashMap[String, GQCharacterData] =
           characters.filterNot(_._2.owner == player._2.owner)
-
+        // check chracters spicific history to avoid battling again as posible..
         gQGameHistoryRepo.getByUsernameAndCharacterID(player._1, player._2.owner).map { history =>
           removedOwned
             .filterNot(ch => history.map(_.loserID).contains(ch._1))
             .filterNot(ch => history.map(_.winnerID).contains(ch._1))
         }
-
-        // add delay to avoid conflict when process takes too long..
-        Thread.sleep(500)
+        // add delay to avoid conflict when process takes too long and repeating battles each characters..
+        Thread.sleep(2000)
         if (!removedOwned.isEmpty) {
           val enemy: (String, GQCharacterData) = removedOwned.head
           val battle: GQBattleCalculation[GQCharacterData] = new GQBattleCalculation[GQCharacterData](player._2, enemy._2)
@@ -336,7 +341,7 @@ class SchedulerActor @Inject()(
                       List(GameType(winner._1, true, 0.3), GameType(loser._1, false, 0.3)),
                       true,
                       time),
-        new GQCharacterGameHistory(
+      new GQCharacterGameHistory(
                       count._1.toString, // Game ID
                       winner._2._1,
                       winner._1,
@@ -351,6 +356,16 @@ class SchedulerActor @Inject()(
     }
 
     Thread.sleep(5000)
+    // broadcast to spicific user if his characters doesnt have enemy..
+    GQBattleScheduler.noEnemy.groupBy(_._2).map { case (user, characters) =>
+      try {
+        WebSocketActor.subscribers(user) ! OutEvent(JsString("GQ"),
+                                                    Json.obj("CHARACTER_NO_ENEMY" ->
+                                                    JsArray(characters.map(x => JsString(x._1)).toSeq)))
+      } catch {
+        case e: Throwable => log.info("Not subscribed: " + user)
+      }
+    }
     GQBattleScheduler.battleCounter.clear
     GQBattleScheduler.noEnemy.clear
     // remove eliminated characters on the smartcontract

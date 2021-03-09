@@ -125,22 +125,20 @@ class GQGameService @Inject()(
   }
 
   def classifyHighEarnChar(history: Seq[GQCharacterGameHistory], limit: Int): Seq[(String, (String, Double))] = {
-    ???
-    // val characters = HashMap.empty[String, (String, Double)]
-    // history.map { tx =>
-    //   // processTxStatus
-    //   tx.status.foreach({ stat =>
-    //     // check if it exists on HashMap
-    //     if (!characters.exists(_._1 == stat.char_id)) characters(stat.char_id) = (stat.player, 0)
+    val characters = HashMap.empty[String, (String, Double)]
+    history.map { tx =>
+      // processTxStatus
+      if (!characters.exists(_._1 == tx.winnerID)) characters(tx.winnerID) = (tx.winner, 0)
+      if (!characters.exists(_._1 == tx.loserID)) characters(tx.loserID) = (tx.loser, 0)
 
-    //     val (player, amount) = characters(stat.char_id)
-    //     // update characters balances on HashMap
-    //     if (stat.isWin) characters.update(stat.char_id, (player, amount + 1))
-    //     else characters.update(stat.char_id, (player, amount - 1))
-    //   })
-    // }
+      // process winner character
+      val winner = characters(tx.winnerID)
+      characters.update(tx.winnerID, (tx.winner, winner._2 + 1))
 
-    // characters.toSeq.sortBy(- _._2._2).take(limit)
+      val loser = characters(tx.loserID)
+      characters.update(tx.loserID, (tx.loser, loser._2 - 1))
+    }
+    characters.filter(_._2._2 > 0).toSeq.sortBy(- _._2._2).take(limit)
   }
 
   def getCharacterByUserAndID[T <: String](user: T, id: T): Future[JsValue] = {
@@ -297,26 +295,26 @@ class GQGameService @Inject()(
   // get overall history in a week, process and save it to WinStreak tbl
   // charDataRepo.getGameHistoryByDateRange(from, to)
   def separateHistoryByCharID(seq: Seq[GQCharacterGameHistory]): HashMap[String, ListBuffer[(String, Boolean, Long)]] = {
-    ???
-    // val counter = HashMap.empty[String, ListBuffer[(String, Boolean, Long)]]
-    // // process -> seq of history
-    // seq.foreach(history => {
-    //   // separate all losers and winners with game ID
-    //   history.status.foreach(status => {
-    //     // GameID, isWin, timeExecuted
-    //     val id = status.char_id
-    //     val isWin = if (status.isWin) true else false
+    val counter = HashMap.empty[String, ListBuffer[(String, Boolean, Long)]]
+    seq.foreach { history =>
+      val gameID = history.id
+      val winnerID = history.winnerID
+      val loserID = history.loserID
+      val time = history.timeExecuted
 
-    //     counter.addOne(id -> {
-    //       if (counter.exists(_._1 == id))
-    //         counter(id) += ((history.id, isWin, history.timeExecuted))
-    //       else
-    //         ListBuffer(("default1", isWin, history.timeExecuted))
-    //     })
-    //   })
-    // })
-    // // return list of charactes
-    // counter
+      // process winner
+      if (counter.exists(_._1 == winnerID))
+        counter.addOne(winnerID -> { counter(winnerID) += ((gameID, true, time)) })
+      else
+        counter.addOne(winnerID -> ListBuffer((gameID, true, time)))
+      // process loser
+      if (counter.exists(_._1 == loserID))
+        counter.addOne(loserID -> { counter(loserID) += ((gameID, false, time)) })
+      else
+        counter.addOne(loserID -> ListBuffer((gameID, false, time)))
+    }
+    // remove has less than 1 amount
+    counter // .filter(x => x._2.map(v => if (v._3 > 0) true else false).contains(false))
   }
 
   def calcWinStreak(characters: HashMap[String, ListBuffer[(String, Boolean, Long)]]): HashMap[String, Int] = {
@@ -327,15 +325,9 @@ class GQGameService @Inject()(
 
       status.zipWithIndex.map {
         case (v, i) =>
-          if (v._2)
-            tempList.addOne(i)
+          if (v._2) tempList.addOne(i)
           else {
-            // overall charcter info in winstreak will be shown for simplicity
-            // updateCharacters.addOne(character._1 -> {
-            //   if (updateCharacters.exists(_._1 == character._1))
-            // })
             val range = status.slice(tempList.headOption.getOrElse(0), tempList.lastOption.getOrElse(0))
-
             if (!range.isEmpty) {
               streakCounter += range.size
               tempList.clear()
