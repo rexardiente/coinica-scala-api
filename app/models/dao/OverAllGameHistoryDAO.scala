@@ -16,12 +16,11 @@ final class OverAllGameHistoryDAO @Inject()(
     def id = column[UUID] ("ID", O.PrimaryKey)
     def gameID = column[UUID] ("GAME_ID")
     def game = column[String] ("GAME")
-    def icon = column[String] ("ICON")
-    def `type` = column[List[TransactionType]] ("TYPE")
+    def `type` = column[TransactionType] ("TYPE")
     def isConfirmed = column[Boolean] ("IS_CONFIRMED")
     def createdAt = column[Instant] ("CREATED_AT")
 
-   def * = (id, gameID, game, icon, `type`, isConfirmed, createdAt) <> ((OverAllGameHistory.apply _).tupled, OverAllGameHistory.unapply)
+   def * = (id, gameID, game, `type`, isConfirmed, createdAt) <> ((OverAllGameHistory.apply _).tupled, OverAllGameHistory.unapply)
   }
 
   object Query extends TableQuery(new OverAllGameHistoryTable(_)) {

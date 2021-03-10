@@ -442,9 +442,13 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 
   implicit def implGameType = Json.format[GameType]
 	implicit def implPaymentType = Json.format[PaymentType]
+	implicit def implGQGameHistory = Json.format[GQGameHistory]
+	implicit def implTHGameHistory = Json.format[THGameHistory]
 	implicit val implicitTransactionTypeReads: Reads[TransactionType] = {
 	  Json.format[GameType].map(x => x: TransactionType) or
-	  Json.format[PaymentType].map(x => x: TransactionType)
+	  Json.format[PaymentType].map(x => x: TransactionType) or
+	  Json.format[GQGameHistory].map(x => x: TransactionType) or
+	  Json.format[THGameHistory].map(x => x: TransactionType)
 	}
 
 	implicit val implicitTransactionTypeWrites = new Writes[TransactionType] {
@@ -452,8 +456,38 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	    event match {
 	      case m: GameType => Json.toJson(m)
 	      case m: PaymentType => Json.toJson(m)
+	      case m: GQGameHistory => Json.toJson(m)
+	      case m: THGameHistory => Json.toJson(m)
 	      case _ => Json.obj("error" -> "wrong Json")
 	    }
 	  }
+	}
+
+	implicit val implicitOverAllGameHistoryReads: Reads[OverAllGameHistory] = new Reads[OverAllGameHistory] {
+		override def reads(js: JsValue): JsResult[OverAllGameHistory] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(OverAllGameHistory(
+						(json \ "id").as[UUID],
+						(json \ "game_id").as[UUID],
+						(json \ "game").as[String],
+						(json \ "info").as[TransactionType],
+						(json \ "is_confirmed").as[Boolean],
+						(json \ "created_at").as[Instant]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitOverAllGameHistoryWrites = new Writes[OverAllGameHistory] {
+	  def writes(tx: OverAllGameHistory): JsValue = Json.obj(
+		"id" -> tx.id,
+		"game_id" -> tx.gameID,
+		"game" -> tx.game,
+		"info" -> tx.`type`,
+		"is_confirmed" -> tx.isConfirmed,
+		"created_at" -> tx.createdAt)
 	}
 }

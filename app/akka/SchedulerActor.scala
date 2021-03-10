@@ -14,7 +14,7 @@ import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import models.domain.OutEvent
 import models.domain.eosio._
-import models.domain.{ OverAllGameHistory, GameType }
+import models.domain.{ OverAllGameHistory, GameType, GQGameHistory }
 import models.repo.OverAllGameHistoryRepo
 import models.repo.eosio._
 import models.service.GQSmartContractAPI
@@ -24,7 +24,7 @@ import models.domain.eosio.GQ.v2._
 
 object SchedulerActor {
   var isIntialized: Boolean = false
-  val defaultTimer: FiniteDuration = 10.minutes
+  val defaultTimer: FiniteDuration = 20.minutes
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
                                                   "users",
@@ -39,7 +39,7 @@ object SchedulerActor {
             gameTxHistory: OverAllGameHistoryRepo,
             eosio: EOSIOSupport,
             smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
-    Props(classOf[WebSocketActor], characterRepo, historyRepo, gameTxHistory, eosio, smartcontract, system)
+    Props(classOf[SchedulerActor], characterRepo, historyRepo, gameTxHistory, eosio, smartcontract, system)
 }
 
 @Singleton
@@ -50,6 +50,7 @@ class SchedulerActor @Inject()(
       support: EOSIOSupport,
       eosio: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
+  private val dynamicBroadcastActor: ActorRef = system.actorOf(Props(classOf[DynamicBroadcastActor], None, system))
 
   override def preStart: Unit = {
     super.preStart
@@ -58,10 +59,10 @@ class SchedulerActor @Inject()(
       case Success(actor) =>
         if (!SchedulerActor.isIntialized) {
           // scheduled 5minutes to start battle..
-          system.scheduler.scheduleOnce(SchedulerActor.defaultTimer) {
-            GQBattleScheduler.battleStatus = "on_update"
-            self ! SchedulerStatus("BattleScheduler")
-          }
+          // system.scheduler.scheduleOnce(20.seconds) {
+          //   GQBattleScheduler.battleStatus = "on_update"
+          //   self ! SchedulerStatus("BattleScheduler")
+          // }
 
           // // 24hrs Scheduler at 6:00AM in the morning daily.. (Platform ranking calculations)
           // val dailySchedInterval: FiniteDuration = 24.hours
@@ -132,11 +133,8 @@ class SchedulerActor @Inject()(
               // set back the time for next battle..
               GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
               // broadcast to all connected users the next GQ battle
-              WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-                actorRef ! OutEvent(JsString("GQ"),
-                                    Json.obj("STATUS" -> "BATTLE_FINISHED",
-                                            "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
-              }
+              dynamicBroadcastActor ! "BROADCAST_NEXT_BATTLE"
+
               system.scheduler.scheduleOnce(SchedulerActor.defaultTimer) {
                 GQBattleScheduler.battleStatus = "on_update"
                 self ! SchedulerStatus("BattleScheduler")
@@ -331,14 +329,20 @@ class SchedulerActor @Inject()(
       val winner = count._2.characters.filter(_._2._2).head
       val loser = count._2.characters.filter(!_._2._2).head
       val time = Instant.now
-      (new OverAllGameHistory(
-                      UUID.randomUUID,
-                      count._1,
-                      "ghostquest",
-                      "url",
-                      List(GameType(winner._1, true, 0.3), GameType(loser._1, false, 0.3)),
-                      true,
-                      time),
+      ((new OverAllGameHistory(
+                            UUID.randomUUID,
+                            count._1,
+                            "ghostquest",
+                            GQGameHistory(winner._1, "WIN", 1, 1D),
+                            true,
+                            time),
+        new OverAllGameHistory(
+                            UUID.randomUUID,
+                            count._1,
+                            "ghostquest",
+                            GQGameHistory(loser._1, "WIN", 0, 1D),
+                            true,
+                            time)),
       new GQCharacterGameHistory(
                       count._1.toString, // Game ID
                       winner._2._1,
@@ -347,23 +351,23 @@ class SchedulerActor @Inject()(
                       loser._1,
                       count._2.logs,
                       time.getEpochSecond))
-    }.map { case (tx, char) =>
+    }.map { case ((winner, loser), character) =>
       // insert Tx and character contineously
-      gQGameHistoryRepo.insert(char)
-      gameTxHistory.add(tx)
+      gQGameHistoryRepo.insert(character)
+      // broadcast game result to connected users
+      // use live data to feed on history update..
+      gameTxHistory
+        .add(winner)
+        .map(x => if (x > 0) dynamicBroadcastActor ! winner else log.info("Error: Game Tx Insertion"))
+      gameTxHistory
+        .add(loser)
+        .map(x => if (x > 0) dynamicBroadcastActor ! loser else log.info("Error: Game Tx Insertion"))
     }
 
     Thread.sleep(5000)
     // broadcast to spicific user if his characters doesnt have enemy..
-    GQBattleScheduler.noEnemy.groupBy(_._2).map { case (user, characters) =>
-      try {
-        WebSocketActor.subscribers(user) ! OutEvent(JsString("GQ"),
-                                                    Json.obj("CHARACTER_NO_ENEMY" ->
-                                                    JsArray(characters.map(x => JsString(x._1)).toSeq)))
-      } catch {
-        case e: Throwable => log.info("Not subscribed: " + user)
-      }
-    }
+    dynamicBroadcastActor ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
+
     GQBattleScheduler.battleCounter.clear
     GQBattleScheduler.noEnemy.clear
     // remove eliminated characters on the smartcontract

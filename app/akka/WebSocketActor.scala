@@ -80,7 +80,7 @@ class WebSocketActor@Inject()(
                   // try to update character DB
                   case cc: GQCharacterCreated =>
                     characterUpdateActor ! akka.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some("update_characters"))
-                    Thread.sleep(2000)
+                    Thread.sleep(1500)
                     out ! OutEvent(JsNull, JsString("characters updated"))
 
                   // if result is empty it means on battle else standby mode..
@@ -91,6 +91,8 @@ class WebSocketActor@Inject()(
                       out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
 
                   case e: EOSNotifyTransaction =>
+                    // Check if notification relates to TH
+                    // save into DB if found..
                     println("EOSNotifyTransaction" + e)
 
                   // send out the message to self and process separately..
@@ -126,9 +128,7 @@ class WebSocketActor@Inject()(
             log.info("Unknown")
         }
       } catch {
-        case e: Throwable =>
-          println(e)
-          // out ! OutEvent(JsNull, JsString("invalid"))
+        case e: Throwable => out ! OutEvent(JsNull, JsString("invalid"))
       }
 
     case VIPWSRequest(id, cmd, req) => req match {

@@ -6,11 +6,21 @@ import play.api.libs.json._
 
 object GameType
 object PaymentType
+object GQGameHistory
+object THGameHistory
 object TransactionType extends utils.CommonImplicits
 object OverAllGameHistory { implicit def implOverAllGameHistory = Json.format[OverAllGameHistory] }
 
 sealed trait TransactionType {
 	def toJson(): JsValue = Json.toJson(this)
+}
+// prediction default to WIN and after battle check if who wins to 1 else 0 for lose..
+case class GQGameHistory(name: String, prediction: String, result: Int, bet: Double) extends TransactionType {
+	override def toJson(): JsValue = Json.toJson(this)
+}
+// prediction equals list of panels selected and check if `result == prediction` is win else lose
+case class THGameHistory(name: String, prediction: List[Int], result: List[Int], bet: Double) extends TransactionType {
+	override def toJson(): JsValue = Json.toJson(this)
 }
 case class GameType(name: String, isWin: Boolean, amount: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
@@ -20,12 +30,11 @@ case class PaymentType(name: String, data: String, amount: Double) extends Trans
 	override def toJson(): JsValue = Json.toJson(this)
 }
 case class OverAllGameHistory(id: UUID,
-																	gameID: UUID, // name or ID
-																	game: String, // name or ID
-																	icon: String, // ICON URL to use..
-																	`type`: List[TransactionType],
-																	isConfirmed: Boolean, // update `confirmed` when system get notified from EOSIO net
-																	createdAt: Instant) {
+															gameID: UUID, // name or ID
+															game: String, // name or ID
+															`type`: TransactionType,
+															isConfirmed: Boolean, // update `confirmed` when system get notified from EOSIO net
+															createdAt: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 // GAME TRANSACTION

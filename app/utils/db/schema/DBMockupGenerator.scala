@@ -53,35 +53,35 @@ class DBMockupGenerator @Inject()(
   }
 
   private def gameHistory(): Unit = {
-    overAllGameHistoryRepo.getSize().map { x =>
-      if (x.equals(0)) {
-        overAllGameHistoryRepo ++= Seq(
-          OverAllGameHistory(UUID.randomUUID,
-                                UUID.randomUUID,
-                                "Ghost Quest",
-                                "https://i.imgur.com/r77fFKE.jpg", // ICON URL to use..
-                                List(GameType("user1", true, 3.00), GameType("user2", false, 3.00)),
-                                false, // update `confirmed` when system get notified from EOSIO net
-                                Instant.now()),
-          OverAllGameHistory(UUID.randomUUID,
-                                UUID.randomUUID,
-                                "Ghost Quest",
-                                "https://i.imgur.com/vPGoLvP.jpg", // ICON URL to use..
-                                List(PaymentType("user2", "receive", 3.00)),
-                                true, // update `confirmed` when system get notified from EOSIO net
-                                Instant.now()))
-      }
-    }
+    // overAllGameHistoryRepo.getSize().map { x =>
+    //   if (x.equals(0)) {
+    //     overAllGameHistoryRepo ++= Seq(
+    //       OverAllGameHistory(UUID.randomUUID,
+    //                             UUID.randomUUID,
+    //                             "Ghost Quest",
+    //                             "https://i.imgur.com/r77fFKE.jpg", // ICON URL to use..
+    //                             List(GameType("user1", true, 3.00), GameType("user2", false, 3.00)),
+    //                             false, // update `confirmed` when system get notified from EOSIO net
+    //                             Instant.now()),
+    //       OverAllGameHistory(UUID.randomUUID,
+    //                             UUID.randomUUID,
+    //                             "Ghost Quest",
+    //                             "https://i.imgur.com/vPGoLvP.jpg", // ICON URL to use..
+    //                             List(PaymentType("user2", "receive", 3.00)),
+    //                             true, // update `confirmed` when system get notified from EOSIO net
+    //                             Instant.now()))
+    //   }
+    // }
 
-    val name: String = "GQ"
-    val description: String = """Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."""
-    val timeNow: Instant = Instant.now()
+    // val name: String = "GQ"
+    // val description: String = """Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."""
+    // val timeNow: Instant = Instant.now()
 
-    challengeRepo ++= Seq(Challenge(name,
-                                description,
-                                timeNow,
-                                Instant.ofEpochSecond(timeNow.getEpochSecond + 86400),
-                                true))
+    // challengeRepo ++= Seq(Challenge(name,
+    //                             description,
+    //                             timeNow,
+    //                             Instant.ofEpochSecond(timeNow.getEpochSecond + 86400),
+    //                             true))
   }
 
   override def preStart(): Unit = {
