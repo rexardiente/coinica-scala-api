@@ -24,7 +24,7 @@ import models.domain.eosio.GQ.v2._
 
 object SchedulerActor {
   var isIntialized: Boolean = false
-  val defaultTimer: FiniteDuration = 20.minutes
+  val defaultTimer: FiniteDuration = 5.minutes
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
                                                   "users",
@@ -59,10 +59,10 @@ class SchedulerActor @Inject()(
       case Success(actor) =>
         if (!SchedulerActor.isIntialized) {
           // scheduled 5minutes to start battle..
-          // system.scheduler.scheduleOnce(20.seconds) {
-          //   GQBattleScheduler.battleStatus = "on_update"
-          //   self ! SchedulerStatus("BattleScheduler")
-          // }
+          system.scheduler.scheduleOnce(SchedulerActor.defaultTimer) {
+            GQBattleScheduler.battleStatus = "on_update"
+            self ! SchedulerStatus("BattleScheduler")
+          }
 
           // // 24hrs Scheduler at 6:00AM in the morning daily.. (Platform ranking calculations)
           // val dailySchedInterval: FiniteDuration = 24.hours
