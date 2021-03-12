@@ -47,6 +47,12 @@ class DynamicBroadcastActor@Inject()(out: Option[ActorRef])(implicit system: Act
         }
       } catch { case _: Throwable => {} }
 
+
+    case "BROADCAST_NO_CHARACTERS_AVAILABLE" =>
+      WebSocketActor.subscribers.foreach { case (id, actorRef) =>
+        actorRef ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+      }
+
     case e => log.info("DynamicBroadcastActor: invalid request")
       // out.map(_ ! OutEvent(JsNull, JsString("invalid")))
   }

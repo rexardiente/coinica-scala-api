@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import akka.util.Timeout
-import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging }
+import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import models.domain.OutEvent
@@ -59,10 +59,7 @@ class SchedulerActor @Inject()(
       case Success(actor) =>
         if (!SchedulerActor.isIntialized) {
           // scheduled 5minutes to start battle..
-          system.scheduler.scheduleOnce(SchedulerActor.defaultTimer) {
-            GQBattleScheduler.battleStatus = "on_update"
-            self ! SchedulerStatus("BattleScheduler")
-          }
+          systemBattleScheduler(SchedulerActor.defaultTimer)
 
           // // 24hrs Scheduler at 6:00AM in the morning daily.. (Platform ranking calculations)
           // val dailySchedInterval: FiniteDuration = 24.hours
@@ -134,11 +131,7 @@ class SchedulerActor @Inject()(
               GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
               // broadcast to all connected users the next GQ battle
               dynamicBroadcastActor ! "BROADCAST_NEXT_BATTLE"
-
-              system.scheduler.scheduleOnce(SchedulerActor.defaultTimer) {
-                GQBattleScheduler.battleStatus = "on_update"
-                self ! SchedulerStatus("BattleScheduler")
-              }
+              systemBattleScheduler(10.seconds)
             case _ => // "GQ_insert_DB"
               // do nothing
           }
@@ -273,7 +266,17 @@ class SchedulerActor @Inject()(
 
 
     case VerifyGQUserTable(request, sender) =>
-      eosio.getGQUsers(request, sender).map(_.map(self ! _))
+      eosio.getGQUsers(request, sender).map { response =>
+        // check if battle scehduler requested..
+        if (sender == Some("onupdate"))
+          response.map(self ! _).getOrElse({
+            // broadcast to all connected users the next GQ battle
+            GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
+            dynamicBroadcastActor ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
+            systemBattleScheduler(SchedulerActor.defaultTimer)
+          })
+        else response.map(self ! _)
+      }
 
     case DailyScheduler =>
       log.warning("Tracker every 5PM daily!!!!")
@@ -376,4 +379,11 @@ class SchedulerActor @Inject()(
   }
 
   def defaultThreadSleep(): Unit = Thread.sleep(1000)
+
+  def systemBattleScheduler(timer: FiniteDuration): Cancellable = {
+    system.scheduler.scheduleOnce(timer) {
+      GQBattleScheduler.battleStatus = "on_update"
+      self ! SchedulerStatus("BattleScheduler")
+    }
+  }
 }
