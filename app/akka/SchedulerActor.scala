@@ -172,7 +172,7 @@ class SchedulerActor @Inject()(
         val availableCharacters = scala.util.Random.shuffle(isEliminatedOrWithdrawn)
         // start the battle..
         battleProcess(availableCharacters)
-        Thread.sleep(2000)
+        Thread.sleep(10000)
         // all finished battle will be recorded into `battleCounter`
         // save all characters that has no available to play
         GQBattleScheduler.characters.clear
@@ -255,7 +255,7 @@ class SchedulerActor @Inject()(
         val eliminatedOrWithdrawn: HashMap[String, GQCharacterData] = GQBattleScheduler.eliminatedOrWithdrawn
         val filteredByStatus = eliminatedOrWithdrawn.filter(x => x._2.life <= 0)
         // remove from smartcontract
-        filteredByStatus.foreach { case (id, data) =>
+        filteredByStatus.map { case (id, data) =>
           eosio.removeCharacter(data.owner, id).map {
             // Remove from the Character Data DB
             case Some(x) =>
