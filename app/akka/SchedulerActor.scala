@@ -131,7 +131,7 @@ class SchedulerActor @Inject()(
               GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
               // broadcast to all connected users the next GQ battle
               dynamicBroadcastActor ! "BROADCAST_NEXT_BATTLE"
-              systemBattleScheduler(10.seconds)
+              systemBattleScheduler(SchedulerActor.defaultTimer)
             case _ => // "GQ_insert_DB"
               // do nothing
           }
