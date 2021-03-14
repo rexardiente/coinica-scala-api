@@ -11,7 +11,7 @@ case class Connect(connection: ActorRef) extends AnyVal
 case class Disconnect(disconnection: ActorRef) extends AnyVal
 case class VerifyGQUserTable(request: TableRowsRequest, sender: Option[String])
 case class OnUpdateGQList(request: String)
-case class SchedulerStatus(req: String)
+object GQSchedulerStatus
 // case class SetOfGQCharacterInfo(list: Seq[GQCharacterData]) extends AnyVal
 // case class SetOfGQCharacterGameHistory(list: Seq[GQCharacterPrevMatch]) extends AnyVal
 

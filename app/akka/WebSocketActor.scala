@@ -37,7 +37,7 @@ class WebSocketActor@Inject()(
   private val code: Int = out.hashCode
   private val log: LoggingAdapter = Logging(context.system, this)
   private val characterUpdateActor: ActorRef = system.actorOf(
-                                        Props(classOf[SchedulerActor],
+                                        Props(classOf[GQSchedulerActor],
                                               characterRepo,
                                               historyRepo,
                                               overAllGameHistory,
@@ -79,7 +79,7 @@ class WebSocketActor@Inject()(
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    characterUpdateActor ! akka.common.objects.VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some("update_characters"))
+                    characterUpdateActor ! akka.common.objects.VerifyGQUserTable(GQSchedulerActor.eosTblRowsRequest, Some("update_characters"))
                     Thread.sleep(1500)
                     out ! OutEvent(JsNull, JsString("characters updated"))
 

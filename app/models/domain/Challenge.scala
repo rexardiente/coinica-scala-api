@@ -5,58 +5,39 @@ import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-object Challenge {
-	val tupled = (apply: (UUID, String, String, Instant, Instant, Boolean, Instant) => Challenge).tupled
+object Challenge extends utils.CommonImplicits {
+	val tupled = (apply: (UUID, UUID, String, Instant, Instant) => Challenge).tupled
 	def apply(id: UUID,
-						name: String,
+						gameID: UUID,
 						description: String,
-						startAt: Instant,
-						expireAt: Instant,
-						isAvailable: Boolean,
-						createdAt: Instant): Challenge =
-		new Challenge(id, name, description, startAt, expireAt, isAvailable, createdAt)
-	def apply(name: String, description: String, startAt: Instant, expireAt: Instant, isAvailable: Boolean): Challenge =
-		new Challenge(UUID.randomUUID, name, description, startAt, expireAt, isAvailable, Instant.now)
-	implicit def implChallenge = Json.format[Challenge]
+						createdAt: Instant,
+						expiredAt: Instant): Challenge =
+		new Challenge(id, gameID, description, createdAt, expiredAt)
+	def apply(gameID: UUID, // title
+						description: String,
+						createdAt: Instant,
+						expiredAt: Instant): Challenge =
+		new Challenge(UUID.randomUUID, gameID, description, createdAt, expiredAt)
 }
-
+// daily challenge well be randomly selected
+// players with highest wagered and bets will be placed on the ranking
+// earned points based on ranking..
 case class Challenge(id: UUID,
-										name: String, // title
+										gameID: UUID, // title
 										description: String,
-										startAt: Instant,
-										expireAt: Instant,
-										isAvailable: Boolean,
-										createdAt: Instant)
+										createdAt: Instant,
+										expiredAt: Instant)
 
-object ChallengeHistory {
-	val tupled = (apply: (UUID, UUID, Int, String, Double, Double, Double, Double, Instant) => ChallengeHistory).tupled
-	def apply(id: UUID,
-						challengeID: UUID,
-						rank: Int,
-						name: String,
-						bet: Double,
-						profit: Double,
-						ratio: Double,
-						vipPoints: Double,
-						createdAt: Instant): ChallengeHistory =
-			new ChallengeHistory(id, challengeID, rank, name, bet, profit, ratio, vipPoints, createdAt)
-	def apply(challengeID: UUID,
-						rank: Int,
-						name: String,
-						bet: Double,
-						profit: Double,
-						ratio: Double,
-						vipPoints: Double): ChallengeHistory =
-			new ChallengeHistory(UUID.randomUUID, challengeID, rank, name, bet, profit, ratio, vipPoints, Instant.now)
-	implicit def implChallengeHistory = Json.format[ChallengeHistory]
+object ChallengeWinner extends utils.CommonImplicits
+object ChallengeHistory extends utils.CommonImplicits {
+	val tupled = (apply: (UUID, UUID, List[ChallengeWinner], Instant) => ChallengeHistory).tupled
+	def apply(id: UUID, challengeID: UUID, winners: List[ChallengeWinner], createdAt: Instant): ChallengeHistory =
+			new ChallengeHistory(id, challengeID, winners, Instant.now)
+	def apply(challengeID: UUID, winners: List[ChallengeWinner], vipPoints: Double): ChallengeHistory =
+		new ChallengeHistory(UUID.randomUUID, challengeID, winners, Instant.now)
 }
 
-case class ChallengeHistory(id: UUID,
-														challengeID: UUID,
-														rank: Int,
-														name: String, // title
-														bet: Double,
-														profit: Double,
-														ratio: Double,
-														vipPoints: Double,
-														createdAt: Instant)
+case class ChallengeWinner(rank: Int, user: String, bets: Double, wagered: Double, ratio: Double, prize: Double)
+case class ChallengeHistory(id: UUID, challengeID: UUID, winners: List[ChallengeWinner], createdAt: Instant) {
+	def toJson(): JsValue = Json.toJson(this)
+}

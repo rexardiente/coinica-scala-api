@@ -16,11 +16,12 @@ GET     /donut/api/v1/login/monthly              controllers.AdminController.log
 
 GET     /                                        controllers.HomeController.index
 # Challenge API
-POST    /donut/api/v1/challenge/add                   controllers.HomeController.addChallenge
-PUT     /donut/api/v1/challenge/update               controllers.HomeController.updateChallenge(id: UUID)
-POST    /donut/api/v1/challenge/remove                controllers.HomeController.removeChallenge(id: UUID)
+#POST    /donut/api/v1/challenge/add                   controllers.HomeController.addChallenge
+#PUT     /donut/api/v1/challenge/update               controllers.HomeController.updateChallenge(id: UUID)
+#POST    /donut/api/v1/challenge/remove                controllers.HomeController.removeChallenge(id: UUID)
 
-GET     /donut/api/v1/challenge               controllers.HomeController.getChallengeByDate(start: java.time.Instant, end: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+GET     /donut/api/v1/challenge               controllers.HomeController.getChallenge(date: java.time.Instant ?= java.time.Instant.now)
+GET     /donut/api/v1/challenge/daily         controllers.HomeController.getDailyChallenge()
 # GET     /donut/api/v1/challenge/daily                controllers.HomeController.challengedaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 # GET     /donut/api/v1/challenge/monthly              controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 
@@ -91,6 +92,9 @@ GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/weekly controllers.Hom
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/weekly controllers.HomeController.winStreakPerDay
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily controllers.HomeController.winStreakPerWeekly
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime controllers.HomeController.winStreakLifeTime
+
+# Overall History
+GET   /donut/api/v1/game/all/history controllers.HomeController.overAllHistory(limit: Int ?= 10)
 
 # TODO: News with pagination
 GET   /donut/api/v1/news controllers.HomeController.news

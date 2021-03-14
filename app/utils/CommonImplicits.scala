@@ -490,4 +490,8 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		"is_confirmed" -> tx.isConfirmed,
 		"created_at" -> tx.createdAt)
 	}
+
+	implicit def implChallenge = Json.format[Challenge]
+	implicit def implChallengeWinner = Json.format[ChallengeWinner]
+	implicit def implChallengeHistory = Json.format[ChallengeHistory]
 }

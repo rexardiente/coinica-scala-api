@@ -20,6 +20,7 @@ class OverAllGameHistoryRepo @Inject()(
 
   def add(tx: OverAllGameHistory): Future[Int] = db.run(dao.Query += tx)
   def all(): Future[Seq[OverAllGameHistory]] = db.run(dao.Query.result)
+  def all(limit: Int): Future[Seq[OverAllGameHistory]] = db.run(dao.Query.take(limit).result)
   def delete(id: UUID): Future[Int] = db.run(dao.Query(id).delete)
   def update(tx: OverAllGameHistory): Future[Int] = db.run(dao.Query.filter(_.id === tx.id).update(tx))
   def exist(id: UUID): Future[Boolean] = db.run(dao.Query(id).exists.result)

@@ -54,9 +54,8 @@ class HomeController @Inject()(
     "feeamount" -> number,
     "referralcreated" -> longNumber))
   private def challengeForm = Form(tuple(
-    "name" -> nonEmptyText,
+    "name" -> uuid,
     "description" -> nonEmptyText,
-    "is_avaiable" -> boolean,
     "start_at" -> longNumber,
     "expire_at" -> optional(longNumber)))
   private def rankingForm = Form(tuple(
@@ -87,7 +86,9 @@ class HomeController @Inject()(
   }
 
   def index() = Action.async { implicit req =>
-    Future.successful(Ok(views.html.index()))
+    val req = new models.domain.eosio.TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
+    gqSmartContractAPI.getGQUsers(req, Some("index")).map(x => Ok(x.map(_.toJson).getOrElse(JsNull)))
+    // Future.successful(Ok(views.html.index()))
   }
 
   def addReferral = Action.async { implicit req =>
@@ -119,14 +120,13 @@ class HomeController @Inject()(
   def addChallenge = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, description, isAvailable, startAt, expireAt)  =>
+      { case (name, description, startAt, expiredAt)  =>
         try {
           challengeRepo
             .add(Challenge(name,
                           description,
                           Instant.ofEpochSecond(startAt),
-                          expireAt.map(Instant.ofEpochSecond).getOrElse(Instant.ofEpochSecond(startAt + 86400)),
-                          isAvailable))
+                          expiredAt.map(Instant.ofEpochSecond).getOrElse(Instant.ofEpochSecond(startAt + 86400))))
             .map(r => if(r < 0) InternalServerError else Created )
         } catch {
           case _: Throwable => Future(InternalServerError)
@@ -138,16 +138,14 @@ class HomeController @Inject()(
   def updateChallenge(id: UUID) = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, description, isAvailable, startAt, expireAt)  =>
+      { case (name, description, startAt, expiredAt)  =>
         try {
           challengeRepo
             .update(Challenge(id,
                               name,
                               description,
                               Instant.ofEpochSecond(startAt),
-                              expireAt.map(Instant.ofEpochSecond).getOrElse(Instant.ofEpochSecond(startAt + 86400)),
-                              isAvailable,
-                              Instant.now))
+                              Instant.ofEpochSecond(expiredAt.get)))
             .map(r => if(r < 0) NotFound else Ok)
         } catch {
           case _: Throwable => Future(InternalServerError)
@@ -161,8 +159,12 @@ class HomeController @Inject()(
       .map(r => if(r < 0) NotFound else Ok)
   }
 
-  def getChallengeByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
+  def getChallenge(date: Instant) = Action.async { implicit req =>
+    challengeService.getChallenge(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
+  }
+
+  def getDailyChallenge() = Action.async { implicit req =>
+    ???
   }
 
   def addTask = Action.async { implicit req =>
@@ -410,5 +412,9 @@ class HomeController @Inject()(
 
   def news() = Action.async { implicit req =>
     newsRepo.all().map(x => Ok(Json.toJson(x)))
+  }
+
+  def overAllHistory(limit: Int) = Action.async { implicit req =>
+    overAllGameHistoryRepo.all(limit).map(x => Ok(Json.toJson(x)))
   }
 }

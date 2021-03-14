@@ -22,7 +22,7 @@ import akka.common.objects._
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
 import models.domain.eosio.GQ.v2._
 
-object SchedulerActor {
+object GQSchedulerActor {
   var isIntialized: Boolean = false
   val defaultTimer: FiniteDuration = 5.minutes
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
@@ -39,45 +39,29 @@ object SchedulerActor {
             gameTxHistory: OverAllGameHistoryRepo,
             eosio: EOSIOSupport,
             smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
-    Props(classOf[SchedulerActor], characterRepo, historyRepo, gameTxHistory, eosio, smartcontract, system)
+    Props(classOf[GQSchedulerActor], characterRepo, historyRepo, gameTxHistory, eosio, smartcontract, system)
 }
 
 @Singleton
-class SchedulerActor @Inject()(
+class GQSchedulerActor @Inject()(
       characterRepo: GQCharacterDataRepo,
       gQGameHistoryRepo: GQCharacterGameHistoryRepo,
       gameTxHistory: OverAllGameHistoryRepo, // overall history for games..
       support: EOSIOSupport,
       eosio: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor with ActorLogging {
-  implicit val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
+  implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val dynamicBroadcastActor: ActorRef = system.actorOf(Props(classOf[DynamicBroadcastActor], None, system))
 
   override def preStart: Unit = {
     super.preStart
-    // check if intializer is the SchedulerActor module..
-    system.actorSelection("/user/SchedulerActor").resolveOne().onComplete {
+    // check if intializer is the GQSchedulerActor module..
+    system.actorSelection("/user/GQSchedulerActor").resolveOne().onComplete {
       case Success(actor) =>
-        if (!SchedulerActor.isIntialized) {
+        if (!GQSchedulerActor.isIntialized) {
           // scheduled 5minutes to start battle..
-          systemBattleScheduler(SchedulerActor.defaultTimer)
-
-          // // 24hrs Scheduler at 6:00AM in the morning daily.. (Platform ranking calculations)
-          // val dailySchedInterval: FiniteDuration = 24.hours
-          // val dailySchedDelay   : FiniteDuration = {
-          //     val time = LocalTime.of(17, 0).toSecondOfDay
-          //     val now = LocalTime.now().toSecondOfDay
-          //     val fullDay = 60 * 60 * 24
-          //     val difference = time - now
-          //     if (difference < 0) {
-          //       fullDay + difference
-          //     } else {
-          //       time - now
-          //     }
-          //   }.seconds
-
-          // system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => self ! DailyScheduler)
+          systemBattleScheduler(GQSchedulerActor.defaultTimer)
           // set true if actor already initialized
-          SchedulerActor.isIntialized = true
+          GQSchedulerActor.isIntialized = true
           log.info("Ghost Quest Scheduler Actor Initialized")
         }
 
@@ -86,69 +70,62 @@ class SchedulerActor @Inject()(
   }
 
   def receive: Receive = {
-    case SchedulerStatus(request) => request match {
-        case "BattleScheduler" => GQBattleScheduler.battleStatus match {
-            case "on_update" =>
-              GQBattleScheduler.nextBattle = 0 // reset timer to zero
-              self ! OnUpdateGQList("onupdate")
+    case GQSchedulerStatus =>
+      GQBattleScheduler.battleStatus match {
+        case "on_update" =>
+          GQBattleScheduler.nextBattle = 0 // reset timer to zero
+          self ! OnUpdateGQList("onupdate")
 
-            case "to_battle" =>
-              self ! OnUpdateGQList("onbattle")
+        case "to_battle" =>
+          self ! OnUpdateGQList("onbattle")
 
-            case "GQ_battle_finished" => {
-              support.unlockWalletAPI()
-              // insert batch mode
-              // Insert first on smartcontract, track where the insertion failed
-              // failed tx will be removed to list and will not be added to DB
-              GQBattleScheduler.battleCounter.map { count =>
-                val winner = count._2.characters.filter(_._2._2).head
-                val loser = count._2.characters.filter(!_._2._2).head
-                val request: Seq[(String, String)] = Seq((winner._1, winner._2._1), (loser._1, loser._2._1))
+        case "GQ_battle_finished" => {
+          support.unlockWalletAPI()
+          // insert batch mode
+          // Insert first on smartcontract, track where the insertion failed
+          // failed tx will be removed to list and will not be added to DB
+          GQBattleScheduler.battleCounter.map { count =>
+            val winner = count._2.characters.filter(_._2._2).head
+            val loser = count._2.characters.filter(!_._2._2).head
+            val request: Seq[(String, String)] = Seq((winner._1, winner._2._1), (loser._1, loser._2._1))
 
-                eosio.battleAction(count._1, request).map {
-                  case Some(e) =>
-                  case e =>
-                    GQBattleScheduler.smartcontractTxFailed += count._1
-                    // track failed tx here..
-                    log.error("Error: Battle ")
-                }
-                Thread.sleep(300)
-              }
-              // remove failed txs on the list before inserting to DB
-              GQBattleScheduler.battleCounter.filterNot(ch => GQBattleScheduler.smartcontractTxFailed.contains(ch._1))
-              Thread.sleep(2000)
-              // convert into OverAllGameHistory
-              saveHistoryDB(GQBattleScheduler.battleCounter)
+            eosio.battleAction(count._1, request).map {
+              case Some(e) =>
+              case e =>
+                GQBattleScheduler.smartcontractTxFailed += count._1
+                // track failed tx here..
+                log.error("Error: Battle ")
             }
-
-            case "GQ_insert_DB" =>
-              Thread.sleep(1000)
-              support.lockAllWallets()
-              // update latest characters on DB..
-              self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some("update_characters"))
-              // on battle start reset timer to 0 and set new timer until the battle finished
-              // set back the time for next battle..
-              GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
-              // broadcast to all connected users the next GQ battle
-              dynamicBroadcastActor ! "BROADCAST_NEXT_BATTLE"
-              systemBattleScheduler(SchedulerActor.defaultTimer)
-            case _ => // "GQ_insert_DB"
-              // do nothing
+            Thread.sleep(300)
           }
+          // remove failed txs on the list before inserting to DB
+          GQBattleScheduler.battleCounter.filterNot(ch => GQBattleScheduler.smartcontractTxFailed.contains(ch._1))
+          Thread.sleep(2000)
+          // convert into OverAllGameHistory
+          saveHistoryDB(GQBattleScheduler.battleCounter)
+        }
 
-        case _ =>
-      // send notify if charcters are being updated to avoid conflict
-      // eosio.getGQUsers()
-      // on first load, check if DB is updated
-      // fetch and validate latest chracters as isNew = true on smartcontract
-    }
+        case "GQ_insert_DB" =>
+          Thread.sleep(1000)
+          support.lockAllWallets()
+          // update latest characters on DB..
+          self ! VerifyGQUserTable(GQSchedulerActor.eosTblRowsRequest, Some("update_characters"))
+          // on battle start reset timer to 0 and set new timer until the battle finished
+          // set back the time for next battle..
+          GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
+          // broadcast to all connected users the next GQ battle
+          dynamicBroadcastActor ! "BROADCAST_NEXT_BATTLE"
+          systemBattleScheduler(GQSchedulerActor.defaultTimer)
+        case _ => // "GQ_insert_DB"
+          // do nothing
+      }
 
     case OnUpdateGQList(req) => req match {
       case "onupdate" =>
-        self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some(req))
+        self ! VerifyGQUserTable(GQSchedulerActor.eosTblRowsRequest, Some(req))
 
       case "RemoveCharacterWithNoLife" =>
-        self ! VerifyGQUserTable(SchedulerActor.eosTblRowsRequest, Some(req))
+        self ! VerifyGQUserTable(GQSchedulerActor.eosTblRowsRequest, Some(req))
 
       case "onbattle" =>
         val characters: HashMap[String, GQCharacterData] = GQBattleScheduler.characters
@@ -170,7 +147,7 @@ class SchedulerActor @Inject()(
         // save all characters that has no available to play
         GQBattleScheduler.characters.clear
         GQBattleScheduler.battleStatus = "GQ_battle_finished"
-        self ! SchedulerStatus("BattleScheduler")
+        self ! GQSchedulerStatus
 
       case "Unknown" => log.info("OnUpdateGQList Unknown")
     }
@@ -220,7 +197,7 @@ class SchedulerActor @Inject()(
           sender match {
             case Some("onupdate") =>
               GQBattleScheduler.battleStatus = "to_battle"
-              self ! SchedulerStatus("BattleScheduler")
+              self ! GQSchedulerStatus
 
             case Some("RemoveCharacterWithNoLife") =>
               GQBattleScheduler.isRemoving = false
@@ -261,7 +238,7 @@ class SchedulerActor @Inject()(
         GQBattleScheduler.eliminatedOrWithdrawn.clear
         GQBattleScheduler.isRemoving = false
         GQBattleScheduler.battleStatus = "GQ_insert_DB"
-        self ! SchedulerStatus("BattleScheduler")
+        self ! GQSchedulerStatus
       }
 
 
@@ -273,7 +250,7 @@ class SchedulerActor @Inject()(
             // broadcast to all connected users the next GQ battle
             GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
             dynamicBroadcastActor ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
-            systemBattleScheduler(SchedulerActor.defaultTimer)
+            systemBattleScheduler(GQSchedulerActor.defaultTimer)
           })
         else response.map(self ! _)
       }
@@ -383,7 +360,7 @@ class SchedulerActor @Inject()(
   def systemBattleScheduler(timer: FiniteDuration): Cancellable = {
     system.scheduler.scheduleOnce(timer) {
       GQBattleScheduler.battleStatus = "on_update"
-      self ! SchedulerStatus("BattleScheduler")
+      self ! GQSchedulerStatus
     }
   }
 }

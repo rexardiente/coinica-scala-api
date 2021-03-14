@@ -19,7 +19,7 @@ case class GQGameHistory(name: String, prediction: String, result: Int, bet: Dou
 	override def toJson(): JsValue = Json.toJson(this)
 }
 // prediction equals list of panels selected and check if `result == prediction` is win else lose
-case class THGameHistory(name: String, prediction: List[Int], result: List[Int], bet: Double) extends TransactionType {
+case class THGameHistory(name: String, prediction: List[Int], result: List[Int], bet: Double, profit: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
 case class GameType(name: String, isWin: Boolean, amount: Double) extends TransactionType {

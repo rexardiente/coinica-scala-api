@@ -15,14 +15,12 @@ final class ChallengeDAO @Inject()(
 
   protected class ChallengeTable(tag: Tag) extends Table[Challenge](tag, "CHALLENGE") {
     def id = column[UUID] ("ID", O.PrimaryKey)
-    def name = column[String] ("NAME")
+    def gameID = column[UUID] ("GAME_ID")
     def description = column[String] ("DESCRIPTION")
-    def startAt = column[Instant] ("START_AT")
-    def expireAt = column[Instant] ("EXPIRE_AT")
-    def isAvailable = column[Boolean] ("IS_AVAILABLE")
     def createdAt = column[Instant] ("CREATED_AT")
+    def expiredAt = column[Instant] ("EXPIRE_AT")
 
-    def * = (id, name, description, startAt, expireAt, isAvailable, createdAt) <> (Challenge.tupled, Challenge.unapply)
+    def * = (id, gameID, description, createdAt, expiredAt) <> (Challenge.tupled, Challenge.unapply)
   }
 
   object Query extends TableQuery(new ChallengeTable(_)) {
