@@ -1,15 +1,15 @@
 package models.service
 
 import javax.inject.{ Inject, Singleton }
-import java.time.{ LocalTime, LocalDate, LocalDateTime }
+import java.time.{ LocalTime, LocalDate, LocalDateTime, Instant, ZoneId }
 import java.util.UUID
-import java.time.{ Instant, ZoneId }
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import Ordering.Double.IeeeOrdering
 import play.api.libs.json.{ Json, JsValue }
-import models.domain.{ PaginatedResult, Challenge, ChallengeHistory }
-import models.repo.{ ChallengeRepo, ChallengeHistoryRepo }
+import models.domain.{ PaginatedResult, Challenge, ChallengeTracker, ChallengeHistory }
+import models.repo.{ ChallengeRepo, ChallengeTrackerRepo, ChallengeHistoryRepo }
 
 // import java.time.{ Instant, ZoneId }
 // Instant.now().atZone(ZoneId.systemDefault)
@@ -17,12 +17,13 @@ import models.repo.{ ChallengeRepo, ChallengeHistoryRepo }
 @Singleton
 class ChallengeService @Inject()(
   challenge: ChallengeRepo,
+  tracker: ChallengeTrackerRepo,
   history: ChallengeHistoryRepo) {
   private val defaultTimeZone: ZoneId = ZoneId.systemDefault
 
   def paginatedResult[T >: Challenge](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 	  for {
-      tasks <- challenge.findAll(limit, offset)
+      tasks <- challenge.all()
       size <- challenge.getSize()
       hasNext <- Future(size - (offset + limit) > 0)
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
@@ -47,15 +48,7 @@ class ChallengeService @Inject()(
     // val todayEpoch: Long = todayInstant.getEpochSecond
     history.findByDate(todayInstant)
   }
-  // def getChallengeByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
-  //   try {
-  //     for {
-  //       txs <- challenge.findByDaily(start.getEpochSecond, limit, offset)
-  //       size <- challengeRepo.getSize()
-  //       hasNext <- Future(size - (offset + limit) > 0)
-  //     } yield Json.toJson(PaginatedResult(txs.size, txs.toList, hasNext))
-  //   } catch {
-  //     case e: Throwable => Future(Json.obj("err" -> e.toString))
-  //   }
-  // }
+
+  def getDailyRanksChallenge(): Future[Seq[ChallengeTracker]] =
+    tracker.all.map(_.sortBy(-_.wagered).take(10))
 }

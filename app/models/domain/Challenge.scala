@@ -28,16 +28,20 @@ case class Challenge(id: UUID,
 										createdAt: Instant,
 										expiredAt: Instant)
 
-object ChallengeWinner extends utils.CommonImplicits
+object ChallengeTracker extends utils.CommonImplicits {
+	val tupled = (apply: (String, UUID, Double, Double, Double, Double) => ChallengeTracker).tupled
+}
 object ChallengeHistory extends utils.CommonImplicits {
-	val tupled = (apply: (UUID, UUID, List[ChallengeWinner], Instant) => ChallengeHistory).tupled
-	def apply(id: UUID, challengeID: UUID, winners: List[ChallengeWinner], createdAt: Instant): ChallengeHistory =
-			new ChallengeHistory(id, challengeID, winners, Instant.now)
-	def apply(challengeID: UUID, winners: List[ChallengeWinner], vipPoints: Double): ChallengeHistory =
-		new ChallengeHistory(UUID.randomUUID, challengeID, winners, Instant.now)
+	val tupled = (apply: (UUID, UUID, Seq[ChallengeTracker], Instant) => ChallengeHistory).tupled
+	def apply(id: UUID, challengeID: UUID, rank_users: Seq[ChallengeTracker], createdAt: Instant): ChallengeHistory =
+			new ChallengeHistory(id, challengeID, rank_users, Instant.now)
+	def apply(challengeID: UUID, rank_users: Seq[ChallengeTracker], vipPoints: Double): ChallengeHistory =
+		new ChallengeHistory(UUID.randomUUID, challengeID, rank_users, Instant.now)
 }
 
-case class ChallengeWinner(rank: Int, user: String, bets: Double, wagered: Double, ratio: Double, prize: Double)
-case class ChallengeHistory(id: UUID, challengeID: UUID, winners: List[ChallengeWinner], createdAt: Instant) {
+case class ChallengeTracker(user: String, challengeID: UUID, bets: Double, wagered: Double, ratio: Double, prize: Double) {
+	def toJson(): JsValue = Json.toJson(this)
+}
+case class ChallengeHistory(id: UUID, challengeID: UUID, rank_users: Seq[ChallengeTracker], createdAt: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
 }

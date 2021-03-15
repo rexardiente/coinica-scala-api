@@ -7,7 +7,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus, GameLog }
-import models.domain.{ ChallengeWinner, TransactionType }
+import models.domain.{ ChallengeTracker, TransactionType }
 import models.domain.enum._
 import ejisan.kuro.otp.OTPKey
 import ejisan.scalauthx.HashedCredential
@@ -47,9 +47,12 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val gqGameLogColumnMapper = MappedColumnType.base[List[GameLog], JsValue](
     s => Json.toJson(s),
     i => i.as[List[GameLog]])
-  implicit val challengeWinnerColumnMapper = MappedColumnType.base[List[ChallengeWinner], JsValue](
+  implicit val challengeTrackerColumnMapper = MappedColumnType.base[List[ChallengeTracker], JsValue](
     s => Json.toJson(s),
-    i => i.as[List[ChallengeWinner]])
+    i => i.as[List[ChallengeTracker]])
+  implicit val challengeTrackerMapper = MappedColumnType.base[Seq[ChallengeTracker], JsValue](
+    s => JsArray(s.map(Json.toJson(_))),
+    i => i.as[Seq[ChallengeTracker]])
   implicit val jodaTimeMapping: BaseColumnType[DateTime] = MappedColumnType.base[DateTime, Timestamp](
     dateTime => new Timestamp(dateTime.getMillis),
     timeStamp => new DateTime(timeStamp.getTime))

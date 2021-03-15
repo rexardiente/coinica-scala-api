@@ -25,5 +25,6 @@ final class ChallengeDAO @Inject()(
 
   object Query extends TableQuery(new ChallengeTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
+    def apply(createdAt: Instant) = this.withFilter(_.createdAt === createdAt)
   }
 }

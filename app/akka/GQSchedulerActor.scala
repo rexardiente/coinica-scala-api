@@ -2,23 +2,33 @@ package akka
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.{ LocalTime, Instant }
-import scala.util._
+import java.time.Instant
+import scala.util.{ Success, Failure }
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import akka.util.Timeout
-import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
+import akka.actor.{
+        ActorRef,
+        Actor,
+        ActorSystem,
+        Props,
+        ActorLogging,
+        Cancellable }
 import play.api.libs.ws.WSClient
-import play.api.libs.json._
+import akka.common.objects.{
+        GQSchedulerStatus,
+        GQBattleScheduler,
+        OnUpdateGQList,
+        VerifyGQUserTable,
+        RemoveCharacterWithNoLife }
 import models.domain.OutEvent
-import models.domain.eosio._
+import models.domain.eosio.{ TableRowsRequest, GQCharacterGameHistory, GQBattleResult }
 import models.domain.{ OverAllGameHistory, GameType, GQGameHistory }
 import models.repo.OverAllGameHistoryRepo
-import models.repo.eosio._
+import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.service.GQSmartContractAPI
-import akka.common.objects._
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
 import models.domain.eosio.GQ.v2._
 
@@ -64,7 +74,6 @@ class GQSchedulerActor @Inject()(
           GQSchedulerActor.isIntialized = true
           log.info("Ghost Quest Scheduler Actor Initialized")
         }
-
       case Failure(ex) => // if actor is not yet created do nothing..
     }
   }
@@ -116,8 +125,7 @@ class GQSchedulerActor @Inject()(
           // broadcast to all connected users the next GQ battle
           dynamicBroadcastActor ! "BROADCAST_NEXT_BATTLE"
           systemBattleScheduler(GQSchedulerActor.defaultTimer)
-        case _ => // "GQ_insert_DB"
-          // do nothing
+        case _ => // do nothing
       }
 
     case OnUpdateGQList(req) => req match {
@@ -255,11 +263,7 @@ class GQSchedulerActor @Inject()(
         else response.map(self ! _)
       }
 
-    case DailyScheduler =>
-      log.warning("Tracker every 5PM daily!!!!")
-
-    case e =>
-      log.info("Error: Unkown data received")
+    case e => log.info("Error: Unkown data received")
   }
 
   def battleProcess(params: HashMap[String, GQCharacterData]): Unit = {

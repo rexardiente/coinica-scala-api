@@ -18,6 +18,7 @@ class Generator @Inject()(
     ranking: RankingDAO,
     challenge: ChallengeDAO,
     challengeHistory: ChallengeHistoryDAO,
+    challengeTracker: ChallengeTrackerDAO,
     gqCharacterData: GQCharacterDataDAO,
     gqCharacterGameHistory: GQCharacterGameHistoryDAO,
     gqCharacterDataHistory: GQCharacterDataHistoryDAO,
@@ -43,6 +44,7 @@ class Generator @Inject()(
       ranking.Query.schema ++
       challenge.Query.schema ++
       challengeHistory.Query.schema ++
+      challengeTracker.Query.schema ++
       gqCharacterData.Query.schema ++
       gqCharacterGameHistory.Query.schema ++
       gqCharacterDataHistory.Query.schema ++

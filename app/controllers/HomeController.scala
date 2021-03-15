@@ -163,8 +163,8 @@ class HomeController @Inject()(
     challengeService.getChallenge(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
   }
 
-  def getDailyChallenge() = Action.async { implicit req =>
-    ???
+  def getDailyRanksChallenge() = Action.async { implicit req =>
+    challengeService.getDailyRanksChallenge.map(x => Ok(Json.toJson(x)))
   }
 
   def addTask = Action.async { implicit req =>
