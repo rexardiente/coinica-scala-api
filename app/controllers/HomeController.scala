@@ -23,6 +23,7 @@ import akka.WebSocketActor
 @Singleton
 class HomeController @Inject()(
       loginRepo: LoginRepo,
+      userAccRepo: UserAccountRepo,
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       taskRepo: TaskRepo,
@@ -48,11 +49,8 @@ class HomeController @Inject()(
 
   /*  CUSTOM FORM VALIDATION */
   private def referralForm = Form(tuple(
-    "referralname" -> nonEmptyText,
-    "referrallink" -> nonEmptyText,
-    "rate" -> number,
-    "feeamount" -> number,
-    "referralcreated" -> longNumber))
+    "code" -> nonEmptyText,
+    "applied_by" -> nonEmptyText))
   private def challengeForm = Form(tuple(
     "name" -> uuid,
     "description" -> nonEmptyText,
@@ -81,7 +79,13 @@ class HomeController @Inject()(
 
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
-      WebSocketActor.props(out, gQCharacterDataRepo, gQCharacterGameHistoryRepo, overAllGameHistoryRepo, eosio, gqSmartContractAPI)
+      WebSocketActor.props(out,
+                          userAccRepo,
+                          gQCharacterDataRepo,
+                          gQCharacterGameHistoryRepo,
+                          overAllGameHistoryRepo,
+                          eosio,
+                          gqSmartContractAPI)
     }
   }
 
@@ -91,30 +95,26 @@ class HomeController @Inject()(
     // Future.successful(Ok(views.html.index()))
   }
 
-  def addReferral = Action.async { implicit req =>
-    referralForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (referralname, referrallink,rate,feeamount,referralcreated)  =>
-        referralRepo
-          .add(Referral(UUID.randomUUID, referralname, referrallink,rate,feeamount,referralcreated))
-          .map(r => if(r < 0) InternalServerError else Created )
-      })
+  def userAccount(user: String) = Action.async { implicit req =>
+    userAccRepo.getUserAccount(user).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
   }
 
-  def updateReferral(id: UUID) = Action.async { implicit req =>
-    referralForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (referralname, referrallink,rate,feeamount,referralcreated) =>
-        referralRepo
-          .update(Referral(id, referralname, referrallink,rate,feeamount,referralcreated))
-          .map(r => if(r < 0) NotFound else Ok)
-      })
+  def getReferralHistory(code: String) = Action.async { implicit req =>
+    referralService.getByCode(code).map(x => Ok(Json.toJson(x)))
   }
 
-  def removeReferral(id: UUID) = Action.async { implicit req =>
-    referralRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
+  def applyReferralCode() = Action.async { implicit req =>
+    referralForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (code, appliedBy)  =>
+        try {
+          referralService
+            .applyReferralCode(code, appliedBy)
+            .map(r => if(r < 0) InternalServerError else Created )
+        } catch {
+          case _: Throwable => Future(InternalServerError)
+        }
+      })
   }
 
   def addChallenge = Action.async { implicit req =>
@@ -201,14 +201,6 @@ class HomeController @Inject()(
     taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
   }
 
-  def referraldate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
-  }
-
-  def referraldaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-       referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
-  }
-
   def addRanking = Action.async { implicit req =>
     rankingForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
@@ -245,10 +237,6 @@ class HomeController @Inject()(
 
   def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
-  }
-
-  def referralmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
   }
 
   def games() = Action.async { implicit req =>

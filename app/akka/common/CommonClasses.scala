@@ -7,8 +7,8 @@ import akka.actor.ActorRef
 import models.domain.eosio.{ TableRowsRequest, GQBattleResult }
 import models.domain.eosio.GQ.v2._
 
-case class Connect(connection: ActorRef) extends AnyVal
-case class Disconnect(disconnection: ActorRef) extends AnyVal
+case class Connect(username: String) extends AnyVal
+// case class Disconnect(disconnection: ActorRef) extends AnyVal
 case class VerifyGQUserTable(request: TableRowsRequest, sender: Option[String])
 case class OnUpdateGQList(request: String)
 // case class SetOfGQCharacterInfo(list: Seq[GQCharacterData]) extends AnyVal

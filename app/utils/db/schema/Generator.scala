@@ -3,13 +3,12 @@ package utils.db.schema
 import javax.inject.{ Inject, Singleton }
 import play.api.Logger
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.dao.user.UserDAO
 import models.dao._
 
 @Singleton
 class Generator @Inject()(
     login : LoginDAO,
-    user: UserDAO,
+    user: UserAccountDAO,
     game: GameDAO,
     genre: GenreDAO,
     task: TaskDAO,

@@ -26,39 +26,31 @@ class ReferralRepo @Inject()(
   def update(referral: Referral): Future[Int] =
     db.run(dao.Query.filter(_.id ===referral.id).update(referral))
 
-  def all(limit: Int, offset: Int): Future[Seq[Referral]] =
-    db.run(dao.Query
-      .drop(offset)
-      .take(limit)
-      .result)
+  def all(): Future[Seq[Referral]] =
+    db.run(dao.Query.result)
 
-  def exist(id: UUID): Future[Boolean] = 
+  def exist(id: UUID): Future[Boolean] =
     db.run(dao.Query(id).exists.result)
 
-  def findByID(id: UUID, limit: Int, offset: Int): Future[Seq[Referral]] =
-    db.run(dao.Query.filter(r => r.id === id  )
-      .drop(offset)
-      .take(limit)
-      .result)
-      
-  def findByDaily( currentdate: Long, limit: Int, offset: Int): Future[Seq[Referral]] = 
-   db.run(dao.Query.filter(r =>  r.referralcreated === currentdate) 
-     .drop(offset)
-     .take(limit)
-     .result)
-      
- 
-  def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Referral]] =
-   db.run(dao.Query.filter(r => r.referralcreated >= startdate && r.referralcreated <= enddate ) 
-     .drop(offset)
-     .take(limit)
-     .result)
+  def getByCode(code: String): Future[Seq[Referral]] =
+    db.run(dao.Query.filter(r => r.code === code).result)
 
-  def findAll(limit: Int, offset: Int): Future[Seq[Referral]] = 
+  // def findByDaily(currentdate: Long, limit: Int, offset: Int): Future[Seq[Referral]] =
+  //  db.run(dao.Query.filter(r =>  r.createdAt === currentdate)
+  //    .drop(offset)
+  //    .take(limit)
+  //    .result)
+  // def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Referral]] =
+  //  db.run(dao.Query.filter(r => r.createdAt >= startdate && r.createdAt <= enddate )
+  //    .drop(offset)
+  //    .take(limit)
+  //    .result)
+
+  def findAll(limit: Int, offset: Int): Future[Seq[Referral]] =
     db.run(dao.Query.drop(offset).take(limit).result)
 
-  def getSize(): Future[Int] =  
+  def getSize(): Future[Int] =
     db.run(dao.Query.length.result)
 
-  
+
 }

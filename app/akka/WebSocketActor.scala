@@ -8,20 +8,29 @@ import play.api.libs.json._
 import models.domain._
 import models.domain.Event._
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import models.repo.OverAllGameHistoryRepo
+import models.repo.{ OverAllGameHistoryRepo, UserAccountRepo }
 import models.service.GQSmartContractAPI
-import akka.common.objects.GQBattleScheduler
+import akka.common.objects.{ Connect, GQBattleScheduler }
 import utils.lib.EOSIOSupport
 
 object WebSocketActor {
   def props(
       out: ActorRef,
+      userAccRepo: UserAccountRepo,
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
       eosio: EOSIOSupport,
       smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
-    Props(classOf[WebSocketActor], out, characterRepo, historyRepo, overAllGameHistory, eosio, smartcontract, system)
+    Props(classOf[WebSocketActor],
+          out,
+          userAccRepo,
+          characterRepo,
+          historyRepo,
+          overAllGameHistory,
+          eosio,
+          smartcontract,
+          system)
 
   val subscribers = scala.collection.mutable.HashMap.empty[String, ActorRef]
 }
@@ -29,6 +38,7 @@ object WebSocketActor {
 @Singleton
 class WebSocketActor@Inject()(
       out: ActorRef,
+      userAccRepo: UserAccountRepo,
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
@@ -122,6 +132,8 @@ class WebSocketActor@Inject()(
                 case _ =>
                   WebSocketActor.subscribers.addOne(id -> out)
                   out ! OutEvent(JsString(id), JsString(msg))
+                  // check if user connects doenst exists else do nothing..
+                  self ! Connect(id)
               }
 
           case _ =>
@@ -138,6 +150,9 @@ class WebSocketActor@Inject()(
       case "payout" =>
       case "point" =>
     }
+    // save new users into DB users..
+    case Connect(user) =>
+      userAccRepo.exist(user).map(x => if(!x) userAccRepo.add(UserAccount(user)))
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))
   }

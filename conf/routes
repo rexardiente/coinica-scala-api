@@ -14,7 +14,6 @@ GET     /donut/api/v1/login/weekly               controllers.AdminController.log
 GET     /donut/api/v1/login/daily                controllers.AdminController.logindate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/login/monthly              controllers.AdminController.logindate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 
-GET     /                                        controllers.HomeController.index
 # Challenge API
 #POST    /donut/api/v1/challenge/add                   controllers.HomeController.addChallenge
 #PUT     /donut/api/v1/challenge/update               controllers.HomeController.updateChallenge(id: UUID)
@@ -25,7 +24,6 @@ GET     /donut/api/v1/challenge/ranks/daily   controllers.HomeController.getDail
 # GET     /donut/api/v1/challenge/daily                controllers.HomeController.challengedaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 # GET     /donut/api/v1/challenge/monthly              controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 
-GET     /                                        controllers.HomeController.index
 # Ranking API
 
 POST    /donut/api/v1/ranking/add                   controllers.HomeController.addRanking
@@ -36,16 +34,10 @@ GET     /donut/api/v1/ranking/weekly               controllers.HomeController.ra
 GET     /donut/api/v1/ranking/daily                controllers.HomeController.rankingdaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/ranking/monthly              controllers.HomeController.rankingdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 
-GET     /                                        controllers.HomeController.index
 # Referral API
-POST    /donut/api/v1/referrall/add                   controllers.HomeController.addReferral
-PUT     /donut/api/v1/referral/update               controllers.HomeController.updateReferral(id: UUID)
-POST    /donut/api/v1/referral/remove                controllers.HomeController.removeReferral(id: UUID)
-GET     /donut/api/v1/referral/weekly               controllers.HomeController.referraldate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-GET     /donut/api/v1/referral/daily                controllers.HomeController.referraldaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-GET     /donut/api/v1/referral/monthly              controllers.HomeController.referralmonthly(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+POST   	/donut/api/v1/referral/apply              controllers.HomeController.applyReferralCode
+GET    	/donut/api/v1/referral/history/:code      controllers.HomeController.getReferralHistory(code: String)
 
-GET     /                                        controllers.HomeController.index
 # Task API
 GET     /donut/api/v1/task/weekly                controllers.HomeController.taskdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/task/daily                controllers.HomeController.taskdaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
@@ -63,13 +55,13 @@ POST    /donut/api/v1/game/remove                controllers.HomeController.remo
 GET     /donut/api/v1/genres                     controllers.HomeController.genres
 
 # An example controller showing a sample home page
-# WebsocGET     /donut/api/v1/genre/find                 controllers.HomeController.findGenreByID(id: UUID)
+# WebsocGET     /donut/api/v1/genre/find         controllers.HomeController.findGenreByID(id: UUID)
 POST    /donut/api/v1/genre/add                  controllers.HomeController.addGenre
 PUT     /donut/api/v1/genre/update               controllers.HomeController.updateGenre(id: UUID)
 POST    /donut/api/v1/genre/remove               controllers.HomeController.removeGenre(id: UUID)
 
 # Transaction API
-GET    /donut/api/v1/txs               			 controllers.HomeController.transactions(start: java.time.Instant, end: Option[java.time.Instant], limit: Int ?= 10, offset: Int ?= 0)
+GET    /donut/api/v1/txs               			 	 controllers.HomeController.transactions(start: java.time.Instant, end: Option[java.time.Instant], limit: Int ?= 10, offset: Int ?= 0)
 GET    /donut/api/v1/tx/find              	 	 controllers.HomeController.transactionByTraceID(trace_id: String)
 
 # Ghost Quest API
@@ -98,6 +90,9 @@ GET   /donut/api/v1/game/all/history controllers.HomeController.overAllHistory(l
 
 # TODO: News with pagination
 GET   /donut/api/v1/news controllers.HomeController.news
+
+# User Account
+GET   /donut/api/v1/account/user/:user controllers.HomeController.userAccount(user)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
