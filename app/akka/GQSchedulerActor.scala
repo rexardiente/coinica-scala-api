@@ -69,7 +69,7 @@ class GQSchedulerActor @Inject()(
       case Success(actor) =>
         if (!GQSchedulerActor.isIntialized) {
           // scheduled 5minutes to start battle..
-          systemBattleScheduler(GQSchedulerActor.defaultTimer)
+          // systemBattleScheduler(GQSchedulerActor.defaultTimer)
           // set true if actor already initialized
           GQSchedulerActor.isIntialized = true
           log.info("Ghost Quest Scheduler Actor Initialized")

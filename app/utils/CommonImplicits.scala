@@ -494,4 +494,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit def implChallenge = Json.format[Challenge]
 	implicit def implChallengeTracker = Json.format[ChallengeTracker]
 	implicit def implChallengeHistory = Json.format[ChallengeHistory]
+	implicit def implTaskHistory = Json.format[TaskHistory]
+	implicit def implTask = Json.format[Task]
+	implicit def implDailyTask = Json.format[DailyTask]
 }

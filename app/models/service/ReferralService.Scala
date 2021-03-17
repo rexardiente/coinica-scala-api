@@ -46,8 +46,6 @@ class ReferralService @Inject()(userAccountRepo: UserAccountRepo, referralRepo: 
         else Future(0)
       }
     } yield result
-
-
   // def getReferralByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   // 	try {
   // 		for {

@@ -39,9 +39,9 @@ POST   	/donut/api/v1/referral/apply              controllers.HomeController.app
 GET    	/donut/api/v1/referral/history/:code      controllers.HomeController.getReferralHistory(code: String)
 
 # Task API
-GET     /donut/api/v1/task/weekly                controllers.HomeController.taskdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-GET     /donut/api/v1/task/daily                controllers.HomeController.taskdaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-GET     /donut/api/v1/task/monthly                controllers.HomeController.taskmonthly(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+#GET     /donut/api/v1/task/weekly                controllers.HomeController.taskdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+GET     /donut/api/v1/task/daily                controllers.HomeController.getTodayTaskUpdates(user: String, game_id: UUID)
+GET     /donut/api/v1/task/monthly                controllers.HomeController.getMonthlyTaskUpdates(user: String, game_id: UUID)
 
 
 # Game API

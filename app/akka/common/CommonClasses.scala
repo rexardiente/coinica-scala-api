@@ -10,9 +10,8 @@ import models.domain.eosio.GQ.v2._
 case class Connect(username: String) extends AnyVal
 // case class Disconnect(disconnection: ActorRef) extends AnyVal
 case class VerifyGQUserTable(request: TableRowsRequest, sender: Option[String])
-case class OnUpdateGQList(request: String)
-// case class SetOfGQCharacterInfo(list: Seq[GQCharacterData]) extends AnyVal
-// case class SetOfGQCharacterGameHistory(list: Seq[GQCharacterPrevMatch]) extends AnyVal
+case class OnUpdateGQList(request: String) extends AnyVal
+case class ProcessOverAllChallenge(expiredAt: Long) extends AnyVal
 
 object GQBattleScheduler {
 	var nextBattle: Long = 0
@@ -29,4 +28,7 @@ object RemoveCharacterWithNoLife
 object GQResetScheduler
 object GQSchedulerStatus
 object ChallengeScheduler
-case class ProcessOverAllChallenge(expiredAt: Long) extends AnyVal
+object DailyTaskScheduler
+object CreateNewDailyTask
+object WeeklyTaskScheduler
+object MonthlyTaskScheduler

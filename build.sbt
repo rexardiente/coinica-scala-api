@@ -1,9 +1,25 @@
+import com.typesafe.sbt.packager.docker.DockerChmodType
+
 name := """eos-game-store-api"""
 organization := "com.example"
 version := "1.0-SNAPSHOT"
 scalaVersion := "2.13.1"
 
-lazy val root = (project in file(".")).enablePlugins(PlayScala)
+lazy val root = (project in file("."))
+	.enablePlugins(PlayScala)
+	.enablePlugins(DockerPlugin)
+
+// mappings in Docker := mappings.value
+packageName in Docker := packageName.value
+dockerBaseImage in Docker := "openjdk:8-jre-alpine"
+version in Docker := version.value
+dockerExposedPorts ++= Seq(9000, 9001)
+dockerAdditionalPermissions in Docker += (DockerChmodType.UserGroupPlusExecute, "/opt/docker/bin/eos-game-store-api")
+dockerChmodType in Docker := DockerChmodType.UserGroupWriteExecute
+javaOptions in Universal ++= Seq(
+  "-Dpidfile.path=/dev/null"
+  // "-Dplay.server.pidfile.path=/dev/null"
+)
 
 libraryDependencies ++= Seq(
 	guice,

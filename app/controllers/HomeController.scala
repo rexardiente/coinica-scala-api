@@ -167,39 +167,46 @@ class HomeController @Inject()(
     challengeService.getDailyRanksChallenge.map(x => Ok(Json.toJson(x)))
   }
 
-  def addTask = Action.async { implicit req =>
-    taskForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (gameID, info, isValid, datecreated)  =>
-        taskRepo
-          .add(Task(UUID.randomUUID, gameID, info, isValid, datecreated))
-          .map(r => if(r < 0) InternalServerError else Created )
-      })
+  def getTodayTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
+    taskService.getTodayTaskUpdates(user, gameID).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
   }
 
-  def updateTask(id: UUID) = Action.async { implicit req =>
-    taskForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (gameID, info, isValid, datecreated) =>
-        taskRepo
-          .update(Task(id, gameID, info, isValid, datecreated))
-          .map(r => if(r < 0) NotFound else Ok)
-      })
+  def getMonthlyTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
+    taskService.getTodayTaskUpdates(user, gameID).map(x => Ok(Json.toJson(x)))
   }
+  // def addTask = Action.async { implicit req =>
+  //   taskForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (gameID, info, isValid, datecreated)  =>
+  //       taskRepo
+  //         .add(Task(UUID.randomUUID, gameID, info, isValid, datecreated))
+  //         .map(r => if(r < 0) InternalServerError else Created )
+  //     })
+  // }
 
-  def removeTask(id: UUID) = Action.async { implicit req =>
-    taskRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
-  }
+  // def updateTask(id: UUID) = Action.async { implicit req =>
+  //   taskForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (gameID, info, isValid, datecreated) =>
+  //       taskRepo
+  //         .update(Task(id, gameID, info, isValid, datecreated))
+  //         .map(r => if(r < 0) NotFound else Ok)
+  //     })
+  // }
 
-  def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
-  }
+  // def removeTask(id: UUID) = Action.async { implicit req =>
+  //   taskRepo
+  //     .delete(id)
+  //     .map(r => if(r < 0) NotFound else Ok)
+  // }
 
-  def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
-  }
+  // def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
+  //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
+  // }
+
+  // def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
+  //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
+  // }
 
   def addRanking = Action.async { implicit req =>
     rankingForm.bindFromRequest.fold(
@@ -233,10 +240,6 @@ class HomeController @Inject()(
 
   def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
       rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
-  }
-
-  def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
   }
 
   def games() = Action.async { implicit req =>

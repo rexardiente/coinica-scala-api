@@ -2,6 +2,7 @@ package utils
 
 import java.time.Instant
 import java.sql.Timestamp
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -53,6 +54,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val challengeTrackerMapper = MappedColumnType.base[Seq[ChallengeTracker], JsValue](
     s => JsArray(s.map(Json.toJson(_))),
     i => i.as[Seq[ChallengeTracker]])
+  implicit val seqUUIDMapper = MappedColumnType.base[Seq[UUID], JsValue](
+    s => JsArray(s.map(Json.toJson(_))),
+    i => i.as[Seq[UUID]])
   implicit val jodaTimeMapping: BaseColumnType[DateTime] = MappedColumnType.base[DateTime, Timestamp](
     dateTime => new Timestamp(dateTime.getMillis),
     timeStamp => new DateTime(timeStamp.getTime))

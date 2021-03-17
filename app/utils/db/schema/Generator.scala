@@ -12,6 +12,8 @@ class Generator @Inject()(
     game: GameDAO,
     genre: GenreDAO,
     task: TaskDAO,
+    dailyTask: DailyTaskDAO,
+    taskHistory: TaskHistoryDAO,
     eosNetTx: EOSNetTransactionDAO,
     referral: ReferralDAO,
     ranking: RankingDAO,
@@ -21,7 +23,6 @@ class Generator @Inject()(
     gqCharacterData: GQCharacterDataDAO,
     gqCharacterGameHistory: GQCharacterGameHistoryDAO,
     gqCharacterDataHistory: GQCharacterDataHistoryDAO,
-    // gqCharactersLifeTimeWinStreakDAO: GQCharactersLifeTimeWinStreakDAO,
     admin: AdminDAO,
     vipUser: VIPUserDAO,
     vipBenefit: VIPBenefitDAO,
@@ -38,6 +39,8 @@ class Generator @Inject()(
       game.Query.schema ++
       genre.Query.schema ++
       task.Query.schema ++
+      dailyTask.Query.schema ++
+      taskHistory.Query.schema ++
       eosNetTx.Query.schema ++
       referral.Query.schema ++
       ranking.Query.schema ++
@@ -47,7 +50,6 @@ class Generator @Inject()(
       gqCharacterData.Query.schema ++
       gqCharacterGameHistory.Query.schema ++
       gqCharacterDataHistory.Query.schema ++
-      // gqCharactersLifeTimeWinStreakDAO.Query.schema ++
       admin.Query.schema ++
       vipUser.Query.schema ++
       vipBenefit.Query.schema ++
