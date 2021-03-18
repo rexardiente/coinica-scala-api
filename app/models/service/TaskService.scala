@@ -41,9 +41,11 @@ class TaskService @Inject()(
   }
   // TODO: need proper testing
   def mergeSeqTaskHistory(sequence: Seq[TaskHistory]) = {
+    val newTempID: UUID = UUID.randomUUID
     sequence.foldRight(List.empty[TaskHistory]) {
-      case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) if (c == j && d == k) =>
-        TaskHistory(a, b, c, d, (e + l), f, n) :: list
+      // case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) if (c == j && d == k) =>
+      case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) =>
+        TaskHistory(newTempID, b, c, d, (e + l), f, n) :: list
       case (other, list) => other :: list
     }
   }

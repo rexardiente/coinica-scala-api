@@ -2,7 +2,7 @@ package akka
 
 import javax.inject.{ Inject, Singleton }
 import java.util.{ UUID, Calendar }
-import java.time.{ LocalTime, Instant, ZoneId, ZoneOffset, LocalDate, LocalDateTime }
+import java.time._
 import scala.util.{ Success, Failure, Random }
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -128,11 +128,11 @@ class SystemSchedulerActor @Inject()(
             // get head, and create new Challenge for the day
             _ <- Future.successful {
               try {
-                val newChallenge: Challenge = Challenge(UUID.randomUUID,
-                                                      availableGames.head.id,
-                                                      "Challenge content is different every day, use you ingenuity to get the first place.",
-                                                      createdAt,
-                                                      Instant.ofEpochSecond(expiredAt))
+                val newChallenge = new Challenge(UUID.randomUUID,
+                                                availableGames.head.id,
+                                                "Challenge content is different every day, use you ingenuity to get the first place.",
+                                                createdAt,
+                                                Instant.ofEpochSecond(expiredAt))
 
                 challengeRepo.add(newChallenge)
               } catch {
@@ -179,8 +179,7 @@ class SystemSchedulerActor @Inject()(
     case CreateNewDailyTask =>
       val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
       val createdAt: Instant = startOfDay.atZone(defaultTimeZone).toInstant()
-      val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
-
+      // val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
       taskRepo.existByDate(createdAt).map { isCreated =>
         if (!isCreated) {
           for {

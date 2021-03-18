@@ -25,11 +25,9 @@ GET     /donut/api/v1/challenge/ranks/daily   controllers.HomeController.getDail
 # GET     /donut/api/v1/challenge/monthly              controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 
 # Ranking API
-
-POST    /donut/api/v1/ranking/add                   controllers.HomeController.addRanking
-PUT     /donut/api/v1/ranking/update               controllers.HomeController.updateRanking(id: UUID)
-POST    /donut/api/v1/ranking/remove                controllers.HomeController.removeRanking(id: UUID)
-
+#POST    /donut/api/v1/ranking/add                   controllers.HomeController.addRanking
+#PUT     /donut/api/v1/ranking/update               controllers.HomeController.updateRanking(id: UUID)
+#POST    /donut/api/v1/ranking/remove                controllers.HomeController.removeRanking(id: UUID)
 GET     /donut/api/v1/ranking/weekly               controllers.HomeController.rankingdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/ranking/daily                controllers.HomeController.rankingdaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/ranking/monthly              controllers.HomeController.rankingdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
@@ -39,10 +37,9 @@ POST   	/donut/api/v1/referral/apply              controllers.HomeController.app
 GET    	/donut/api/v1/referral/history/:code      controllers.HomeController.getReferralHistory(code: String)
 
 # Task API
-#GET     /donut/api/v1/task/weekly                controllers.HomeController.taskdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/task/daily                controllers.HomeController.getTodayTaskUpdates(user: String, game_id: UUID)
 GET     /donut/api/v1/task/monthly                controllers.HomeController.getMonthlyTaskUpdates(user: String, game_id: UUID)
-
+#GET     /donut/api/v1/task/weekly                controllers.HomeController.getWeeklyTaskUpdates(user: String, game_id: UUID)
 
 # Game API
 GET     /donut/api/v1/games                      controllers.HomeController.games

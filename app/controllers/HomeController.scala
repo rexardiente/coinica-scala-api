@@ -174,6 +174,7 @@ class HomeController @Inject()(
   def getMonthlyTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
     taskService.getTodayTaskUpdates(user, gameID).map(x => Ok(Json.toJson(x)))
   }
+  // def getWeeklyTaskUpdates(user: String, gameID: UUID)
   // def addTask = Action.async { implicit req =>
   //   taskForm.bindFromRequest.fold(
   //     formErr => Future.successful(BadRequest("Form Validation Error.")),
@@ -183,7 +184,6 @@ class HomeController @Inject()(
   //         .map(r => if(r < 0) InternalServerError else Created )
   //     })
   // }
-
   // def updateTask(id: UUID) = Action.async { implicit req =>
   //   taskForm.bindFromRequest.fold(
   //     formErr => Future.successful(BadRequest("Form Validation Error.")),
@@ -193,17 +193,14 @@ class HomeController @Inject()(
   //         .map(r => if(r < 0) NotFound else Ok)
   //     })
   // }
-
   // def removeTask(id: UUID) = Action.async { implicit req =>
   //   taskRepo
   //     .delete(id)
   //     .map(r => if(r < 0) NotFound else Ok)
   // }
-
   // def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
   //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
   // }
-
   // def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
   //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
   // }
