@@ -43,9 +43,6 @@ class OverAllGameHistoryRepo @Inject()(
       .take(limit)
       .result)
 
-  def findByDateRange(start: Long, end : Long, limit: Int, offset: Int): Future[Seq[OverAllGameHistory]] =
-    db.run(dao.Query.filter(r => createAtFn(r.createdAt) >= start && createAtFn(r.createdAt) <= end )
-      .drop(offset)
-      .take(limit)
-      .result)
+  def getByDateRange(start: Instant, end : Instant): Future[Seq[OverAllGameHistory]] =
+    db.run(dao.Query.filter(r => r.createdAt >= start && r.createdAt <= end ).result)
 }

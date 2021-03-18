@@ -317,14 +317,14 @@ class GQSchedulerActor @Inject()(
                             UUID.randomUUID,
                             count._1,
                             "ghostquest",
-                            GQGameHistory(winner._1, "WIN", 1, 1D),
+                            GQGameHistory(winner._1, "WIN", true),
                             true,
                             time),
         new OverAllGameHistory(
                             UUID.randomUUID,
                             count._1,
                             "ghostquest",
-                            GQGameHistory(loser._1, "WIN", 0, 1D),
+                            GQGameHistory(loser._1, "WIN", false),
                             true,
                             time)),
       new GQCharacterGameHistory(

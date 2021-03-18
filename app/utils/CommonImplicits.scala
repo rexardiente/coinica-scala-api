@@ -486,7 +486,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		"id" -> tx.id,
 		"game_id" -> tx.gameID,
 		"game" -> tx.game,
-		"info" -> tx.`type`,
+		"info" -> tx.info,
 		"is_confirmed" -> tx.isConfirmed,
 		"created_at" -> tx.createdAt)
 	}
@@ -497,4 +497,28 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit def implTaskHistory = Json.format[TaskHistory]
 	implicit def implTask = Json.format[Task]
 	implicit def implDailyTask = Json.format[DailyTask]
+
+	implicit def implRankProfit = Json.format[RankProfit]
+	implicit def implRankPayout = Json.format[RankPayout]
+	implicit def implRankWagered = Json.format[RankWagered]
+	implicit def implRankMultiplier = Json.format[RankMultiplier]
+	implicit val implicitRankTypeReads: Reads[RankType] = {
+	  Json.format[RankProfit].map(x => x: RankType) or
+	  Json.format[RankPayout].map(x => x: RankType) or
+	  Json.format[RankWagered].map(x => x: RankType) or
+	  Json.format[RankMultiplier].map(x => x: RankType)
+	}
+
+	implicit val implicitRankTypeWrites = new Writes[RankType] {
+	  def writes(event: RankType): JsValue = {
+	    event match {
+	      case m: RankProfit => Json.toJson(m)
+	      case m: RankPayout => Json.toJson(m)
+	      case m: RankWagered => Json.toJson(m)
+	      case m: RankMultiplier => Json.toJson(m)
+	      case _ => Json.obj("error" -> "wrong Json")
+	    }
+	  }
+	}
+	implicit def implRankingHistory = Json.format[RankingHistory]
 }

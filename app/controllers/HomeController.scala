@@ -27,7 +27,7 @@ class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       taskRepo: TaskRepo,
-      rankingRepo: RankingRepo,
+      // rankingRepo: RankingRepo,
       challengeRepo: ChallengeRepo,
       referralRepo: ReferralRepo,
       newsRepo: NewsRepo,
@@ -205,39 +205,39 @@ class HomeController @Inject()(
   //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
   // }
 
-  def addRanking = Action.async { implicit req =>
-    rankingForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, bets,profit,multiplieramount,rankingcreated)  =>
-        rankingRepo
-          .add(Ranking(UUID.randomUUID, name, bets,profit,multiplieramount,rankingcreated))
-          .map(r => if(r < 0) InternalServerError else Created )
-      })
-  }
+  // def addRanking = Action.async { implicit req =>
+  //   rankingForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (name, bets,profit,multiplieramount,rankingcreated)  =>
+  //       rankingRepo
+  //         .add(Ranking(UUID.randomUUID, name, bets,profit,multiplieramount,rankingcreated))
+  //         .map(r => if(r < 0) InternalServerError else Created )
+  //     })
+  // }
 
-  def updateRanking(id: UUID) = Action.async { implicit req =>
-    rankingForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, bets,profit,multiplieramount,rankingcreated) =>
-        rankingRepo
-          .update(Ranking(id, name, bets,profit,multiplieramount,rankingcreated))
-          .map(r => if(r < 0) NotFound else Ok)
-      })
-  }
+  // def updateRanking(id: UUID) = Action.async { implicit req =>
+  //   rankingForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (name, bets,profit,multiplieramount,rankingcreated) =>
+  //       rankingRepo
+  //         .update(Ranking(id, name, bets,profit,multiplieramount,rankingcreated))
+  //         .map(r => if(r < 0) NotFound else Ok)
+  //     })
+  // }
 
-  def removeRanking(id: UUID) = Action.async { implicit req =>
-    rankingRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
-  }
+  // def removeRanking(id: UUID) = Action.async { implicit req =>
+  //   rankingRepo
+  //     .delete(id)
+  //     .map(r => if(r < 0) NotFound else Ok)
+  // }
 
-  def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
-  }
+  // def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
+  //   rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
+  // }
 
-  def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-      rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
-  }
+  // def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
+  //     rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
+  // }
 
   def games() = Action.async { implicit req =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))

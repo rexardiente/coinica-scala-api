@@ -12,27 +12,29 @@ object TransactionType extends utils.CommonImplicits
 object OverAllGameHistory { implicit def implOverAllGameHistory = Json.format[OverAllGameHistory] }
 
 sealed trait TransactionType {
+	def user: String
+	def bet: Double
 	def toJson(): JsValue = Json.toJson(this)
 }
-// prediction default to WIN and after battle check if who wins to 1 else 0 for lose..
-case class GQGameHistory(name: String, prediction: String, result: Int, bet: Double) extends TransactionType {
+// prediction default to WIN and after battle check if who wins to true else false for lose..
+case class GQGameHistory(user: String, prediction: String, result: Boolean, bet: Double = 1) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
 // prediction equals list of panels selected and check if `result == prediction` is win else lose
-case class THGameHistory(name: String, prediction: List[Int], result: List[Int], bet: Double, profit: Double) extends TransactionType {
+case class THGameHistory(user: String, prediction: List[Int], result: List[Int], bet: Double, amount: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
-case class GameType(name: String, isWin: Boolean, amount: Double) extends TransactionType {
+case class GameType(user: String, isWin: Boolean, bet: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
-case class PaymentType(name: String, data: String, amount: Double) extends TransactionType {
+case class PaymentType(user: String, data: String, bet: Double) extends TransactionType {
 	require(data == "transfer" || data == "receive" , "Payment Type Input: invalid request")
 	override def toJson(): JsValue = Json.toJson(this)
 }
 case class OverAllGameHistory(id: UUID,
 															gameID: UUID, // name or ID
 															game: String, // name or ID
-															`type`: TransactionType,
+															info: TransactionType,
 															isConfirmed: Boolean, // update `confirmed` when system get notified from EOSIO net
 															createdAt: Instant) {
 	def toJson(): JsValue = Json.toJson(this)

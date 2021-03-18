@@ -17,9 +17,8 @@ import akka.common.objects.{
         ChallengeScheduler,
         ProcessOverAllChallenge,
         DailyTaskScheduler,
-        WeeklyTaskScheduler,
-        MonthlyTaskScheduler,
-        CreateNewDailyTask }
+        CreateNewDailyTask,
+        RankingScheduler }
 import models.domain.{
         Challenge,
         OutEvent,
@@ -27,7 +26,16 @@ import models.domain.{
         ChallengeTracker,
         ChallengeHistory,
         Task,
-        TaskHistory }
+        TaskHistory,
+        RankProfit,
+        RankPayout,
+        RankWagered,
+        RankMultiplier,
+        GQGameHistory,
+        THGameHistory,
+        UserAccount,
+        RankingHistory,
+        OverAllGameHistory }
 import models.repo.{
         ChallengeRepo,
         GameRepo,
@@ -35,7 +43,10 @@ import models.repo.{
         ChallengeHistoryRepo,
         TaskRepo,
         TaskHistoryRepo,
-        DailyTaskRepo }
+        DailyTaskRepo,
+        UserAccountRepo,
+        RankingHistoryRepo,
+        OverAllGameHistoryRepo }
 
 object SystemSchedulerActor {
   var currentChallengeGame: String = ""
@@ -48,6 +59,9 @@ object SystemSchedulerActor {
             taskRepo: TaskRepo,
             dailyTaskRepo: DailyTaskRepo,
             taskHistoryRepo: TaskHistoryRepo,
+            overAllGameHistory: OverAllGameHistoryRepo,
+            userAccountRepo: UserAccountRepo,
+            rankingHistoryRepo: RankingHistoryRepo,
             )(implicit system: ActorSystem) =
     Props(classOf[SystemSchedulerActor],
           gameRepo,
@@ -57,6 +71,9 @@ object SystemSchedulerActor {
           taskRepo,
           dailyTaskRepo,
           taskHistoryRepo,
+          overAllGameHistory,
+          userAccountRepo,
+          rankingHistoryRepo,
           system)
 }
 
@@ -68,7 +85,10 @@ class SystemSchedulerActor @Inject()(
                                       challengeTrackerRepo: ChallengeTrackerRepo,
                                       taskRepo: TaskRepo,
                                       dailyTaskRepo: DailyTaskRepo,
-                                      taskHistoryRepo: TaskHistoryRepo
+                                      taskHistoryRepo: TaskHistoryRepo,
+                                      overAllGameHistory: OverAllGameHistoryRepo,
+                                      userAccountRepo: UserAccountRepo,
+                                      rankingHistoryRepo: RankingHistoryRepo,
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
@@ -97,6 +117,7 @@ class SystemSchedulerActor @Inject()(
           system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => {
             self ! ChallengeScheduler
             self ! DailyTaskScheduler
+            self ! RankingScheduler
           })
           // set true if actor already initialized
           SystemSchedulerActor.isIntialized = true
@@ -197,17 +218,6 @@ class SystemSchedulerActor @Inject()(
           } yield ()
         }
       }
-    // get all txs at TaskTracker history in this week
-    // process and get those who passed the required limit
-    // and add 10 VIP points
-    case WeeklyTaskScheduler =>
-    // get all txs at TaskTracker history in this month
-    // process and get those who passed the required limit
-    // and add 50 VIP points
-    case MonthlyTaskScheduler =>
-      // val today: LocalDate = LocalDate.now().atStartOfDay().toLocalDate()
-      // val firstDayOfMonth: LocalDate = today.withDayOfMonth(1)
-      // val lastDayOfMonth: LocalDate = today.withDayOfMonth(today.lengthOfMonth())
 
     case ProcessOverAllChallenge(expiredAt) =>
       // always process when time is equals or greater to its current time..
@@ -226,6 +236,147 @@ class SystemSchedulerActor @Inject()(
         }
       }
 
+    case RankingScheduler =>
+      // get date range to fecth from overall history...
+      val start: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
+      val end: Instant = Instant.ofEpochSecond(start.getEpochSecond + ((60 * 60 * 24) - 1))
+      // fetch overAllGameHistory by date ranges
+      for {
+        gameHistory <- overAllGameHistory.getByDateRange(start, end)
+        // grouped by user -> Map[String, Seq[OverAllGameHistory]]
+        grouped <- Future.successful(gameHistory.groupBy(_.info.user))
+        profit <- {
+          // sum of its bets and amount payout
+          Future.sequence(grouped.map { case (user, histories) =>
+            // extract bets and amount to (pay or received)
+            val tempBets: Seq[(Double, Double)] = histories.map { history =>
+              // classify which game per txs and return (bet, amount)
+              history.info match {
+                case GQGameHistory(name, prediction, result, bet) =>
+                  if (result) (bet, 1) else (bet, -1)
+                case THGameHistory(name, prediction, result, bet, amount) =>
+                  if (prediction == result) (bet, amount) else (bet, -amount)
+                // GameType(_, _, _), PaymentType(_, _, _)
+                case e => (e.bet, 0)
+              }
+            }
+
+            val betsSum: Double = tempBets.map(_._1).sum
+            val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
+            (user, betsSum, (toPayOrReceivedSum - betsSum ))
+          }
+          .toSeq
+          .sortBy(-_._3)
+          .take(10)
+          .map { v =>
+            // get userid using name string..
+            userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null))
+          })
+          .map(_.filterNot(_ == null))
+        }
+        payout <- {
+          // sum of its bets and amount payout
+          Future.sequence(grouped.map { case (user, histories) =>
+            // extract bets and amount to (pay or received)
+            val tempBets: Seq[(Double, Double)] = histories.map { history =>
+              // classify which game per txs and return (bet, amount)
+              history.info match {
+                case GQGameHistory(name, prediction, result, bet) =>
+                  if (result) (bet, 1) else (bet, -1)
+                case THGameHistory(name, prediction, result, bet, amount) =>
+                  if (prediction == result) (bet, amount) else (bet, -amount)
+                // GameType(_, _, _), PaymentType(_, _, _)
+                case e => (e.bet, 0)
+              }
+            }
+
+            val betsSum: Double = tempBets.map(_._1).sum
+            val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
+            (user, betsSum, toPayOrReceivedSum)
+          }
+          .toSeq
+          .sortBy(-_._3)
+          .take(10)
+          .map { v =>
+            // get userid using name string..
+            userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null))
+          })
+          .map(_.filterNot(_ == null))
+        }
+        wagered <- {
+          // sum of its bets and amount payout
+          Future.sequence(grouped.map { case (user, histories) =>
+            // extract bets and amount to (pay or received)
+            val tempBets: Seq[(Double, Double)] = histories.map { history =>
+              // classify which game per txs and return (bet, amount, multiplier)
+              history.info match {
+                case GQGameHistory(name, prediction, result, bet) =>
+                  if (result) (bet, 1) else (bet, -1)
+                case THGameHistory(name, prediction, result, bet, amount) =>
+                  if (prediction == result) (bet, amount) else (bet, -amount)
+                // GameType(_, _, _), PaymentType(_, _, _)
+                case e => (e.bet, 0)
+              }
+            }
+            val betsSum: Double = tempBets.map(_._1).sum
+            val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
+            (user, betsSum, betsSum)
+          }
+          .toSeq
+          .sortBy(-_._3)
+          .take(10)
+          .map { v =>
+            // get userid using name string..
+            userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null))
+          })
+          .map(_.filterNot(_ == null))
+        }
+        multiplier <- {
+          // sum of its bets and amount payout
+          Future.sequence(grouped.map { case (user, histories) =>
+            // extract bets and amount to (pay or received)
+            val tempBets: Seq[(Double, Double)] = histories.map { history =>
+              // classify which game per txs and return (bet, amount, multiplier)
+              history.info match {
+                case GQGameHistory(name, prediction, result, bet) =>
+                  if (result) (bet, 1) else (bet, 0)
+                case THGameHistory(name, prediction, result, bet, amount) =>
+                  if (prediction == result) (bet, 1) else (bet, 0)
+                // GameType(_, _, _), PaymentType(_, _, _)
+                case e => (e.bet, 0)
+              }
+            }
+            val betsSum: Double = tempBets.map(_._1).sum
+            val multiplierSum: Double = tempBets.map(_._2).sum
+            (user, betsSum, multiplierSum)
+          }
+          .toSeq
+          .sortBy(-_._3)
+          .take(10)
+          .map { v =>
+            // get userid using name string..
+            userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null))
+          })
+          .map(_.filterNot(_ == null))
+        }
+        // save ranking to history..
+        _ <- Future {
+          val rank = RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, start)
+          // insert into DB, if failed then re-insert
+          rankingHistoryRepo.add(rank).map(x => if(x > 0)() else rankingHistoryRepo.add(rank))
+        }
+      } yield ()
+
     case _ =>
+  }
+
+  def mergeSeqTaskHistory(sequence: Seq[OverAllGameHistory]) = {
+    sequence.foldRight(List.empty[OverAllGameHistory]) {
+      // case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) if (c == j && d == k) =>
+      case (OverAllGameHistory(a, b, c, d, e, f), OverAllGameHistory(h, i, j, k, l, m) :: list) =>
+        ???
+        // TaskHistory(newTempID, b, c, d, (e + l), f, n) :: list
+      case (other, list) => other :: list
+    }
   }
 }

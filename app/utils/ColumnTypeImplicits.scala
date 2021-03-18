@@ -8,7 +8,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus, GameLog }
-import models.domain.{ ChallengeTracker, TransactionType }
+import models.domain.{ ChallengeTracker, TransactionType, RankType }
 import models.domain.enum._
 import ejisan.kuro.otp.OTPKey
 import ejisan.scalauthx.HashedCredential
@@ -57,6 +57,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val seqUUIDMapper = MappedColumnType.base[Seq[UUID], JsValue](
     s => JsArray(s.map(Json.toJson(_))),
     i => i.as[Seq[UUID]])
+  implicit val seqRankTypeMapper = MappedColumnType.base[Seq[RankType], JsValue](
+    s => JsArray(s.map(Json.toJson(_))),
+    i => i.as[Seq[RankType]])
   implicit val jodaTimeMapping: BaseColumnType[DateTime] = MappedColumnType.base[DateTime, Timestamp](
     dateTime => new Timestamp(dateTime.getMillis),
     timeStamp => new DateTime(timeStamp.getTime))

@@ -30,5 +30,4 @@ object GQSchedulerStatus
 object ChallengeScheduler
 object DailyTaskScheduler
 object CreateNewDailyTask
-object WeeklyTaskScheduler
-object MonthlyTaskScheduler
+object RankingScheduler
