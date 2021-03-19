@@ -19,7 +19,7 @@ final class NewsDAO @Inject()(
     def subTitle = column[String] ("SUB_TITLE")
     def description = column[String] ("DESCRIPTION")
     def author = column[String] ("AUTHOR")
-    def images = column[List[String]] ("IMAGES")
+    def url = column[String] ("URL")
     def createdAt = column[Instant] ("CREATED_AT")
 
     def * = (id,
@@ -27,7 +27,7 @@ final class NewsDAO @Inject()(
             subTitle,
             description,
             author,
-            images,
+            url,
             createdAt) <> (News.tupled, News.unapply)
   }
 

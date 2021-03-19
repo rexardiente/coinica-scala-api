@@ -24,15 +24,15 @@ class DBMockupGenerator @Inject()(
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
   private def newsQuery(): Unit = {
-    val title: String = "Lorem Ipsum"
-    val subTitle: String = "What is Lorem Ipsum?"
-    val description: String = """Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."""
-    // temporary list of news and
-    // add list to news tbl..
-    newsRepo ++= Seq(
-      News(s"${title} 1", s"${subTitle} 1", description, "author 1", List("images 1")),
-      News(s"${title} 2", s"${subTitle} 2", description, "author 2", List("images 2")),
-      News(s"${title} 3", s"${subTitle} 3", description, "author 3", List("images 3")))
+    // val title: String = "Lorem Ipsum"
+    // val subTitle: String = "What is Lorem Ipsum?"
+    // val description: String = """Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."""
+    // // temporary list of news and
+    // // add list to news tbl..
+    // newsRepo ++= Seq(
+    //   News(s"${title} 1", s"${subTitle} 1", description, "author 1", "sample url"),
+    //   News(s"${title} 2", s"${subTitle} 2", description, "author 2", "sample url"),
+    //   News(s"${title} 3", s"${subTitle} 3", description, "author 3", "sample url"))
   }
 
   private def challenge(): Unit = {

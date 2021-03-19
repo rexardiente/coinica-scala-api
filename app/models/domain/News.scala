@@ -6,17 +6,17 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object News {
-	val tupled = (apply: (UUID, String, String, String, String, List[String], Instant) => News).tupled
+	val tupled = (apply: (UUID, String, String, String, String, String, Instant) => News).tupled
 	def apply(id: UUID,
 						title: String,
 						subTitle: String,
 						description: String,
 						author: String,
-						images: List[String],
+						url: String,
 						createdAt: Instant): News =
-		new News(id, title, subTitle, description, author, images, createdAt)
-	def apply(title: String, subTitle: String, description: String, author: String, images: List[String]): News =
-		new News(UUID.randomUUID, title, subTitle, description, author, images, Instant.now)
+		new News(id, title, subTitle, description, author, url, createdAt)
+	def apply(title: String, subTitle: String, description: String, author: String, url: String): News =
+		new News(UUID.randomUUID, title, subTitle, description, author, url, Instant.now)
 	implicit def implNews = Json.format[News]
 }
 case class News(id: UUID,
@@ -24,5 +24,5 @@ case class News(id: UUID,
 								subTitle: String,
 								description: String,
 								author: String,
-								images: List[String],
+								url: String,
 								createdAt: Instant)
