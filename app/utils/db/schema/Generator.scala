@@ -15,7 +15,7 @@ class Generator @Inject()(
     dailyTask: DailyTaskDAO,
     taskHistory: TaskHistoryDAO,
     eosNetTx: EOSNetTransactionDAO,
-    referral: ReferralDAO,
+    referral: ReferralHistoryDAO,
     ranking: RankingHistoryDAO,
     challenge: ChallengeDAO,
     challengeHistory: ChallengeHistoryDAO,

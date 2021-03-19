@@ -12,7 +12,7 @@ object UserAccount {
 						referral_code: String,
 						referral: Double,
 						referral_rate: Double,
-						win_rate: Double,
+						win_rate: Double, // TODO
 						created_at: Instant): UserAccount =
 		new UserAccount(id, name, referred_by, referral_code, referral, referral_rate, win_rate, created_at)
 	def apply(name: String): UserAccount = new UserAccount(UUID.randomUUID, name, None, UUID.randomUUID.toString.replaceAll("-", ""))

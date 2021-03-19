@@ -8,6 +8,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
+import com.typesafe.config.{ Config, ConfigFactory}
 import Ordering.Double.IeeeOrdering
 import akka.util.Timeout
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
@@ -49,7 +50,7 @@ import models.repo.{
         OverAllGameHistoryRepo }
 
 object SystemSchedulerActor {
-  var currentChallengeGame: String = ""
+  var currentChallengeGame: Option[UUID] = None
   var isIntialized: Boolean = false
   def props(
             gameRepo: GameRepo,
@@ -102,7 +103,7 @@ class SystemSchedulerActor @Inject()(
         if (!SystemSchedulerActor.isIntialized) {
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = 24.hours
+          val dailySchedInterval: FiniteDuration = {ConfigFactory.load().getInt("platform.default.system.scheduler")}.hours
           val dailySchedDelay   : FiniteDuration = {
               val time = LocalTime.of(0, 0).toSecondOfDay
               val now = LocalTime.now().toSecondOfDay
@@ -144,17 +145,19 @@ class SystemSchedulerActor @Inject()(
           for {
             // remove currentChallengeGame and shuffle the result
             availableGames <- gameRepo
-            .all()
-            .map(games => Random.shuffle(games.filterNot(_.name == SystemSchedulerActor.currentChallengeGame)))
+              .all()
+              .map(games => Random.shuffle(games.filterNot(_.id == SystemSchedulerActor.currentChallengeGame.getOrElse(None))))
             // get head, and create new Challenge for the day
             _ <- Future.successful {
               try {
+                val game: Game = availableGames.head
                 val newChallenge = new Challenge(UUID.randomUUID,
-                                                availableGames.head.id,
+                                                game.id,
                                                 "Challenge content is different every day, use you ingenuity to get the first place.",
                                                 createdAt,
                                                 Instant.ofEpochSecond(expiredAt))
 
+                SystemSchedulerActor.currentChallengeGame = Some(game.id)
                 challengeRepo.add(newChallenge)
               } catch {
                 case e: Throwable => println("Error: No games available")

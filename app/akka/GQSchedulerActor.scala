@@ -8,6 +8,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
+import com.typesafe.config.{ Config, ConfigFactory }
 import akka.util.Timeout
 import akka.actor.{
         ActorRef,
@@ -34,7 +35,7 @@ import models.domain.eosio.GQ.v2._
 
 object GQSchedulerActor {
   var isIntialized: Boolean = false
-  val defaultTimer: FiniteDuration = 5.minutes
+  val defaultTimer: FiniteDuration = {ConfigFactory.load().getInt("platform.games.GQ.battle.timer")}.minutes
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                   "ghostquest",
                                                   "users",
@@ -69,7 +70,7 @@ class GQSchedulerActor @Inject()(
       case Success(actor) =>
         if (!GQSchedulerActor.isIntialized) {
           // scheduled 5minutes to start battle..
-          // systemBattleScheduler(GQSchedulerActor.defaultTimer)
+          systemBattleScheduler(GQSchedulerActor.defaultTimer)
           // set true if actor already initialized
           GQSchedulerActor.isIntialized = true
           log.info("Ghost Quest Scheduler Actor Initialized")

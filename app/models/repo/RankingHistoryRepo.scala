@@ -32,30 +32,12 @@ class RankingHistoryRepo @Inject()(
       .take(limit)
       .result)
 
-  // def exist(id: UUID): Future[Boolean] =
-  //   db.run(dao.Query(id).exists.result)
-
-  // def findByID(id: UUID, limit: Int, offset: Int): Future[Seq[RankingHistory]] =
-  //   db.run(dao.Query.filter(r => r.id === id  )
-  //     .drop(offset)
-  //     .take(limit)
-  //     .result)
-
-  // def findByDaily( currentdate: Long, limit: Int, offset: Int): Future[Seq[RankingHistory]] =
-  //  db.run(dao.Query.filter(r =>  r.rankingcreated === currentdate)
-  //    .drop(offset)
-  //    .take(limit)
-  //    .result)
-
-
-  // def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[RankingHistory]] =
-  //  db.run(dao.Query.filter(r => r.rankingcreated >= startdate && r.rankingcreated <= enddate )
-  //    .drop(offset)
-  //    .take(limit)
-  //    .result)
+  def findByDateRange(date: Instant): Future[Option[RankingHistory]] =
+   db.run(dao.Query.filter(r => r.createdAt >= date && r.createdAt <= date).result.headOption)
 
   def findAll(limit: Int, offset: Int): Future[Seq[RankingHistory]] =
     db.run(dao.Query.drop(offset).take(limit).result)
+
   def getSize(): Future[Int] =
     db.run(dao.Query.length.result)
 }

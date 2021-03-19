@@ -1,20 +1,13 @@
 package models.service
 
-import java.text.SimpleDateFormat
-import java.util.Date
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.Instant
-import java.time.ZoneId
-import java.time.{ Instant, ZoneId }
+import java.time._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json.{ Json, JsValue }
 import models.domain.{ PaginatedResult, RankingHistory }
 import models.repo.RankingHistoryRepo
-
-// import java.time.{ Instant, ZoneId }
-// Instant.now().atZone(ZoneId.systemDefault)
 
 @Singleton
 class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
@@ -26,6 +19,22 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
 
+  // if date is None then it will be 24hrs
+  def getRankingByDate(date: Option[Instant]): Future[Option[RankingHistory]] = {
+    if (date == None) {
+      val now: LocalDate = LocalDate.now()
+      val startOfDay: Instant = now.atStartOfDay(ZoneId.systemDefault).plusDays(-1).toInstant()
+      rankingHistoryRepo.findByDateRange(startOfDay)
+
+    } else {
+      val startOfDay: Instant = LocalDateTime
+                                  .ofInstant(date.get, ZoneOffset.UTC)
+                                  .toLocalDate()
+                                  .atStartOfDay(ZoneId.systemDefault)
+                                  .toInstant()
+      rankingHistoryRepo.findByDateRange(startOfDay)
+    }
+  }
   // def getRankingByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   // 	try {
   // 		for {
@@ -41,9 +50,7 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
   // 		case e: Throwable => Future(Json.obj("err" -> e.toString))
   // 	}
   // }
-
   // def getRankingByDaily(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
-
   //   try {
   //     for {
   //       txs <- rankingRepo.findByDaily(start.getEpochSecond, limit, offset)

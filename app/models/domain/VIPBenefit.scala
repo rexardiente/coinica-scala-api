@@ -1,9 +1,10 @@
 package models.domain
 
 import java.time.Instant
+import play.api.libs.json._
 import models.domain.enum.{ VIP, VIPBenefitAmount, VIPBenefitPoints }
 
-object VIPBenefit {
+object VIPBenefit extends utils.CommonImplicits {
 	val tupled = (apply: (VIP.value,
 						Double,
 						Double,
@@ -14,24 +15,26 @@ object VIPBenefit {
 						VIPBenefitPoints.value,
 						Instant) => VIPBenefit).tupled
 	def apply(rank: VIP.value,
-			cashBack: Double,
-			redemptionRate: Double,
-			referralRate: Double,
-			closedBeta: Boolean,
+			cash_back: Double,
+			redemption_rate: Double,
+			referral_rate: Double,
+			closed_beta: Boolean,
 			concierge: Boolean,
 			amount: VIPBenefitAmount.value,
 			points: VIPBenefitPoints.value,
-			updatedAt: Instant): VIPBenefit =
-    new VIPBenefit(rank, cashBack, redemptionRate, referralRate, closedBeta, concierge, amount, points, updatedAt)
+			updated_at: Instant): VIPBenefit =
+    new VIPBenefit(rank, cash_back, redemption_rate, referral_rate, closed_beta, concierge, amount, points, updated_at)
 }
 
 case class VIPBenefit(
 		rank: VIP.value,
-		cashBack: Double,
-		redemptionRate: Double,
-		referralRate: Double,
-		closedBeta: Boolean,
+		cash_back: Double,
+		redemption_rate: Double,
+		referral_rate: Double,
+		closed_beta: Boolean,
 		concierge: Boolean,
 		amount: VIPBenefitAmount.value,
 		points: VIPBenefitPoints.value,
-		updatedAt: Instant)
+		updated_at: Instant) {
+	def toJson(): JsValue = Json.toJson(this)
+}

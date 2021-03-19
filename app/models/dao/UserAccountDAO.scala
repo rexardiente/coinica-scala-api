@@ -13,8 +13,8 @@ final class UserAccountDAO @Inject()(
   import profile.api._
 
   protected class UserAccountTable(tag: Tag) extends Table[UserAccount](tag, "USER_ACCOUNT") {
+    def name = column[String] ("NAME", O.PrimaryKey)
     def id = column[UUID] ("ID")
-    def name = column[String] ("NAME")
     def referredBy = column[Option[String]] ("REFERRED_BY")
     def referralCode = column[String] ("REFERRAL_CODE")
     def referralAmount = column[Double] ("REFERRAL_AMOUNT")

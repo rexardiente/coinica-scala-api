@@ -10,12 +10,12 @@ import java.time.{ Instant, ZoneId }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json.{ Json, JsValue }
-import models.domain.{ PaginatedResult, Referral, UserAccount }
-import models.repo.{ UserAccountRepo, ReferralRepo }
+import models.domain.{ PaginatedResult, ReferralHistory, UserAccount }
+import models.repo.{ UserAccountRepo, ReferralHistoryRepo }
 
 @Singleton
-class ReferralService @Inject()(userAccountRepo: UserAccountRepo, referralRepo: ReferralRepo) {
-  def paginatedResult[T >: Referral](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
+class ReferralHistoryService @Inject()(userAccountRepo: UserAccountRepo, referralRepo: ReferralHistoryRepo) {
+  def paginatedResult[T >: ReferralHistory](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 
 	  for {
       tasks <- referralRepo.findAll(limit, offset)
@@ -24,7 +24,7 @@ class ReferralService @Inject()(userAccountRepo: UserAccountRepo, referralRepo: 
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
 
-  def getByCode(code: String): Future[Seq[Referral]] =
+  def getByCode(code: String): Future[Seq[ReferralHistory]] =
     for {
       // check if user exists else return seq empty
       isExists <- userAccountRepo.isCodeExist(code)
@@ -40,7 +40,7 @@ class ReferralService @Inject()(userAccountRepo: UserAccountRepo, referralRepo: 
         if (!isCodeOwnedBySelf && hasNoReferral != None) {
           for {
             _ <- userAccountRepo.update(hasNoReferral.get)
-            _ <- referralRepo.add(new Referral(UUID.randomUUID, code, appliedBy, Instant.now))
+            _ <- referralRepo.add(new ReferralHistory(UUID.randomUUID, code, appliedBy, Instant.now))
           } yield (1)
         }
         else Future(0)

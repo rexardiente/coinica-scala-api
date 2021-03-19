@@ -3,7 +3,6 @@ package models.domain
 import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 
 // limit is for how many times to play the game (25, 100, 500)
 // durations: 1=1 day, 2=1week, 3=1month

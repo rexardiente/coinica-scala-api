@@ -28,7 +28,7 @@ GET     /donut/api/v1/challenge/ranks/daily   controllers.HomeController.getDail
 #POST    /donut/api/v1/ranking/add                   controllers.HomeController.addRanking
 #PUT     /donut/api/v1/ranking/update               controllers.HomeController.updateRanking(id: UUID)
 #POST    /donut/api/v1/ranking/remove                controllers.HomeController.removeRanking(id: UUID)
-#GET     /donut/api/v1/ranking/weekly               controllers.HomeController.rankingdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+GET     /donut/api/v1/ranking               	controllers.HomeController.getRankingByDate(date: Option[java.time.Instant])
 #GET     /donut/api/v1/ranking/daily                controllers.HomeController.rankingdaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 #GET     /donut/api/v1/ranking/monthly              controllers.HomeController.rankingdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 

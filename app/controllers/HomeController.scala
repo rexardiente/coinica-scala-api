@@ -26,14 +26,11 @@ class HomeController @Inject()(
       userAccRepo: UserAccountRepo,
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
-      taskRepo: TaskRepo,
-      // rankingRepo: RankingRepo,
       challengeRepo: ChallengeRepo,
-      referralRepo: ReferralRepo,
       newsRepo: NewsRepo,
       taskService: TaskService,
       rankingService: RankingService,
-      referralService:  ReferralService,
+      referralHistoryService:  ReferralHistoryService,
       eosNetTransaction: EOSNetTransactionService,
       challengeService: ChallengeService,
       gQCharacterDataRepo: GQCharacterDataRepo,
@@ -90,9 +87,7 @@ class HomeController @Inject()(
   }
 
   def index() = Action.async { implicit req =>
-    val req = new models.domain.eosio.TableRowsRequest("ghostquest", "users", "ghostquest", None, Some("uint64_t"), None, None, None)
-    gqSmartContractAPI.getGQUsers(req, Some("index")).map(x => Ok(x.map(_.toJson).getOrElse(JsNull)))
-    // Future.successful(Ok(views.html.index()))
+    Future.successful(Ok(views.html.index()))
   }
 
   def userAccount(user: String) = Action.async { implicit req =>
@@ -100,7 +95,7 @@ class HomeController @Inject()(
   }
 
   def getReferralHistory(code: String) = Action.async { implicit req =>
-    referralService.getByCode(code).map(x => Ok(Json.toJson(x)))
+    referralHistoryService.getByCode(code).map(x => Ok(Json.toJson(x)))
   }
 
   def applyReferralCode() = Action.async { implicit req =>
@@ -108,7 +103,7 @@ class HomeController @Inject()(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (code, appliedBy)  =>
         try {
-          referralService
+          referralHistoryService
             .applyReferralCode(code, appliedBy)
             .map(r => if(r < 0) InternalServerError else Created )
         } catch {
@@ -204,7 +199,6 @@ class HomeController @Inject()(
   // def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
   //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
   // }
-
   // def addRanking = Action.async { implicit req =>
   //   rankingForm.bindFromRequest.fold(
   //     formErr => Future.successful(BadRequest("Form Validation Error.")),
@@ -214,7 +208,6 @@ class HomeController @Inject()(
   //         .map(r => if(r < 0) InternalServerError else Created )
   //     })
   // }
-
   // def updateRanking(id: UUID) = Action.async { implicit req =>
   //   rankingForm.bindFromRequest.fold(
   //     formErr => Future.successful(BadRequest("Form Validation Error.")),
@@ -224,20 +217,15 @@ class HomeController @Inject()(
   //         .map(r => if(r < 0) NotFound else Ok)
   //     })
   // }
-
   // def removeRanking(id: UUID) = Action.async { implicit req =>
   //   rankingRepo
   //     .delete(id)
   //     .map(r => if(r < 0) NotFound else Ok)
   // }
 
-  // def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-  //   rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
-  // }
-
-  // def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-  //     rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
-  // }
+  def getRankingByDate(date: Option[Instant]) = Action.async { implicit req =>
+    rankingService.getRankingByDate(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
+  }
 
   def games() = Action.async { implicit req =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
