@@ -1,5 +1,6 @@
 package models.dao
 
+import java.util.UUID
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
@@ -14,18 +15,20 @@ final class VIPUserDAO @Inject()(
   import profile.api._
 
   protected class VIPUserTable(tag: Tag) extends Table[VIPUser](tag, "VIP") {
-    def user = column[String] ("USER", O.PrimaryKey)
+    def id = column[UUID] ("ID", O.PrimaryKey)
+    def user = column[String] ("USER")
     def rank = column[VIP.value] ("RANK")
     def nxtRank = column[VIP.value] ("NEXT_RANK")
     def payout = column[Long] ("PAYOUT")
     def points = column[Long] ("POINTS")
-    def nextLvl = column[Int] ("NEXT_LEVEL")
     def updatedAt = column[Instant] ("UPDATED_AT")
 
-    def * = (user, rank, nxtRank, payout, points, nextLvl, updatedAt) <> (VIPUser.tupled, VIPUser.unapply)
+    def * = (id, user, rank, nxtRank, payout, points, updatedAt) <> (VIPUser.tupled, VIPUser.unapply)
   }
 
   object Query extends TableQuery(new VIPUserTable(_)) {
     def apply(user: String) = this.withFilter(_.user === user)
+    def apply(id: UUID) = this.withFilter(_.id === id)
+    def apply(id: UUID, user: String) = this.withFilter(x => x.id === id && x.user === user)
   }
 }

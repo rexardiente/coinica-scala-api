@@ -16,6 +16,7 @@ class ChallengeRepo @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
+  private val createAtFn = SimpleFunction.unary[Instant, Long]("CREATED_AT")
 
   def add(challenge: Challenge): Future[Int] =
     db.run(dao.Query += challenge)
@@ -24,41 +25,14 @@ class ChallengeRepo @Inject()(
     db.run(dao.Query(id).delete)
 
   def update(challenge: Challenge): Future[Int] =
-    db.run(dao.Query.filter(_.id ===challenge.id).update(challenge))
+    db.run(dao.Query.filter(_.id === challenge.id).update(challenge))
 
-  def all(limit: Int, offset: Int): Future[Seq[Challenge]] =
-    db.run(dao.Query
-      .drop(offset)
-      .take(limit)
-      .result)
+  def existByDate(createAt: Instant): Future[Boolean] =
+    db.run(dao.Query(createAt).exists.result)
 
-  def exist(id: UUID): Future[Boolean] = 
-    db.run(dao.Query(id).exists.result)
+  def all(): Future[Seq[Challenge]] =
+    db.run(dao.Query.result)
 
-  def findByID(id: UUID, limit: Int, offset: Int): Future[Seq[Challenge]] =
-    db.run(dao.Query.filter(r => r.id === id  )
-      .drop(offset)
-      .take(limit)
-      .result)
-      
-  def findByDaily( currentdate: Long, limit: Int, offset: Int): Future[Seq[Challenge]] = 
-   db.run(dao.Query.filter(r =>  r.challengecreated === currentdate) 
-     .drop(offset)
-     .take(limit)
-     .result)
-      
- 
-  def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Challenge]] =
-   db.run(dao.Query.filter(r => r.challengecreated >= startdate && r.challengecreated <= enddate ) 
-     .drop(offset)
-     .take(limit)
-     .result)
-
-  def findAll(limit: Int, offset: Int): Future[Seq[Challenge]] = 
-    db.run(dao.Query.drop(offset).take(limit).result)
-
-  def getSize(): Future[Int] =  
+  def getSize(): Future[Int] =
     db.run(dao.Query.length.result)
-
-  
 }

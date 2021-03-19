@@ -8,7 +8,7 @@ object VIP extends Enumeration {
   val Gold   = Value("GOLD")
 }
 
-object VIPBenefitsAmount extends Enumeration {
+object VIPBenefitAmount extends Enumeration {
   type value = Value
 
   val Bronze = Value(1000)
@@ -16,7 +16,7 @@ object VIPBenefitsAmount extends Enumeration {
   val Gold 	 = Value(100000)
 }
 
-object VIPBenefitsPoints extends Enumeration {
+object VIPBenefitPoints extends Enumeration {
   type value = Value
 
   val Bronze = Value(100)

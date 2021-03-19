@@ -15,7 +15,8 @@ import io.jafka.jeos.core.response.chain.Block
 import io.jafka.jeos.core.response.chain.transaction.PushedTransaction
 import io.jafka.jeos.impl.EosApiServiceGenerator
 import io.jafka.jeos.exception.EosApiException
-import models.domain.eosio.{ TableRowsRequest, GQRowsResponse, GameLog }
+import models.domain.eosio.{ TableRowsRequest, GameLog }
+import models.domain.eosio.GQ.v2.GQRowsResponse
 import models.domain.eosio.GameLog._
 import utils.lib.EOSIOSupport
 
@@ -24,16 +25,15 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
 	private val support: EOSIOSupport = new EOSIOSupport()
 	private val GQContractName: String = "ghostquest"
 
-
-	def battleAction(users: Seq[(String, String)], logs: scala.collection.immutable.List[GameLog]): Future[Option[PushedTransaction]] = {
+	// def battleAction(gameID: UUID, users: Seq[(String, String)], logs: scala.collection.immutable.List[GameLog]): Future[Option[PushedTransaction]] = {
+  def battleAction(gameID: UUID, users: Seq[(String, String)]): Future[Option[PushedTransaction]] = {
     // cleos convert pack_action_data ghostquest battle '{"username1":"user1", "ghost1_key":2, "username2":"user2", "ghost2_key":3}'
-    // val query1: Seq[JsValue] = Seq(JsArray(Seq(JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))), JsString(UUID.randomUUID.toString))
-    val query: Seq[JsValue] = Seq(JsString(UUID.randomUUID.toString), JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))), JsArray(logs.map(x => JsString(Json.toJson(x).toString))))
+    val query: Seq[JsValue] = Seq(JsString(gameID.toString), JsArray(Seq(JsString(users(0)._1), JsString(users(0)._2))), JsArray(Seq(JsString(users(1)._1), JsString(users(1)._2))))
 
-    support.abiJsonToBin(GQContractName, "battle", query).map { abiJsonToBinResult =>
+    support.abiJsonToBin(GQContractName, "battleresult", query).map { abiJsonToBinResult =>
       val actions: List[TransactionAction] = Arrays.asList(new TransactionAction(
           GQContractName,
-          "battle",
+          "battleresult",
           support.authorization(Seq(GQContractName)),
           abiJsonToBinResult.map(_.binargs.as[String]).getOrElse(null)))
       // track current block to avoid invalid ref block num
@@ -54,7 +54,9 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
             support.clientNodeosAPI.getChainInfo().getChainId())
 
         Some(support.clientNodeosAPI.pushTransaction(null, signedPackedTx))
-      } catch { case e: EosApiException => None }
+      } catch { case e: EosApiException =>
+      println(e)
+      None }
     }
   }
 
@@ -90,7 +92,7 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
     }
   }
 
-  def getGQUsers(req: TableRowsRequest): Future[Option[GQRowsResponse]] = {
+  def getGQUsers(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] = {
     val request: WSRequest = ws.url(support.nodeosApiBaseURL + support.config.getString("eosio.uri.path.get_table_rows"))
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -113,7 +115,7 @@ class GQSmartContractAPI @Inject()(implicit ws: WSClient, ec: ExecutionContext) 
          val validated: GQRowsResponse = (response.json).asOpt[GQRowsResponse].getOrElse(null)
 
          if (validated == null || validated.rows.size == 0) None
-         else Some(validated)
+         else Some(validated.copy(sender = sender))
       }
   }
 

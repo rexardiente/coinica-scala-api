@@ -24,61 +24,35 @@ class TaskRepo @Inject()(
     db.run(dao.Query(id).delete)
 
   def update(task: Task): Future[Int] =
-    db.run(dao.Query.filter(_.id ===task.id).update(task))
+    db.run(dao.Query.filter(_.id === task.id).update(task))
 
-  def all(limit: Int, offset: Int): Future[Seq[Task]] =
-    db.run(dao.Query
-      .drop(offset)
-      .take(limit)
-      .result)
+  def all(): Future[Seq[Task]] =
+    db.run(dao.Query.result)
 
-  def exist(id: UUID): Future[Boolean] = 
+  def exist(id: UUID): Future[Boolean] =
     db.run(dao.Query(id).exists.result)
 
-  def findByID(id: UUID, limit: Int, offset: Int): Future[Seq[Task]] =
-    db.run(dao.Query.filter(r => r.id === id  )
-      .drop(offset)
-      .take(limit)
-      .result)
-      
-  def findByDaily( currentdate: Long, limit: Int, offset: Int): Future[Seq[Task]] = 
-   db.run(dao.Query.filter(r =>  r.datecreated === currentdate) 
-     .drop(offset)
-     .take(limit)
-     .result)
-      
- 
-  def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
-   db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate ) 
-     .drop(offset)
-     .take(limit)
-     .result)
+  def existByDate(createdAt: Instant): Future[Boolean] =
+    db.run(dao.Query.filter(_.createdAt === createdAt).exists.result)
 
-  def formatDateFromlong(date: Long): String = {
-        val d = new Date(date * 1000L)
-        new SimpleDateFormat("yyyy-MM-d").format(d)
-    }
+  def findByID(id: UUID): Future[Seq[Task]] =
+    db.run(dao.Query.filter(r => r.id === id).result)
 
-     
-      
+  def getDailyTaskByDate(createdAt: Instant): Future[Option[Task]] =
+    db.run(dao.Query.filter(_.createdAt === createdAt).result.headOption)
+  // def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
+  //  db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate )
+  //    .drop(offset)
+  //    .take(limit)
+  //    .result)
+  // def formatDateFromlong(date: Long): String = {
+  //   val d = new Date(date * 1000L)
+  //   new SimpleDateFormat("yyyy-MM-d").format(d)
+  // }
 
-  def findAll(limit: Int, offset: Int): Future[Seq[Task]] = 
+  def withLimit(limit: Int, offset: Int): Future[Seq[Task]] =
     db.run(dao.Query.drop(offset).take(limit).result)
 
-  def getSize(): Future[Int] =  
+  def getSize(): Future[Int] =
     db.run(dao.Query.length.result)
-
-  def findBygameName(gameID: UUID): Future[Option[Task]] =
-    db.run(dao.Query.filter(r => r.gameID === gameID)
-      .result
-      .headOption)
 }
-/*
-   def getByDate(start: Long, end: Long, limit: Int, offset: Int): Future[Seq[Task]] = {
-    db.run(dao.Query
-      .filter(r => r.blockTimestamp >= start && r.blockTimestamp <= end)
-      .drop(offset)
-      .take(limit)
-    .result)
-  }
-  */

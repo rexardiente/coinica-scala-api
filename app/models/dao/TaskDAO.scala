@@ -13,21 +13,18 @@ final class TaskDAO @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
- // private implicit val jsValueMappedColumnType: BaseColumnType[JsValue] =
- //   MappedColumnType.base[JsValue, String](Json.stringify, Json.parse)
-
   protected class TaskTable(tag: Tag) extends Table[Task](tag, "TASK") {
     def id = column[UUID] ("ID", O.PrimaryKey)
-    def gameID = column[UUID] ("GAME_ID") 
-    def info = column[String] ("INFO")
-    def isValid = column[Boolean] ("IS_VALID")
-    def datecreated = column[Long] ("DATECREATED")
+    def tasks = column[Seq[UUID]] ("TASKS")
+    // def duration = column[Int] ("TIME_DURATION")
+    def createdAt = column[Instant] ("CREATED_AT")
+    // def expiredAt = column[Instant] ("EXPIRED_AT")
 
-    def * = (id, gameID, info, isValid, datecreated) <> ((Task.apply _).tupled, Task.unapply) 
+    def * = (id, tasks, createdAt) <> ((Task.apply _).tupled, Task.unapply)
   }
 
   object Query extends TableQuery(new TaskTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
- 
+
 }

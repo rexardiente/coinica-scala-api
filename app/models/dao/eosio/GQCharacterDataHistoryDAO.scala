@@ -5,7 +5,7 @@ import java.util.UUID
 import java.time.Instant
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.eosio.GQCharacterDataHistory
+import models.domain.eosio.GQ.v2.GQCharacterDataHistory
 
 @Singleton
 final class GQCharacterDataHistoryDAO @Inject()(
@@ -13,26 +13,27 @@ final class GQCharacterDataHistoryDAO @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
-  protected class GQCharacterDataHistoryTable(tag: Tag) extends Table[GQCharacterDataHistory](tag, "GQ_CHARACTER_DATA_HISTORY") {
-    def id = column[String] ("CHARACTER_ID", O.PrimaryKey)
-    def player = column[String] ("PLAYER")
+  protected class GQCharacterDataHistoryTable(tag: Tag)
+          extends Table[GQCharacterDataHistory](tag, "GQ_CHARACTER_DATA_HISTORY")
+          with models.service.DynamicSortBySupport.ColumnSelector {
+    def key = column[String] ("CHARACTER_ID", O.PrimaryKey)
+    def owner = column[String] ("PLAYER")
     def life = column[Int] ("LIFE")
     def hp = column[Int] ("HP")
-    def ghostClass = column[Int] ("CLASS")
+    def ghostClass= column[Int] ("CLASS")
     def level = column[Int] ("LEVEL")
     def status = column[Int] ("STATUS")
     def attack = column[Int] ("ATTACK")
     def defense = column[Int] ("DEFENSE")
     def speed = column[Int] ("SPEED")
     def luck = column[Int] ("LUCK")
-    def prize = column[String] ("PRIZE")
-    def battleLimit = column[Int] ("BATTLE_LIMIT")
-    def battleCount = column[Int] ("BATTLE_COUNT")
-    def lastMatch = column[Long] ("LAST_MATCH")
+    def limit = column[Int] ("BATTLE_LIMIT")
+    def count = column[Int] ("BATTLE_COUNT")
+    def isNew = column[Boolean] ("IS_NEW")
     def createdAt = column[Long] ("CREATED_AT")
 
-    def * = (id,
-            player,
+    def * = (key,
+            owner,
             life,
             hp,
             ghostClass,
@@ -42,15 +43,30 @@ final class GQCharacterDataHistoryDAO @Inject()(
             defense,
             speed,
             luck,
-            prize,
-            battleLimit,
-            battleCount,
-            lastMatch,
-            createdAt) <> (GQCharacterDataHistory.tupled, GQCharacterDataHistory.unapply)
+            limit,
+            count,
+            isNew,
+            createdAt) <> ((GQCharacterDataHistory.apply _).tupled, GQCharacterDataHistory.unapply)
+
+    val select = Map("key" -> (this.key),
+                    "owner" -> (this.owner),
+                    "life" -> (this.life),
+                    "hp" -> (this.hp),
+                    "ghostClass" -> (this.ghostClass),
+                    "level" -> (this.level),
+                    "status" -> (this.status),
+                    "attack" -> (this.attack),
+                    "defense" -> (this.defense),
+                    "speed" -> (this.speed),
+                    "luck" -> (this.luck),
+                    "limit" -> (this.limit),
+                    "count" -> (this.count),
+                    "isNew" -> (this.isNew),
+                    "createdAt" -> (this.createdAt))
   }
 
   object Query extends TableQuery(new GQCharacterDataHistoryTable(_)) {
-    def apply(id: String) = this.withFilter(_.id === id)
-    def apply(id: String, player: String) = this.withFilter(x => x.id === id && x.player === player)
+    def apply(key: String) = this.withFilter(_.key === key)
+    def apply(key: String, owner: String) = this.withFilter(x => x.key === key && x.owner === owner)
   }
 }

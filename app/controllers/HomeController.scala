@@ -10,26 +10,10 @@ import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.libs.json._
-import play.api.libs.json.JsValue
-import models.domain.{ Login, Game, Genre, Task, Ranking, Challenge, Referral, Event }
-import models.repo.{
-  LoginRepo,
-  GameRepo,
-  GenreRepo,
-  TaskRepo,
-  ReferralRepo,
-  RankingRepo,
-  TransactionRepo,
-  ChallengeRepo }
-import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import models.service.{
-  TaskService,
-  ReferralService,
-  RankingService,
-  TransactionService,
-  ChallengeService,
-  GQGameService,
-  GQSmartContractAPI }
+import models.domain._
+import models.repo._
+import models.repo.eosio._
+import models.service._
 import utils.lib.EOSIOSupport
 import akka.WebSocketActor
 /**
@@ -39,19 +23,19 @@ import akka.WebSocketActor
 @Singleton
 class HomeController @Inject()(
       loginRepo: LoginRepo,
+      userAccRepo: UserAccountRepo,
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
-      taskRepo: TaskRepo,
-      rankingRepo: RankingRepo,
       challengeRepo: ChallengeRepo,
-      referralRepo: ReferralRepo,
+      newsRepo: NewsRepo,
       taskService: TaskService,
       rankingService: RankingService,
-      referralService:  ReferralService,
-      transactionService: TransactionService,
+      referralHistoryService:  ReferralHistoryService,
+      eosNetTransaction: EOSNetTransactionService,
       challengeService: ChallengeService,
       gQCharacterDataRepo: GQCharacterDataRepo,
       gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
+      overAllGameHistoryRepo: OverAllGameHistoryRepo,
       gqGameService: GQGameService,
       eosio: EOSIOSupport,
       gqSmartContractAPI: GQSmartContractAPI,
@@ -61,29 +45,20 @@ class HomeController @Inject()(
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
 
   /*  CUSTOM FORM VALIDATION */
-
-private def referralForm = Form(tuple(
-    "referralname" -> nonEmptyText,
-    "referrallink" -> nonEmptyText,
-    "rate" -> number,
-    "feeamount" -> number,
-    "referralcreated" -> longNumber))
-
+  private def referralForm = Form(tuple(
+    "code" -> nonEmptyText,
+    "applied_by" -> nonEmptyText))
   private def challengeForm = Form(tuple(
-    "name" -> nonEmptyText,
-    "bets" -> number,
-    "profit" -> number,
-    "ratio" -> number,
-    "vippoints" -> number,
-    "challengecreated" -> longNumber))
-
+    "name" -> uuid,
+    "description" -> nonEmptyText,
+    "start_at" -> longNumber,
+    "expire_at" -> optional(longNumber)))
   private def rankingForm = Form(tuple(
     "name" -> nonEmptyText,
     "bets" -> number,
     "profit" -> number,
     "multiplieramount" -> number,
     "rankingcreated" -> longNumber))
-
   private def gameForm = Form(tuple(
     "game" -> nonEmptyText,
     "imgURL" -> nonEmptyText,
@@ -101,7 +76,13 @@ private def referralForm = Form(tuple(
 
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
-      WebSocketActor.props(out, gQCharacterDataRepo, gQCharacterGameHistoryRepo, eosio, gqSmartContractAPI)
+      WebSocketActor.props(out,
+                          userAccRepo,
+                          gQCharacterDataRepo,
+                          gQCharacterGameHistoryRepo,
+                          overAllGameHistoryRepo,
+                          eosio,
+                          gqSmartContractAPI)
     }
   }
 
@@ -109,139 +90,141 @@ private def referralForm = Form(tuple(
     Future.successful(Ok(views.html.index()))
   }
 
-  def paginatedResult(limit: Int, offset: Int) = Action.async { implicit req =>
-    taskService.paginatedResult(limit, offset).map(task => Ok(Json.toJson(task)))
+  def userAccount(user: String) = Action.async { implicit req =>
+    userAccRepo.getUserAccount(user).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
   }
-  def addReferral = Action.async { implicit req =>
+
+  def getReferralHistory(code: String) = Action.async { implicit req =>
+    referralHistoryService.getByCode(code).map(x => Ok(Json.toJson(x)))
+  }
+
+  def applyReferralCode() = Action.async { implicit req =>
     referralForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (referralname, referrallink,rate,feeamount,referralcreated)  =>
-        referralRepo
-          .add(Referral(UUID.randomUUID, referralname, referrallink,rate,feeamount,referralcreated))
-          .map(r => if(r < 0) InternalServerError else Created )
-      }
-    )
+      { case (code, appliedBy)  =>
+        try {
+          referralHistoryService
+            .applyReferralCode(code, appliedBy)
+            .map(r => if(r < 0) InternalServerError else Created )
+        } catch {
+          case _: Throwable => Future(InternalServerError)
+        }
+      })
   }
-  def updateReferral(id: UUID) = Action.async { implicit req =>
-    referralForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (referralname, referrallink,rate,feeamount,referralcreated) =>
-        referralRepo
-          .update(Referral(id, referralname, referrallink,rate,feeamount,referralcreated))
-          .map(r => if(r < 0) NotFound else Ok)
-      }
-    )
-  }
-  def removeReferral(id: UUID) = Action.async { implicit req =>
-    referralRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
-  }
+
   def addChallenge = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, bets,profit,ratio,vippoints,challengecreated)  =>
-        challengeRepo
-          .add(Challenge(UUID.randomUUID, name, bets,profit,ratio,vippoints,challengecreated))
-          .map(r => if(r < 0) InternalServerError else Created )
-      }
-    )
+      { case (name, description, startAt, expiredAt)  =>
+        try {
+          challengeRepo
+            .add(Challenge(name,
+                          description,
+                          Instant.ofEpochSecond(startAt),
+                          expiredAt.map(Instant.ofEpochSecond).getOrElse(Instant.ofEpochSecond(startAt + 86400))))
+            .map(r => if(r < 0) InternalServerError else Created )
+        } catch {
+          case _: Throwable => Future(InternalServerError)
+        }
+      })
   }
+
+  // TODO: Need enhancements
   def updateChallenge(id: UUID) = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, bets,profit,ratio,vippoints,challengecreated) =>
-        challengeRepo
-          .update(Challenge(id, name, bets,profit,ratio,vippoints,challengecreated))
-          .map(r => if(r < 0) NotFound else Ok)
-      }
-    )
+      { case (name, description, startAt, expiredAt)  =>
+        try {
+          challengeRepo
+            .update(Challenge(id,
+                              name,
+                              description,
+                              Instant.ofEpochSecond(startAt),
+                              Instant.ofEpochSecond(expiredAt.get)))
+            .map(r => if(r < 0) NotFound else Ok)
+        } catch {
+          case _: Throwable => Future(InternalServerError)
+        }
+      })
   }
+
   def removeChallenge(id: UUID) = Action.async { implicit req =>
     challengeRepo
       .delete(id)
       .map(r => if(r < 0) NotFound else Ok)
   }
-   def challengedate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
-  }
-   def challengedaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    challengeService.getChallengeByDate(start, end, limit, offset).map(Ok(_))
-  }
-def addTask = Action.async { implicit req =>
-    taskForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (gameID, info, isValid, datecreated)  =>
-        taskRepo
-          .add(Task(UUID.randomUUID, gameID, info, isValid, datecreated))
-          .map(r => if(r < 0) InternalServerError else Created )
-      }
-    )
-  }
-  def updateTask(id: UUID) = Action.async { implicit req =>
-    taskForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (gameID, info, isValid, datecreated) =>
-        taskRepo
-          .update(Task(id, gameID, info, isValid, datecreated))
-          .map(r => if(r < 0) NotFound else Ok)
-      }
-    )
-  }
-  def removeTask(id: UUID) = Action.async { implicit req =>
-    taskRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
-  }
-  def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
-  }
-  def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
-  }
-  def referraldate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
-  }
-    def referraldaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-       referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
-  }
-  def addRanking = Action.async { implicit req =>
-    rankingForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, bets,profit,multiplieramount,rankingcreated)  =>
-        rankingRepo
-          .add(Ranking(UUID.randomUUID, name, bets,profit,multiplieramount,rankingcreated))
-          .map(r => if(r < 0) InternalServerError else Created )
-      }
-    )
-  }
-  def updateRanking(id: UUID) = Action.async { implicit req =>
-    rankingForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, bets,profit,multiplieramount,rankingcreated) =>
-        rankingRepo
-          .update(Ranking(id, name, bets,profit,multiplieramount,rankingcreated))
-          .map(r => if(r < 0) NotFound else Ok)
-      }
-    )
-  }
-  def removeRanking(id: UUID) = Action.async { implicit req =>
-    rankingRepo
-      .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
-  }
-  def rankingdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
-  }
-    def rankingdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-      rankingService.getRankingByDate(start, end, limit, offset).map(Ok(_))
+
+  def getChallenge(date: Instant) = Action.async { implicit req =>
+    challengeService.getChallenge(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
   }
 
-  def taskmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    taskService.getTaskByMonthly(start, end, limit, offset).map(Ok(_))
+  def getDailyRanksChallenge() = Action.async { implicit req =>
+    challengeService.getDailyRanksChallenge.map(x => Ok(Json.toJson(x)))
   }
-  def referralmonthly(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    referralService.getReferralByDate(start, end, limit, offset).map(Ok(_))
+
+  def getTodayTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
+    taskService.getTodayTaskUpdates(user, gameID).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
+  }
+
+  def getMonthlyTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
+    taskService.getTodayTaskUpdates(user, gameID).map(x => Ok(Json.toJson(x)))
+  }
+  // def getWeeklyTaskUpdates(user: String, gameID: UUID)
+  // def addTask = Action.async { implicit req =>
+  //   taskForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (gameID, info, isValid, datecreated)  =>
+  //       taskRepo
+  //         .add(Task(UUID.randomUUID, gameID, info, isValid, datecreated))
+  //         .map(r => if(r < 0) InternalServerError else Created )
+  //     })
+  // }
+  // def updateTask(id: UUID) = Action.async { implicit req =>
+  //   taskForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (gameID, info, isValid, datecreated) =>
+  //       taskRepo
+  //         .update(Task(id, gameID, info, isValid, datecreated))
+  //         .map(r => if(r < 0) NotFound else Ok)
+  //     })
+  // }
+  // def removeTask(id: UUID) = Action.async { implicit req =>
+  //   taskRepo
+  //     .delete(id)
+  //     .map(r => if(r < 0) NotFound else Ok)
+  // }
+  // def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
+  //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
+  // }
+  // def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
+  //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
+  // }
+  // def addRanking = Action.async { implicit req =>
+  //   rankingForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (name, bets,profit,multiplieramount,rankingcreated)  =>
+  //       rankingRepo
+  //         .add(Ranking(UUID.randomUUID, name, bets,profit,multiplieramount,rankingcreated))
+  //         .map(r => if(r < 0) InternalServerError else Created )
+  //     })
+  // }
+  // def updateRanking(id: UUID) = Action.async { implicit req =>
+  //   rankingForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (name, bets,profit,multiplieramount,rankingcreated) =>
+  //       rankingRepo
+  //         .update(Ranking(id, name, bets,profit,multiplieramount,rankingcreated))
+  //         .map(r => if(r < 0) NotFound else Ok)
+  //     })
+  // }
+  // def removeRanking(id: UUID) = Action.async { implicit req =>
+  //   rankingRepo
+  //     .delete(id)
+  //     .map(r => if(r < 0) NotFound else Ok)
+  // }
+
+  def getRankingByDate(date: Option[Instant]) = Action.async { implicit req =>
+    rankingService.getRankingByDate(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
   }
 
   def games() = Action.async { implicit req =>
@@ -262,8 +245,7 @@ def addTask = Action.async { implicit req =>
             else Future.successful(InternalServerError)
           }
         } yield(result)
-      }
-    )
+      })
   }
 
   def findGameByID(id: UUID) = Action.async { implicit req =>
@@ -285,8 +267,7 @@ def addTask = Action.async { implicit req =>
            }
         } yield(result)
 
-      }
-    )
+      })
   }
 
   def removeGame(id: UUID) = Action.async { implicit req =>
@@ -311,8 +292,7 @@ def addTask = Action.async { implicit req =>
         genreRepo
           .add(Genre(UUID.randomUUID, name, description))
           .map(r => if(r < 0) InternalServerError else Created )
-      }
-    )
+      })
   }
 
   def updateGenre(id: UUID) = Action.async { implicit req =>
@@ -322,8 +302,7 @@ def addTask = Action.async { implicit req =>
         genreRepo
           .update(Genre(id, name, description))
           .map(r => if(r < 0) NotFound else Ok)
-      }
-    )
+      })
   }
 
   def removeGenre(id: UUID) = Action.async { implicit req =>
@@ -333,11 +312,11 @@ def addTask = Action.async { implicit req =>
   }
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-    transactionService.getTxByDateRange(start, end, limit, offset).map(Ok(_))
+    eosNetTransaction.getTxByDateRange(start, end, limit, offset).map(Ok(_))
   }
 
   def transactionByTraceID(id: String) = Action.async { implicit req =>
-    transactionService.getByTxTraceID(id).map(Ok(_))
+    eosNetTransaction.getByTxTraceID(id).map(Ok(_))
   }
 
   def getAllCharacters() = Action.async { implicit req =>
@@ -381,5 +360,37 @@ def addTask = Action.async { implicit req =>
   }
   def getGQGameHistoryByGameID(id: String) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.filteredByID(id).map(x => Ok(Json.toJson(x)))
+  }
+
+  def highEarnCharactersAllTime() = Action.async { implicit req =>
+    gqGameService.highEarnCharactersAllTime().map(x => Ok(Json.toJson(x)))
+  }
+
+  def highEarnCharactersDaily() = Action.async { implicit req =>
+    gqGameService.highEarnCharactersDaily().map(x => Ok(Json.toJson(x)))
+  }
+
+  def highEarnCharactersWeekly() = Action.async { implicit req =>
+    gqGameService.highEarnCharactersWeekly().map(x => Ok(Json.toJson(x)))
+  }
+
+  def winStreakPerDay() = Action.async { implicit req =>
+    gqGameService.winStreakPerDay().map(x => Ok(Json.toJson(x)))
+  }
+
+  def winStreakPerWeekly() = Action.async { implicit req =>
+    gqGameService.winStreakPerWeekly().map(x => Ok(Json.toJson(x)))
+  }
+
+  def winStreakLifeTime() = Action.async { implicit req =>
+    gqGameService.winStreakLifeTime().map(x => Ok(Json.toJson(x)))
+  }
+
+  def news() = Action.async { implicit req =>
+    newsRepo.all().map(x => Ok(Json.toJson(x)))
+  }
+
+  def overAllHistory(limit: Int) = Action.async { implicit req =>
+    overAllGameHistoryRepo.all(limit).map(x => Ok(Json.toJson(x)))
   }
 }

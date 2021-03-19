@@ -5,13 +5,13 @@ import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-object Data extends utils.CommonImplicits 
-object Receipt extends utils.CommonImplicits 
-object Act extends utils.CommonImplicits 
-object Partial extends utils.CommonImplicits 
+object Data extends utils.CommonImplicits
+object Receipt extends utils.CommonImplicits
+object Act extends utils.CommonImplicits
+object Partial extends utils.CommonImplicits
 object ActionTrace extends utils.CommonImplicits
 object Trace extends utils.CommonImplicits
-object Transaction extends utils.CommonImplicits { val tupled = (apply _).tupled }
+object EOSNetTransaction extends utils.CommonImplicits { val tupled = (apply _).tupled }
 case class Data(
 		from: String,
 		to: String,
@@ -66,7 +66,7 @@ case class Trace(
 		errorCode: Option[String],
 		failedDtrxTrace: JsValue,
 		partial: Option[Partial])
-case class Transaction(
+case class EOSNetTransaction(
 		id: UUID,
 		traceId: String,
 		blockNum: Long,
