@@ -90,6 +90,8 @@ GET   /donut/api/v1/news controllers.HomeController.news
 
 # User Account
 GET   /donut/api/v1/account/user/:user controllers.HomeController.userAccount(user)
+# VIP Account
+GET   /donut/api/v1/vip 				controllers.HomeController.vipUser(id: UUID)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

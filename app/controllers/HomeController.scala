@@ -24,6 +24,8 @@ import akka.WebSocketActor
 class HomeController @Inject()(
       loginRepo: LoginRepo,
       userAccRepo: UserAccountRepo,
+      vipUserRepo: VIPUserRepo,
+      userAccountService: UserAccountService,
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       challengeRepo: ChallengeRepo,
@@ -77,7 +79,7 @@ class HomeController @Inject()(
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
       WebSocketActor.props(out,
-                          userAccRepo,
+                          userAccountService,
                           gQCharacterDataRepo,
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
@@ -92,6 +94,10 @@ class HomeController @Inject()(
 
   def userAccount(user: String) = Action.async { implicit req =>
     userAccRepo.getUserAccount(user).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+  }
+
+  def vipUser(id: UUID) = Action.async { implicit req =>
+    vipUserRepo.findByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
   }
 
   def getReferralHistory(code: String) = Action.async { implicit req =>

@@ -16,19 +16,18 @@ final class VIPUserDAO @Inject()(
 
   protected class VIPUserTable(tag: Tag) extends Table[VIPUser](tag, "VIP") {
     def id = column[UUID] ("ID", O.PrimaryKey)
-    def user = column[String] ("USER")
     def rank = column[VIP.value] ("RANK")
     def nxtRank = column[VIP.value] ("NEXT_RANK")
     def payout = column[Long] ("PAYOUT")
     def points = column[Long] ("POINTS")
     def updatedAt = column[Instant] ("UPDATED_AT")
 
-    def * = (id, user, rank, nxtRank, payout, points, updatedAt) <> (VIPUser.tupled, VIPUser.unapply)
+    def * = (id, rank, nxtRank, payout, points, updatedAt) <> (VIPUser.tupled, VIPUser.unapply)
   }
 
   object Query extends TableQuery(new VIPUserTable(_)) {
-    def apply(user: String) = this.withFilter(_.user === user)
+    // def apply(user: String) = this.withFilter(_.user === user)
     def apply(id: UUID) = this.withFilter(_.id === id)
-    def apply(id: UUID, user: String) = this.withFilter(x => x.id === id && x.user === user)
+    // def apply(id: UUID, user: String) = this.withFilter(x => x.id === id && x.user === user)
   }
 }

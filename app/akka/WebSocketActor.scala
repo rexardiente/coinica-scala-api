@@ -1,14 +1,17 @@
 package akka
 
 import javax.inject.{ Singleton, Inject }
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor._
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
 import models.domain._
+import models.domain.enum._
 import models.domain.Event._
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import models.repo.{ OverAllGameHistoryRepo, UserAccountRepo }
+import models.repo.OverAllGameHistoryRepo
+import models.service.UserAccountService
 import models.service.GQSmartContractAPI
 import akka.common.objects.{ Connect, GQBattleScheduler }
 import utils.lib.EOSIOSupport
@@ -16,7 +19,7 @@ import utils.lib.EOSIOSupport
 object WebSocketActor {
   def props(
       out: ActorRef,
-      userAccRepo: UserAccountRepo,
+      userAccountService: UserAccountService,
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
@@ -24,7 +27,7 @@ object WebSocketActor {
       smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor],
           out,
-          userAccRepo,
+          userAccountService,
           characterRepo,
           historyRepo,
           overAllGameHistory,
@@ -38,7 +41,7 @@ object WebSocketActor {
 @Singleton
 class WebSocketActor@Inject()(
       out: ActorRef,
-      userAccRepo: UserAccountRepo,
+      userAccountService: UserAccountService,
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
@@ -150,9 +153,14 @@ class WebSocketActor@Inject()(
       case "payout" =>
       case "point" =>
     }
-    // save new users into DB users..
+    // save new users into DB users and create VIP profile
     case Connect(user) =>
-      userAccRepo.exist(user).map(x => if(!x) userAccRepo.add(UserAccount(user)))
+      userAccountService.isExist(user).map(x => if(!x) {
+        val acc: UserAccount = UserAccount(user)
+        userAccountService
+          .newUserAcc(acc)
+          .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, VIP.Bronze, VIP.Bronze, 0, 0, Instant.now)))
+      })
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))
   }
