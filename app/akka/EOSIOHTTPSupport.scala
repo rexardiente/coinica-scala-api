@@ -14,13 +14,10 @@ import models.domain.eosio.TableRowsRequest
 @Singleton
 class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val config            : Config = ConfigFactory.load()
-  val keosdApiBaseURL   : String = config.getString("eosio.uri.keosd")
-  val nodeosApiBaseURL  : String = config.getString("eosio.uri.nodeos")
-  val publicKey         : String = config.getString("eosio.wallets.public.default.key")
-  val privateKey        : String = config.getString("eosio.wallets.private.server.default.key")
+  val nodeServerURI     : String = config.getString("eosio.eosjs.node.server.uri")
 
   def getTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
-    val request: WSRequest = ws.url("http://127.0.0.1:3001/ghostquest/get_table")
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
@@ -49,7 +46,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   }
 
   def battleResult(gameid: String, winner: (String, String), loser: (String, String)): Future[Option[String]] =  {
-    val request: WSRequest = ws.url("http://127.0.0.1:3001/ghostquest/battle_result")
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/battle_result")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
@@ -67,7 +64,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   }
 
   def eliminate(user: String, characterID: String): Future[Option[String]] = {
-    val request: WSRequest = ws.url("http://127.0.0.1:3001/ghostquest/eliminate")
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/eliminate")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
