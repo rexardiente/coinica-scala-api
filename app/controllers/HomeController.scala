@@ -39,8 +39,7 @@ class HomeController @Inject()(
       gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
       overAllGameHistoryRepo: OverAllGameHistoryRepo,
       gqGameService: GQGameService,
-      eosio: EOSIOSupport,
-      gqSmartContractAPI: GQSmartContractAPI,
+      eosioHTTPSupport: akka.EOSIOHTTPSupport,
       mat: akka.stream.Materializer,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
@@ -83,8 +82,7 @@ class HomeController @Inject()(
                           gQCharacterDataRepo,
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
-                          eosio,
-                          gqSmartContractAPI)
+                          eosioHTTPSupport)
     }
   }
 

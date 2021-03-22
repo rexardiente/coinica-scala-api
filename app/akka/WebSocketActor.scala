@@ -23,16 +23,14 @@ object WebSocketActor {
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
-      eosio: EOSIOSupport,
-      smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
+      eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor],
           out,
           userAccountService,
           characterRepo,
           historyRepo,
           overAllGameHistory,
-          eosio,
-          smartcontract,
+          eosioHTTPSupport,
           system)
 
   val subscribers = scala.collection.mutable.HashMap.empty[String, ActorRef]
@@ -45,17 +43,15 @@ class WebSocketActor@Inject()(
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
-      eosio: EOSIOSupport,
-      gqSmartContractAPI: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor {
+      eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) extends Actor {
   private val code: Int = out.hashCode
   private val log: LoggingAdapter = Logging(context.system, this)
   private val characterUpdateActor: ActorRef = system.actorOf(
-                                        Props(classOf[GQSchedulerActor],
+                                        Props(classOf[GQSchedulerActorV2],
                                               characterRepo,
                                               historyRepo,
                                               overAllGameHistory,
-                                              eosio,
-                                              gqSmartContractAPI,
+                                              eosioHTTPSupport,
                                               system))
 
   override def preStart(): Unit = {
@@ -92,8 +88,8 @@ class WebSocketActor@Inject()(
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    characterUpdateActor ! akka.common.objects.VerifyGQUserTable(GQSchedulerActor.eosTblRowsRequest, Some("update_characters"))
-                    Thread.sleep(1500)
+                    characterUpdateActor ! akka.common.objects.REQUEST_TABLE_ROWS(GQSchedulerActorV2.eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+                    Thread.sleep(2000)
                     out ! OutEvent(JsNull, JsString("characters updated"))
 
                   // if result is empty it means on battle else standby mode..
