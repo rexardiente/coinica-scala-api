@@ -13,8 +13,8 @@ import models.domain.eosio.TableRowsRequest
 
 @Singleton
 class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val config            : Config = ConfigFactory.load()
-  val nodeServerURI     : String = config.getString("eosio.eosjs.node.server.uri")
+  val config       : Config = ConfigFactory.load()
+  val nodeServerURI: String = config.getString("eosio.eosjs.node.server.uri")
 
   def getTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
@@ -57,10 +57,8 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         "winner" -> Json.obj("first" -> winner._1, "second" -> winner._2),
         "loser" -> Json.obj("first" -> loser._1, "second" -> loser._2)
       ))
-      .map { response =>
-        // return transaction ID
-        (response.json \ "data" \ "transaction").asOpt[String]
-      }
+      .map(v => (v.json \ "data" \ "transaction").asOpt[String])
+      // return transaction ID
   }
 
   def eliminate(user: String, characterID: String): Future[Option[String]] = {
@@ -74,9 +72,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         "username" -> user,
         "ghost_id" -> characterID
       ))
-      .map { response =>
-        // return transaction ID
-        (response.json \ "data" \ "transaction").asOpt[String]
-      }
+      .map(v => (v.json \ "data" \ "transaction").asOpt[String])
+      // return transaction ID
   }
 }

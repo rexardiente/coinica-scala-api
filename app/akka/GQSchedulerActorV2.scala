@@ -75,63 +75,61 @@ class GQSchedulerActorV2 @Inject()(
   }
 
   def receive: Receive = {
-    case REQUEST_BATTLE_NOW => GQBattleScheduler.REQUEST_BATTLE_STATUS match {
-      case "ON_UPDATE" =>
-      {
-        self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_ON_BATTLE"))
-      }
+    case REQUEST_BATTLE_NOW =>
+      GQBattleScheduler.REQUEST_BATTLE_STATUS match {
+        case "ON_UPDATE" => self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_ON_BATTLE"))
 
-      case "REQUEST_ON_BATTLE" =>
-      {
-        val characters: HashMap[String, GQCharacterData] = GQBattleScheduler.characters
-        val filtered = characters.filterNot(x => x._2.isNew == true || x._2.life <= 0 || x._2.count >= x._2.limit)
-        // make sure no eliminated or withdrawn characters on the list
-        val isEliminatedOrWithdrawn = filtered.filterNot(x => x._2.status == 2  || x._2.status == 3)
-        // shuffle all list of characters to play
-        val availableCharacters = scala.util.Random.shuffle(isEliminatedOrWithdrawn)
-        // start the battle..
-        battleProcess(availableCharacters)
-        // all finished battle will be recorded into `battleCounter`
-        // save all characters that has no available to play
-        GQBattleScheduler.characters.clear
-        GQBattleScheduler.REQUEST_BATTLE_STATUS = "REQUEST_BATTLE_DONE"
-        self ! REQUEST_BATTLE_NOW
-      }
-
-      case "REQUEST_BATTLE_DONE" =>
-      {
-        val toProcessCounter = GQBattleScheduler.battleCounter
-
-        toProcessCounter.foreach { count =>
-          val winner = count._2.characters.filter(_._2._2).head
-          val loser = count._2.characters.filter(!_._2._2).head
-
-          val battle = eosioHTTPSupport.battleResult(count._1.toString, (winner._1, winner._2._1), (loser._1, loser._2._1))
-          Thread.sleep(1000)
-
-          battle.map {
-            case Some(e) => ()
-            case e => GQBattleScheduler.battleCounter.remove(count._1)
-          }
+        case "REQUEST_ON_BATTLE" =>
+        {
+          val characters: HashMap[String, GQCharacterData] = GQBattleScheduler.characters
+          val filtered = characters.filterNot(x => x._2.isNew == true || x._2.life <= 0 || x._2.count >= x._2.limit)
+          // make sure no eliminated or withdrawn characters on the list
+          val isEliminatedOrWithdrawn = filtered.filterNot(x => x._2.status == 2  || x._2.status == 3)
+          // shuffle all list of characters to play
+          val availableCharacters = scala.util.Random.shuffle(isEliminatedOrWithdrawn)
+          // start the battle..
+          battleProcess(availableCharacters)
+          // all finished battle will be recorded into `battleCounter`
+          // save all characters that has no available to play
+          GQBattleScheduler.characters.clear
+          GQBattleScheduler.REQUEST_BATTLE_STATUS = "REQUEST_BATTLE_DONE"
+          self ! REQUEST_BATTLE_NOW
         }
-        // remove failed txs on the list before inserting to DB OverAllGameHistory
-        saveHistoryDB(GQBattleScheduler.battleCounter)
+
+        case "REQUEST_BATTLE_DONE" =>
+        {
+          val toProcessCounter = GQBattleScheduler.battleCounter
+
+          toProcessCounter.foreach { count =>
+            val winner = count._2.characters.filter(_._2._2).head
+            val loser = count._2.characters.filter(!_._2._2).head
+
+            val battle = eosioHTTPSupport.battleResult(count._1.toString, (winner._1, winner._2._1), (loser._1, loser._2._1))
+            Thread.sleep(1000)
+
+            battle.map {
+              case Some(e) => ()
+              case e => GQBattleScheduler.battleCounter.remove(count._1)
+            }
+          }
+          // remove failed txs on the list before inserting to DB OverAllGameHistory
+          saveHistoryDB(GQBattleScheduler.battleCounter)
+        }
+        case e => log.info(e)
       }
-      case e => log.info(e)
-    }
 
     case REQUEST_TABLE_ROWS(req, sender) =>
     {
       eosioHTTPSupport
-            .getTableRows(req, sender)
-            .map(_.map(self ! _).getOrElse({
-              // broadcast to all connected users the next GQ battle
-              dynamicBroadcastActor ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
-              if (GQBattleScheduler.REQUEST_BATTLE_STATUS == "") {
-                GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
-                systemBattleScheduler(GQSchedulerActorV2.defaultTimer)
-              }
-            }))
+        .getTableRows(req, sender)
+        .map(_.map(self ! _).getOrElse({
+          // broadcast to all connected users the next GQ battle
+          dynamicBroadcastActor ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
+          if (GQBattleScheduler.REQUEST_BATTLE_STATUS == "") {
+            GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
+            systemBattleScheduler(GQSchedulerActorV2.defaultTimer)
+          }
+        }))
     }
 
     case GQRowsResponse(rows, hasNext, nextKey, sender) =>

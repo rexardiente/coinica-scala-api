@@ -6,9 +6,9 @@ GET     /ws                                  	controllers.HomeController.socket
 
 GET     /                                        controllers.HomeController.index
 # Login API
-POST    /donut/api/v1/login/add                   controllers.AdminController.addLogin
-PUT     /donut/api/v1/login/update               controllers.AdminController.updateLogin(id: UUID)
-POST    /donut/api/v1/login/remove                controllers.AdminController.removeLogin(id: UUID)
+#POST    /donut/api/v1/login/add                   controllers.AdminController.addLogin
+#PUT     /donut/api/v1/login/update               controllers.AdminController.updateLogin(id: UUID)
+#POST    /donut/api/v1/login/remove                controllers.AdminController.removeLogin(id: UUID)
 
 GET     /donut/api/v1/login/weekly               controllers.AdminController.logindate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 GET     /donut/api/v1/login/daily                controllers.AdminController.logindate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
@@ -44,18 +44,18 @@ GET     /donut/api/v1/task/monthly                controllers.HomeController.get
 # Game API
 GET     /donut/api/v1/games                      controllers.HomeController.games
 GET     /donut/api/v1/game/find                  controllers.HomeController.findGameByID(id: UUID)
-POST    /donut/api/v1/game/add                   controllers.HomeController.addGame
-PUT     /donut/api/v1/game/update              	 controllers.HomeController.updateGame(id: UUID)
-POST    /donut/api/v1/game/remove                controllers.HomeController.removeGame(id: UUID)
+#POST    /donut/api/v1/game/add                   controllers.HomeController.addGame
+#PUT     /donut/api/v1/game/update              	 controllers.HomeController.updateGame(id: UUID)
+#POST    /donut/api/v1/game/remove                controllers.HomeController.removeGame(id: UUID)
 
 # Genre API
 GET     /donut/api/v1/genres                     controllers.HomeController.genres
 
 # An example controller showing a sample home page
 # WebsocGET     /donut/api/v1/genre/find         controllers.HomeController.findGenreByID(id: UUID)
-POST    /donut/api/v1/genre/add                  controllers.HomeController.addGenre
-PUT     /donut/api/v1/genre/update               controllers.HomeController.updateGenre(id: UUID)
-POST    /donut/api/v1/genre/remove               controllers.HomeController.removeGenre(id: UUID)
+#POST    /donut/api/v1/genre/add                  controllers.HomeController.addGenre
+#PUT     /donut/api/v1/genre/update               controllers.HomeController.updateGenre(id: UUID)
+#POST    /donut/api/v1/genre/remove               controllers.HomeController.removeGenre(id: UUID)
 
 # Transaction API
 GET    /donut/api/v1/txs               			 	 controllers.HomeController.transactions(start: java.time.Instant, end: Option[java.time.Instant], limit: Int ?= 10, offset: Int ?= 0)
