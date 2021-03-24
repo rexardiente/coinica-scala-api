@@ -1,14 +1,17 @@
 package akka
 
 import javax.inject.{ Singleton, Inject }
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor._
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
 import models.domain._
+import models.domain.enum._
 import models.domain.Event._
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import models.repo.{ OverAllGameHistoryRepo, UserAccountRepo }
+import models.repo.OverAllGameHistoryRepo
+import models.service.UserAccountService
 import models.service.GQSmartContractAPI
 import akka.common.objects.{ Connect, GQBattleScheduler }
 import utils.lib.EOSIOSupport
@@ -16,20 +19,18 @@ import utils.lib.EOSIOSupport
 object WebSocketActor {
   def props(
       out: ActorRef,
-      userAccRepo: UserAccountRepo,
+      userAccountService: UserAccountService,
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
-      eosio: EOSIOSupport,
-      smartcontract: GQSmartContractAPI)(implicit system: ActorSystem) =
+      eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor],
           out,
-          userAccRepo,
+          userAccountService,
           characterRepo,
           historyRepo,
           overAllGameHistory,
-          eosio,
-          smartcontract,
+          eosioHTTPSupport,
           system)
 
   val subscribers = scala.collection.mutable.HashMap.empty[String, ActorRef]
@@ -38,21 +39,19 @@ object WebSocketActor {
 @Singleton
 class WebSocketActor@Inject()(
       out: ActorRef,
-      userAccRepo: UserAccountRepo,
+      userAccountService: UserAccountService,
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
-      eosio: EOSIOSupport,
-      gqSmartContractAPI: GQSmartContractAPI)(implicit system: ActorSystem) extends Actor {
+      eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) extends Actor {
   private val code: Int = out.hashCode
   private val log: LoggingAdapter = Logging(context.system, this)
   private val characterUpdateActor: ActorRef = system.actorOf(
-                                        Props(classOf[GQSchedulerActor],
+                                        Props(classOf[GQSchedulerActorV2],
                                               characterRepo,
                                               historyRepo,
                                               overAllGameHistory,
-                                              eosio,
-                                              gqSmartContractAPI,
+                                              eosioHTTPSupport,
                                               system))
 
   override def preStart(): Unit = {
@@ -89,8 +88,8 @@ class WebSocketActor@Inject()(
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    characterUpdateActor ! akka.common.objects.VerifyGQUserTable(GQSchedulerActor.eosTblRowsRequest, Some("update_characters"))
-                    Thread.sleep(1500)
+                    characterUpdateActor ! akka.common.objects.REQUEST_TABLE_ROWS(GQSchedulerActorV2.eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+                    Thread.sleep(2000)
                     out ! OutEvent(JsNull, JsString("characters updated"))
 
                   // if result is empty it means on battle else standby mode..
@@ -150,9 +149,14 @@ class WebSocketActor@Inject()(
       case "payout" =>
       case "point" =>
     }
-    // save new users into DB users..
+    // save new users into DB users and create VIP profile
     case Connect(user) =>
-      userAccRepo.exist(user).map(x => if(!x) userAccRepo.add(UserAccount(user)))
+      userAccountService.isExist(user).map(x => if(!x) {
+        val acc: UserAccount = UserAccount(user)
+        userAccountService
+          .newUserAcc(acc)
+          .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, VIP.Bronze, VIP.Bronze, 0, 0, Instant.now)))
+      })
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))
   }

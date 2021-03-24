@@ -234,7 +234,7 @@ class SystemSchedulerActor @Inject()(
           // save result into Challenge history
           case v: Seq[ChallengeTracker] =>
             challengeHistoryRepo
-              .add(new ChallengeHistory(UUID.randomUUID, v.head.challengeID, v, Instant.now))
+              .add(new ChallengeHistory(UUID.randomUUID, v, Instant.now))
               .map(x => if (x > 0) challengeTrackerRepo.clearTable else println("Error: challengeTracker.clearTable"))
         }
       }
