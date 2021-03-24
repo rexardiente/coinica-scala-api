@@ -13,8 +13,7 @@ import models.domain.eosio.TableRowsRequest
 
 @Singleton
 class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val config       : Config = ConfigFactory.load()
-  val nodeServerURI: String = config.getString("eosio.eosjs.node.server.uri")
+  val nodeServerURI: String = utils.Config.NODE_SERVER_URI
 
   def getTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")

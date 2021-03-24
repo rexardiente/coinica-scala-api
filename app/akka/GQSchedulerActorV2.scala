@@ -8,7 +8,6 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
-import com.typesafe.config.{ Config, ConfigFactory }
 import akka.util.Timeout
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import play.api.libs.ws.WSClient
@@ -21,14 +20,16 @@ import models.service.GQSmartContractAPI
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
 import models.domain.eosio.GQ.v2._
 import akka.common.objects._
+import utils.Config
 
 object GQSchedulerActorV2 {
   var isIntialized: Boolean = false
-  val defaultTimer: FiniteDuration = {ConfigFactory.load().getInt("platform.games.GQ.battle.timer")}.minutes
+  val defaultTime: Int = Config.GQ_DEFAULT_BATTLE_TIMER
+  val scheduledTime: FiniteDuration = { defaultTime }.minutes
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
-                                                  "ghostquest",
-                                                  "users",
-                                                  "ghostquest",
+                                                  Config.GQ_CODE,
+                                                  Config.GQ_TABLE,
+                                                  Config.GQ_SCOPE,
                                                   None,
                                                   Some("uint64_t"),
                                                   None,
@@ -50,9 +51,9 @@ class GQSchedulerActorV2 @Inject()(
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val dynamicBroadcastActor: ActorRef = system.actorOf(Props(classOf[DynamicBroadcastActor], None, system))
   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
-                                                  "ghostquest",
-                                                  "users",
-                                                  "ghostquest",
+                                                  Config.GQ_CODE,
+                                                  Config.GQ_TABLE,
+                                                  Config.GQ_SCOPE,
                                                   None,
                                                   Some("uint64_t"),
                                                   None,
@@ -60,14 +61,15 @@ class GQSchedulerActorV2 @Inject()(
                                                   None)
   override def preStart: Unit = {
     super.preStart
+    println("PING PONG")
 
     system.actorSelection("/user/GQSchedulerActorV2").resolveOne().onComplete {
       case Success(actor) =>
         if (!GQSchedulerActorV2.isIntialized) {
+          GQSchedulerActorV2.isIntialized = true
           // scheduled 5minutes to start battle..
-          systemBattleScheduler(GQSchedulerActorV2.defaultTimer)
+          systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
           // set true if actor already initialized
-          // GQSchedulerActor.isIntialized = true
           log.info("GQSchedulerActorV2 Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
@@ -122,14 +124,12 @@ class GQSchedulerActorV2 @Inject()(
     {
       eosioHTTPSupport
         .getTableRows(req, sender)
-        .map(_.map(self ! _).getOrElse({
+        .map(_.map(self ! _).getOrElse {
           // broadcast to all connected users the next GQ battle
           dynamicBroadcastActor ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
-          if (GQBattleScheduler.REQUEST_BATTLE_STATUS == "") {
-            GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
-            systemBattleScheduler(GQSchedulerActorV2.defaultTimer)
-          }
-        }))
+          GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
+          systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
+        })
     }
 
     case GQRowsResponse(rows, hasNext, nextKey, sender) =>
@@ -160,19 +160,15 @@ class GQSchedulerActorV2 @Inject()(
         sender match {
           case Some("REQUEST_ON_BATTLE") =>
             characters.map(v => GQBattleScheduler.characters.addOne(v.key, v))
-          // case Some("REQUEST_BATTLE_NOW") =>
-          //   characters.map(v => GQBattleScheduler.characters.addOne(v.key, v))
           case Some("REQUEST_REMOVE_NO_LIFE") =>
             characters.map(v => GQBattleScheduler.eliminatedOrWithdrawn.addOne(v.key, v))
-          case Some("REQUEST_UPDATE_CHARACTERS_DB") =>
-            characters.map(v => GQBattleScheduler.isUpdatedCharacters.addOne(v.key, v))
           case _ => log.info("GQRowsResponse: unknown data")
         }
       }
 
-      if (hasNext) self ! REQUEST_TABLE_ROWS(new TableRowsRequest("ghostquest",
-                                                                  "users",
-                                                                  "ghostquest",
+      if (hasNext) self ! REQUEST_TABLE_ROWS(new TableRowsRequest(Config.GQ_CODE,
+                                                                  Config.GQ_TABLE,
+                                                                  Config.GQ_SCOPE,
                                                                   None,
                                                                   Some("uint64_t"),
                                                                   None,
@@ -185,12 +181,6 @@ class GQSchedulerActorV2 @Inject()(
             self ! REQUEST_BATTLE_NOW
           case Some("REQUEST_REMOVE_NO_LIFE") =>
             self ! REQUEST_CHARACTER_ELIMINATE
-          // save to another variable and clear the dynamic result
-          case Some("REQUEST_UPDATE_CHARACTERS_DB") =>
-            val toSeq: Seq[GQCharacterData] = GQBattleScheduler.isUpdatedCharacters.map(_._2).toSeq
-            characterRepo.updateOrInsertAsSeq(toSeq)
-            GQBattleScheduler.isUpdatedCharacters.clear
-
           case _ =>
         }
       }
@@ -210,12 +200,6 @@ class GQSchedulerActorV2 @Inject()(
           case None => log.info("Error: removing character from smartcontract")
         }
       }
-      // println(successToRemove.size)
-      // // insert to History if succesfully removed
-      // successToRemove.map(v => {
-      //   println("successToRemove" + v.key)
-      //   characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(v))
-      // })
       // clean back the list to get ready for later battle schedule..
       GQBattleScheduler.eliminatedOrWithdrawn.clear
       // update character DB if it has new characters added..
@@ -223,10 +207,11 @@ class GQSchedulerActorV2 @Inject()(
       // on battle start reset timer to 0 and set new timer until the battle finished
       // set back the time for next battle..
       GQBattleScheduler.REQUEST_BATTLE_STATUS = ""
-      GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * 5)
+      GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
       // broadcast to all connected users the next GQ battle
+      println("Battle Finished")
       dynamicBroadcastActor ! "BROADCAST_NEXT_BATTLE"
-      systemBattleScheduler(GQSchedulerActorV2.defaultTimer)
+      systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
     }
     case _ => ()
   }
@@ -239,14 +224,14 @@ class GQSchedulerActorV2 @Inject()(
       ((new OverAllGameHistory(
                             UUID.randomUUID,
                             count._1,
-                            "ghostquest",
+                            Config.GQ_CODE,
                             GQGameHistory(winner._1, "WIN", true),
                             true,
                             time),
         new OverAllGameHistory(
                             UUID.randomUUID,
                             count._1,
-                            "ghostquest",
+                            Config.GQ_CODE,
                             GQGameHistory(loser._1, "WIN", false),
                             true,
                             time)),
@@ -260,8 +245,8 @@ class GQSchedulerActorV2 @Inject()(
                       time.getEpochSecond))
     }.map { case ((winner, loser), character) =>
       // insert Tx and character contineously
-        // broadcast game result to connected users
-        // use live data to feed on history update..
+      // broadcast game result to connected users
+      // use live data to feed on history update..
       for {
         _ <- gQGameHistoryRepo.insert(character)
         _ <- gameTxHistory
@@ -329,6 +314,7 @@ class GQSchedulerActorV2 @Inject()(
     if (GQBattleScheduler.REQUEST_BATTLE_STATUS == "")
     {
       system.scheduler.scheduleOnce(timer) {
+        println("Starting Battle")
         GQBattleScheduler.REQUEST_BATTLE_STATUS = "ON_UPDATE"
         GQBattleScheduler.nextBattle = 0
         self ! REQUEST_BATTLE_NOW

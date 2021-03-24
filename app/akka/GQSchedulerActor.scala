@@ -35,7 +35,8 @@
 
 // object GQSchedulerActor {
 //   var isIntialized: Boolean = false
-//   val defaultTimer: FiniteDuration = {ConfigFactory.load().getInt("platform.games.GQ.battle.timer")}.minutes
+//   val defaultTime: Int = ConfigFactory.load().getInt("platform.games.GQ.battle.timer")
+//   val defaultTimer: FiniteDuration = { defaultTime }.minutes
 //   val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
 //                                                   "ghostquest",
 //                                                   "users",

@@ -8,9 +8,9 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
-import com.typesafe.config.{ Config, ConfigFactory}
 import Ordering.Double.IeeeOrdering
 import akka.util.Timeout
+import utils.Config
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
@@ -103,7 +103,7 @@ class SystemSchedulerActor @Inject()(
         if (!SystemSchedulerActor.isIntialized) {
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = {ConfigFactory.load().getInt("platform.default.system.scheduler")}.hours
+          val dailySchedInterval: FiniteDuration = { Config.DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
           val dailySchedDelay   : FiniteDuration = {
               val time = LocalTime.of(0, 0).toSecondOfDay
               val now = LocalTime.now().toSecondOfDay
