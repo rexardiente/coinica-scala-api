@@ -4,7 +4,6 @@ import java.util.UUID
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import ejisan.scalauthx.HashedCredential
 import models.domain.VIPUser
 import models.domain.enum._
 

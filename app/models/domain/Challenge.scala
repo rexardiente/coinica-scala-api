@@ -39,7 +39,7 @@ object ChallengeHistory extends utils.CommonImplicits {
 		new ChallengeHistory(UUID.randomUUID, rank_users, Instant.now)
 }
 
-case class ChallengeTracker(user: String, id: UUID, bets: Double, wagered: Double, ratio: Double, prize: Double) {
+case class ChallengeTracker(user: String, id: UUID, bets: Double, wagered: Double, ratio: Double, points: Double) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 case class ChallengeHistory(id: UUID, rank_users: Seq[ChallengeTracker], created_at: Instant) {

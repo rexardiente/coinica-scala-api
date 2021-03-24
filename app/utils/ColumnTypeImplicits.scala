@@ -10,8 +10,8 @@ import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus, GameLog }
 import models.domain.{ ChallengeTracker, TransactionType, RankType }
 import models.domain.enum._
-import ejisan.kuro.otp.OTPKey
-import ejisan.scalauthx.HashedCredential
+// import ejisan.kuro.otp.OTPKey
+// import ejisan.scalauthx.HashedCredential
 
 trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   protected val dbConfigProvider: DatabaseConfigProvider
@@ -71,10 +71,10 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val roleMapper = MappedColumnType.base[Roles.Role, String](
     e => e.toString,
     s => Roles.withName(s))
-  implicit val optKeyMapper = MappedColumnType.base[OTPKey, String](
-    _.toBase32, OTPKey.fromBase32(_))
-  implicit val hashedCredentialMapper = MappedColumnType.base[HashedCredential, String](
-    _.toString, HashedCredential.fromString(_))
+  // implicit val optKeyMapper = MappedColumnType.base[OTPKey, String](
+  //   _.toBase32, OTPKey.fromBase32(_))
+  // implicit val hashedCredentialMapper = MappedColumnType.base[HashedCredential, String](
+  //   _.toString, HashedCredential.fromString(_))
 
   // Custom VIP Value Mappers..
   implicit val vipMapper = MappedColumnType.base[VIP.value, String](
