@@ -23,7 +23,7 @@ class Generator @Inject()(
     gqCharacterData: GQCharacterDataDAO,
     gqCharacterGameHistory: GQCharacterGameHistoryDAO,
     gqCharacterDataHistory: GQCharacterDataHistoryDAO,
-    admin: AdminDAO,
+    // admin: AdminDAO,
     vipUser: VIPUserDAO,
     vipBenefit: VIPBenefitDAO,
     news: NewsDAO,
@@ -50,7 +50,7 @@ class Generator @Inject()(
       gqCharacterData.Query.schema ++
       gqCharacterGameHistory.Query.schema ++
       gqCharacterDataHistory.Query.schema ++
-      admin.Query.schema ++
+      // admin.Query.schema ++
       vipUser.Query.schema ++
       vipBenefit.Query.schema ++
       news.Query.schema ++

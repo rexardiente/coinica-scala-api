@@ -3,7 +3,6 @@ package models.dao
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import ejisan.scalauthx.HashedCredential
 import models.domain.VIPBenefit
 import models.domain.enum._
 
