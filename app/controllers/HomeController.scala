@@ -166,11 +166,11 @@ class HomeController @Inject()(
     challengeService.getDailyRanksChallenge.map(x => Ok(Json.toJson(x)))
   }
 
-  def getTodayTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
+  def getTodayTaskUpdates(user: UUID, gameID: UUID) = Action.async { implicit req =>
     taskService.getTodayTaskUpdates(user, gameID).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
   }
 
-  def getMonthlyTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
+  def getMonthlyTaskUpdates(user: UUID, gameID: UUID) = Action.async { implicit req =>
     taskService.getTodayTaskUpdates(user, gameID).map(x => Ok(Json.toJson(x)))
   }
   // def getWeeklyTaskUpdates(user: String, gameID: UUID)

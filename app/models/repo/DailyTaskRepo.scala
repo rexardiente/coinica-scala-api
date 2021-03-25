@@ -18,7 +18,7 @@ class DailyTaskRepo @Inject()(
   def add(task: DailyTask): Future[Int] =
     db.run(dao.Query += task)
 
-  def delete(user: String): Future[Int] =
+  def delete(user: UUID): Future[Int] =
     db.run(dao.Query(user).delete)
 
   def clearTable(): Future[Int] =
@@ -30,12 +30,12 @@ class DailyTaskRepo @Inject()(
   def all(): Future[Seq[DailyTask]] =
     db.run(dao.Query.result)
 
-  def getTodayTaskByUserAndGame(user: String, gameID: UUID): Future[Option[DailyTask]] =
+  def getTodayTaskByUserAndGame(user: UUID, gameID: UUID): Future[Option[DailyTask]] =
     db.run(dao.Query.filter(x => x.user === user && x.gameID === gameID).result.headOption)
 
-  def exist(user: String): Future[Boolean] =
+  def exist(user: UUID): Future[Boolean] =
     db.run(dao.Query(user).exists.result)
 
-  def exist(user: String, gameID: UUID): Future[Boolean] =
+  def exist(user: UUID, gameID: UUID): Future[Boolean] =
     db.run(dao.Query(user, gameID).exists.result)
 }

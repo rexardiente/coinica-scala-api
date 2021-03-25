@@ -17,7 +17,7 @@ final class TaskHistoryDAO @Inject()(
     def id = column[UUID] ("ID", O.PrimaryKey)
     def taskID = column[UUID] ("TASKS_ID")
     def gameID = column[UUID] ("GAME_ID")
-    def user = column[String] ("USER")
+    def user = column[UUID] ("USER")
     def gameCount = column[Int] ("GAME_COUNT")
     def createdAt = column[Instant] ("CREATED_AT")
     def expiredAt = column[Instant] ("EXPIRED_AT")

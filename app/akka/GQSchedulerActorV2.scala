@@ -61,8 +61,6 @@ class GQSchedulerActorV2 @Inject()(
                                                   None)
   override def preStart: Unit = {
     super.preStart
-    println("PING PONG")
-
     system.actorSelection("/user/GQSchedulerActorV2").resolveOne().onComplete {
       case Success(actor) =>
         if (!GQSchedulerActorV2.isIntialized) {

@@ -14,7 +14,7 @@ final class DailyTaskDAO @Inject()(
   import profile.api._
 
   protected class DailyTaskTable(tag: Tag) extends Table[DailyTask](tag, "TASK_TRACKER") {
-    def user = column[String] ("USER", O.PrimaryKey)
+    def user = column[UUID] ("USER", O.PrimaryKey)
     def gameID = column[UUID] ("GAME_ID")
     // def game = column[String] ("GAME")
     def gameCount = column[Int] ("RATIO")
@@ -23,8 +23,8 @@ final class DailyTaskDAO @Inject()(
   }
 
   object Query extends TableQuery(new DailyTaskTable(_)) {
-    def apply(user: String) = this.withFilter(_.user === user)
-    def apply(user: String, gameID: UUID) = this.withFilter(x => x.user === user && x.gameID === gameID)
+    def apply(user: UUID) = this.withFilter(_.user === user)
+    def apply(user: UUID, gameID: UUID) = this.withFilter(x => x.user === user && x.gameID === gameID)
     def clearTbl = this.delete
   }
 }

@@ -53,7 +53,7 @@ class TaskHistoryRepo @Inject()(
   def getSize(): Future[Int] =
     db.run(dao.Query.length.result)
 
-  def getMonthlyTaskByUserAndGame(user: String, gameID: UUID, start: Instant, end: Instant): Future[Seq[TaskHistory]] =
+  def getMonthlyTaskByUserAndGame(user: UUID, gameID: UUID, start: Instant, end: Instant): Future[Seq[TaskHistory]] =
     db.run(dao.Query.filter(x => x.user === user && x.gameID === gameID && x.createdAt >= start && x.expiredAt >= end).result)
 }
 
