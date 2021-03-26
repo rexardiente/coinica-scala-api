@@ -14,7 +14,7 @@ final class DailyTaskDAO @Inject()(
   import profile.api._
 
   protected class DailyTaskTable(tag: Tag) extends Table[DailyTask](tag, "TASK_TRACKER") {
-    def user = column[UUID] ("USER", O.PrimaryKey)
+    def user = column[UUID] ("USER")
     def gameID = column[UUID] ("GAME_ID")
     // def game = column[String] ("GAME")
     def gameCount = column[Int] ("RATIO")
