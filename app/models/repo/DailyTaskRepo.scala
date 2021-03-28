@@ -27,6 +27,23 @@ class DailyTaskRepo @Inject()(
   def update(task: DailyTask): Future[Int] =
     db.run(dao.Query.filter(x => x.user === task.user && x.gameID === task.game_id).update(task))
 
+  def addOrUpdate(task: DailyTask): Future[Int] = {
+    for {
+      find <- findUserByID(task.user)
+      check <- {
+        find match {
+          // if found auto add 1 on its game count
+          case Some(v) => update(v.copy(game_count = (v.game_count + task.game_count)))
+          // else add to DB
+          case _ => add(task)
+        }
+      }
+    } yield (check)
+  }
+
+  def findUserByID(user: UUID): Future[Option[DailyTask]] =
+    db.run(dao.Query.filter(x => x.user === user).result.headOption)
+
   def all(): Future[Seq[DailyTask]] =
     db.run(dao.Query.result)
 

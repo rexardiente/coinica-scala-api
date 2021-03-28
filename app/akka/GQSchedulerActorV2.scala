@@ -347,6 +347,16 @@ class GQSchedulerActorV2 @Inject()(
   // tx hash, game id, battle result
   def insertOrUpdateDailyTasks(seq: Seq[(String, (UUID, GQBattleResult))]): Unit = {
     val createdAt: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant
+
+    taskRepo.getDailyTaskByDate(createdAt).map {
+      case Some(task) => seq.map { case (hash, (gameID, result)) =>
+        result
+          .characters
+          .map(v => new DailyTask(v._2._1, gameID, 1))
+          .map(dailyTaskRepo.addOrUpdate)
+      }
+      case _ => ()
+    }
     // val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
     // taskRepo.existByDate(createdAt).map { isCreated =>
     //   if (!isCreated) {
@@ -363,18 +373,6 @@ class GQSchedulerActorV2 @Inject()(
     //     } yield ()
     //   }
     // }
-    taskRepo.getDailyTaskByDate(createdAt).map {
-      case Some(task) => seq.map { case (hash, (gameID, result)) =>
-        // result.characters.map(v => DailyTask(user: UUID, game_id: UUID, game_count: Int))
-        // val winner = result.characters.filter(_._2._2).head
-        // val loser = result.characters.filter(!_._2._2).head
-
-      }
-        // task.id
-        // DailyTask(user: UUID, game_id: UUID, game_count: Int)
-
-      case _ => ()
-    }
   }
 
   def battleProcess(params: HashMap[String, GQCharacterData]): Unit = {
