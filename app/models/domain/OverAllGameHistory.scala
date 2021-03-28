@@ -32,6 +32,7 @@ case class PaymentType(user: String, data: String, bet: Double) extends Transact
 	override def toJson(): JsValue = Json.toJson(this)
 }
 case class OverAllGameHistory(id: UUID,
+															tx_hash: String,
 															gameID: UUID, // name or ID
 															game: String, // name or ID
 															info: TransactionType,

@@ -8,6 +8,7 @@ object GQCharacterGameHistory extends utils.CommonImplicits
 case class GQGameStatus(player: String, char_id: String, isWin: Boolean)
 case class GQCharacterGameHistory(
     id: String, // Game ID
+    txHash: String, // Game ID
     winner: String,
     winnerID: String,
     loser: String,

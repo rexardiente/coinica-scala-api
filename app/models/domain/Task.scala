@@ -24,7 +24,7 @@ case class TaskHistory(id: UUID,
 											game_id: UUID,
 											user: UUID,
 											game_count: Int,
-											created_at: Instant,
+											valid_at: Instant,
 											expired_at: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
 }

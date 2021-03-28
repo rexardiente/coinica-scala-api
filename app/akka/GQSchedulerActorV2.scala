@@ -1,6 +1,6 @@
 package akka
 
-import javax.inject.{ Inject, Singleton }
+import javax.inject.{ Inject, Named, Singleton }
 import java.util.UUID
 import java.time.Instant
 import scala.util.{ Success, Failure }
@@ -11,9 +11,8 @@ import scala.collection.mutable.{ ListBuffer, HashMap }
 import akka.util.Timeout
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import play.api.libs.ws.WSClient
-import models.domain.OutEvent
+import models.domain._
 import models.domain.eosio.{ TableRowsRequest, GQCharacterGameHistory, GQBattleResult }
-import models.domain.{ OverAllGameHistory, GameType, GQGameHistory }
 import models.repo.OverAllGameHistoryRepo
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.service.GQSmartContractAPI
@@ -26,15 +25,6 @@ object GQSchedulerActorV2 {
   var isIntialized: Boolean = false
   val defaultTime: Int = Config.GQ_DEFAULT_BATTLE_TIMER
   val scheduledTime: FiniteDuration = { defaultTime }.minutes
-  val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
-                                                  Config.GQ_CODE,
-                                                  Config.GQ_TABLE,
-                                                  Config.GQ_SCOPE,
-                                                  None,
-                                                  Some("uint64_t"),
-                                                  None,
-                                                  None,
-                                                  None)
   def props(characterRepo: GQCharacterDataRepo,
             historyRepo: GQCharacterGameHistoryRepo,
             gameTxHistory: OverAllGameHistoryRepo,
@@ -47,18 +37,19 @@ class GQSchedulerActorV2 @Inject()(
       characterRepo: GQCharacterDataRepo,
       gQGameHistoryRepo: GQCharacterGameHistoryRepo,
       gameTxHistory: OverAllGameHistoryRepo,
-      eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) extends Actor with ActorLogging {
+      eosioHTTPSupport: EOSIOHTTPSupport,
+      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
+    )(implicit system: ActorSystem ) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
-  private val dynamicBroadcastActor: ActorRef = system.actorOf(Props(classOf[DynamicBroadcastActor], None, system))
-  val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
-                                                  Config.GQ_CODE,
-                                                  Config.GQ_TABLE,
-                                                  Config.GQ_SCOPE,
-                                                  None,
-                                                  Some("uint64_t"),
-                                                  None,
-                                                  None,
-                                                  None)
+  private val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
+                                                        Config.GQ_CODE,
+                                                        Config.GQ_TABLE,
+                                                        Config.GQ_SCOPE,
+                                                        None,
+                                                        Some("uint64_t"),
+                                                        None,
+                                                        None,
+                                                        None)
   override def preStart: Unit = {
     super.preStart
     system.actorSelection("/user/GQSchedulerActorV2").resolveOne().onComplete {
@@ -68,7 +59,7 @@ class GQSchedulerActorV2 @Inject()(
           // scheduled 5minutes to start battle..
           systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
           // set true if actor already initialized
-          log.info("GQSchedulerActorV2 Actor Initialized")
+          log.info("GQ Scheduler Actor V2 Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
     }
@@ -98,22 +89,18 @@ class GQSchedulerActorV2 @Inject()(
 
         case "REQUEST_BATTLE_DONE" =>
         {
-          val toProcessCounter = GQBattleScheduler.battleCounter
+          val withTxHash: Future[Seq[(String, (UUID, GQBattleResult))]] =
+            Future.sequence(GQBattleScheduler.battleCounter.map { count =>
+              val winner = count._2.characters.filter(_._2._2).head
+              val loser = count._2.characters.filter(!_._2._2).head
 
-          toProcessCounter.foreach { count =>
-            val winner = count._2.characters.filter(_._2._2).head
-            val loser = count._2.characters.filter(!_._2._2).head
-
-            val battle = eosioHTTPSupport.battleResult(count._1.toString, (winner._1, winner._2._1), (loser._1, loser._2._1))
-            Thread.sleep(1000)
-
-            battle.map {
-              case Some(e) => ()
-              case e => GQBattleScheduler.battleCounter.remove(count._1)
-            }
-          }
+              eosioHTTPSupport.battleResult(count._1.toString, (winner._1, winner._2._1), (loser._1, loser._2._1)).map {
+                case Some(e) => (e, count)
+                case e => null
+              }
+            }.toSeq).map(_.filterNot(_ == null))
           // remove failed txs on the list before inserting to DB OverAllGameHistory
-          saveHistoryDB(GQBattleScheduler.battleCounter)
+          saveHistoryDB(withTxHash)
         }
         case e => log.info(e)
       }
@@ -124,7 +111,7 @@ class GQSchedulerActorV2 @Inject()(
         .getTableRows(req, sender)
         .map(_.map(self ! _).getOrElse {
           // broadcast to all connected users the next GQ battle
-          dynamicBroadcastActor ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
+          dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
           GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
           systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
         })
@@ -208,38 +195,41 @@ class GQSchedulerActorV2 @Inject()(
       GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
       // broadcast to all connected users the next GQ battle
       println("Battle Finished")
-      dynamicBroadcastActor ! "BROADCAST_NEXT_BATTLE"
+      dynamicBroadcast ! "BROADCAST_NEXT_BATTLE"
       systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
     }
     case _ => ()
   }
 
-  def saveHistoryDB(data: HashMap[UUID, GQBattleResult]): Unit = {
-    data.map { count =>
-      val winner = count._2.characters.filter(_._2._2).head
-      val loser = count._2.characters.filter(!_._2._2).head
+  def saveHistoryDB(data: Future[Seq[(String, (UUID, GQBattleResult))]]): Unit = {
+    data.map(_.map { case (txHash, (gameID, result)) =>
+      val winner = result.characters.filter(_._2._2).head
+      val loser = result.characters.filter(!_._2._2).head
       val time = Instant.now
       ((new OverAllGameHistory(
                             UUID.randomUUID,
-                            count._1,
+                            txHash,
+                            gameID,
                             Config.GQ_CODE,
                             GQGameHistory(winner._1, "WIN", true),
                             true,
                             time),
         new OverAllGameHistory(
                             UUID.randomUUID,
-                            count._1,
+                            txHash,
+                            gameID,
                             Config.GQ_CODE,
                             GQGameHistory(loser._1, "WIN", false),
                             true,
                             time)),
         new GQCharacterGameHistory(
-                      count._1.toString, // Game ID
+                      gameID.toString, // Game ID
+                      txHash,
                       winner._2._1,
                       winner._1,
                       loser._2._1,
                       loser._1,
-                      count._2.logs,
+                      result.logs,
                       time.getEpochSecond))
     }.map { case ((winner, loser), character) =>
       // insert Tx and character contineously
@@ -247,24 +237,70 @@ class GQSchedulerActorV2 @Inject()(
       // use live data to feed on history update..
       for {
         _ <- gQGameHistoryRepo.insert(character)
-        _ <- gameTxHistory
-              .add(winner)
-              .map(x => if (x > 0) dynamicBroadcastActor ! winner else log.info("Error: Game Tx Insertion"))
-
-        _ <- gameTxHistory
-                .add(loser)
-                .map(x => if (x > 0) dynamicBroadcastActor ! loser else log.info("Error: Game Tx Insertion"))
+        _ <- gameTxHistory.add(winner)
+        _ <- gameTxHistory.add(loser)
       } yield ()
       Thread.sleep(500)
-    }
-
+      // broadcast GQ game result..
+      dynamicBroadcast ! Array(winner, loser)
+    })
     // broadcast to spicific user if his characters doesnt have enemy..
-    dynamicBroadcastActor ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
+    dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
 
     GQBattleScheduler.battleCounter.clear
     GQBattleScheduler.noEnemy.clear
     self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
   }
+  // def saveHistoryDB(data: HashMap[UUID, GQBattleResult]): Unit = {
+  //   data.map { count =>
+  //     // val txHash = count._1
+  //     val winner = count._2.characters.filter(_._2._2).head
+  //     val loser = count._2.characters.filter(!_._2._2).head
+  //     val time = Instant.now
+  //     ((new OverAllGameHistory(
+  //                           UUID.randomUUID,
+  //                           ???,
+  //                           count._1,
+  //                           Config.GQ_CODE,
+  //                           GQGameHistory(winner._1, "WIN", true),
+  //                           true,
+  //                           time),
+  //       new OverAllGameHistory(
+  //                           UUID.randomUUID,
+  //                           ???,
+  //                           count._1,
+  //                           Config.GQ_CODE,
+  //                           GQGameHistory(loser._1, "WIN", false),
+  //                           true,
+  //                           time)),
+  //       new GQCharacterGameHistory(
+  //                     count._1.toString, // Game ID
+  //                     winner._2._1,
+  //                     winner._1,
+  //                     loser._2._1,
+  //                     loser._1,
+  //                     count._2.logs,
+  //                     time.getEpochSecond))
+  //   }.map { case ((winner, loser), character) =>
+  //     // insert Tx and character contineously
+  //     // broadcast game result to connected users
+  //     // use live data to feed on history update..
+  //     for {
+  //       _ <- gQGameHistoryRepo.insert(character)
+  //       _ <- gameTxHistory.add(winner)
+  //       _ <- gameTxHistory.add(loser)
+  //     } yield ()
+  //     Thread.sleep(500)
+  //     // broadcast GQ game result..
+  //     dynamicBroadcast ! Array(winner, loser)
+  //   }
+  //   // broadcast to spicific user if his characters doesnt have enemy..
+  //   dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
+
+  //   GQBattleScheduler.battleCounter.clear
+  //   GQBattleScheduler.noEnemy.clear
+  //   self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
+  // }
 
   def battleProcess(params: HashMap[String, GQCharacterData]): Unit = {
     // val characters: HashMap[String, GQCharacterData] = params

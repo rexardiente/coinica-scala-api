@@ -162,6 +162,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 				try {
 					JsSuccess(GQCharacterGameHistory(
 						(json \ "game_id").as[String],
+						(json \ "tx_hash").as[String],
 						(json \ "winner").as[String],
 						(json \ "winner_id").as[String],
 						(json \ "loser").as[String],
@@ -178,6 +179,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implicitGQCharacterGameHistoryWrites = new Writes[GQCharacterGameHistory] {
 	  def writes(tx: GQCharacterGameHistory): JsValue = Json.obj(
 		"game_id" -> tx.id,
+		"tx_hash" -> tx.txHash,
 		"winner" -> tx.winner,
 		"winner_id" -> tx.winnerID,
 		"loser" -> tx.loser,
@@ -469,6 +471,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 				try {
 					JsSuccess(OverAllGameHistory(
 						(json \ "id").as[UUID],
+						(json \ "tx_hash").as[String],
 						(json \ "game_id").as[UUID],
 						(json \ "game").as[String],
 						(json \ "info").as[TransactionType],
@@ -484,6 +487,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implicitOverAllGameHistoryWrites = new Writes[OverAllGameHistory] {
 	  def writes(tx: OverAllGameHistory): JsValue = Json.obj(
 		"id" -> tx.id,
+		"tx_hash" -> tx.tx_hash,
 		"game_id" -> tx.gameID,
 		"game" -> tx.game,
 		"info" -> tx.info,

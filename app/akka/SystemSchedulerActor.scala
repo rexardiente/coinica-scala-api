@@ -1,6 +1,6 @@
 package akka
 
-import javax.inject.{ Inject, Singleton }
+import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
 import java.time._
 import scala.util.{ Success, Failure, Random }
@@ -90,10 +90,10 @@ class SystemSchedulerActor @Inject()(
                                       overAllGameHistory: OverAllGameHistoryRepo,
                                       userAccountRepo: UserAccountRepo,
                                       rankingHistoryRepo: RankingHistoryRepo,
+                                      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
-  private val dynamicBroadcast: ActorRef = system.actorOf(Props(classOf[DynamicBroadcastActor], None, system))
 
   override def preStart: Unit = {
     super.preStart
@@ -197,7 +197,7 @@ class SystemSchedulerActor @Inject()(
       // re-insert failed txs on DB
       // TODO: if failed again make new DB records to track and manually insert it..
       trackedFailedInsertion.map(taskHistoryRepo.add)
-      Thread.sleep(2000)
+      // Update: Thread.sleep(2000)
       self ! CreateNewDailyTask
 
     case CreateNewDailyTask =>
@@ -370,16 +370,6 @@ class SystemSchedulerActor @Inject()(
         }
       } yield ()
 
-    case _ =>
-  }
-
-  def mergeSeqTaskHistory(sequence: Seq[OverAllGameHistory]) = {
-    sequence.foldRight(List.empty[OverAllGameHistory]) {
-      // case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) if (c == j && d == k) =>
-      case (OverAllGameHistory(a, b, c, d, e, f), OverAllGameHistory(h, i, j, k, l, m) :: list) =>
-        ???
-        // TaskHistory(newTempID, b, c, d, (e + l), f, n) :: list
-      case (other, list) => other :: list
-    }
+    case _ => ()
   }
 }
