@@ -112,6 +112,7 @@ class GQSchedulerActorV2 @Inject()(
         .map(_.map(self ! _).getOrElse {
           // broadcast to all connected users the next GQ battle
           dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
+          GQBattleScheduler.REQUEST_BATTLE_STATUS = ""
           GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
           systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
         })

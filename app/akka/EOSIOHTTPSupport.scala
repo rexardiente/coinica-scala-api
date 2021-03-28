@@ -42,6 +42,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         }
         else None
       }
+      .recover { case e: Exception => None }
   }
 
   def battleResult(gameid: String, winner: (String, String), loser: (String, String)): Future[Option[String]] =  {
@@ -57,6 +58,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         "loser" -> Json.obj("first" -> loser._1, "second" -> loser._2)
       ))
       .map(v => (v.json \ "data" \ "transaction").asOpt[String])
+      .recover { case e: Exception => None }
       // return transaction ID
   }
 
@@ -72,6 +74,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         "ghost_id" -> characterID
       ))
       .map(v => (v.json \ "data" \ "transaction").asOpt[String])
+      .recover { case e: Exception => None }
       // return transaction ID
   }
 }
