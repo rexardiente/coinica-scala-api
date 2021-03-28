@@ -91,7 +91,8 @@ class WebSocketActor@Inject()(
                                                                         Some("uint64_t"),
                                                                         None,
                                                                         None,
-                                                                        None), None).map(_.map(self ! _))
+                                                                        None), None)
+                    .map(_.map(self ! _).getOrElse(out ! OutEvent(JsNull, JsString("characters updated"))))
                   // if result is empty it means on battle else standby mode..
                   case cc: GQGetNextBattle =>
                     if (GQBattleScheduler.nextBattle == 0)
@@ -126,7 +127,7 @@ class WebSocketActor@Inject()(
                 case true =>
                   // update its akka actorRef if already exists
                   WebSocketActor.subscribers(id) = out
-                  out ! OutEvent(JsString(id), JsString("already subscribed"))
+                  out ! OutEvent(JsNull, Json.obj("error" -> "session exists"))
                 case _ =>
                   WebSocketActor.subscribers.addOne(id -> out)
                   out ! OutEvent(JsString(id), JsString(msg))
@@ -144,29 +145,32 @@ class WebSocketActor@Inject()(
     case GQRowsResponse(rows, hasNext, nextKey, sender) =>
     {
       rows.foreach { row =>
-        val username: String = row.username
-        val data: GQGame = row.data
+        userAccountService.getUserByName(row.username).map {
+          case Some(account) =>
+            val data: GQGame = row.data
 
-        data.characters.map { ch =>
-          val key = ch.key
-          val time = ch.value.createdAt
-          new GQCharacterData(key,
-                              username,
-                              ch.value.life,
-                              ch.value.hp,
-                              ch.value.`class`,
-                              ch.value.level,
-                              ch.value.status,
-                              ch.value.attack,
-                              ch.value.defense,
-                              ch.value.speed,
-                              ch.value.luck,
-                              ch.value.limit,
-                              ch.value.count,
-                              if (time <= Instant.now().getEpochSecond - (60 * 5)) false else true,
-                              time)
+            data.characters.map { ch =>
+              val key = ch.key
+              val time = ch.value.createdAt
+              new GQCharacterData(key,
+                                  account.id,
+                                  ch.value.life,
+                                  ch.value.hp,
+                                  ch.value.`class`,
+                                  ch.value.level,
+                                  ch.value.status,
+                                  ch.value.attack,
+                                  ch.value.defense,
+                                  ch.value.speed,
+                                  ch.value.luck,
+                                  ch.value.limit,
+                                  ch.value.count,
+                                  if (time <= Instant.now().getEpochSecond - (60 * 5)) false else true,
+                                  time)
+            }
+            .map(v => GQBattleScheduler.isUpdatedCharacters.addOne(v.key, v))
+          case _ => ()
         }
-        .map(v => GQBattleScheduler.isUpdatedCharacters.addOne(v.key, v))
       }
       if (hasNext) eosioHTTPSupport.getTableRows(new TableRowsRequest(Config.GQ_CODE,
                                                                       Config.GQ_TABLE,

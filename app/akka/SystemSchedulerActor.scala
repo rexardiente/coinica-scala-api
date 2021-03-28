@@ -170,8 +170,7 @@ class SystemSchedulerActor @Inject()(
         // else self ! ProcessOverAllChallenge(expiredAt)
       }
     case DailyTaskScheduler =>
-      val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
-      val yesterday: Instant = startOfDay.atZone(defaultTimeZone).plusDays(-1).toInstant()
+      val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
       // process first all available task before creating new tasks
       val trackedFailedInsertion = ListBuffer.empty[TaskHistory]
 
@@ -185,8 +184,8 @@ class SystemSchedulerActor @Inject()(
                                                 x.game_id,
                                                 x.user,
                                                 x.game_count,
-                                                v.created_at,
-                                                Instant.ofEpochSecond(v.created_at.getEpochSecond + ((60 * 60 * 24) - 1)))
+                                                Instant.ofEpochSecond(v.created_at),
+                                                Instant.ofEpochSecond(Instant.ofEpochSecond(v.created_at).getEpochSecond + ((60 * 60 * 24) - 1)))
               // insert and if failed do insert 1 more time..
               taskHistoryRepo.add(taskHistory).map(isAdded => if(isAdded > 0)() else trackedFailedInsertion.addOne(taskHistory) )
             })
@@ -201,10 +200,8 @@ class SystemSchedulerActor @Inject()(
       self ! CreateNewDailyTask
 
     case CreateNewDailyTask =>
-      val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
-      val createdAt: Instant = startOfDay.atZone(defaultTimeZone).toInstant()
-      // val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
-      taskRepo.existByDate(createdAt).map { isCreated =>
+      val startOfDay: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant()
+      taskRepo.existByDate(startOfDay).map { isCreated =>
         if (!isCreated) {
           for {
             // remove currentChallengeGame and shuffle the result
@@ -213,7 +210,7 @@ class SystemSchedulerActor @Inject()(
             _ <- Future.successful {
               try {
                 val tasks: Seq[UUID] = availableGames.map(_.id)
-                taskRepo.add(new Task(UUID.randomUUID, tasks, createdAt))
+                taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay.getEpochSecond))
               } catch {
                 case e: Throwable => println("Error: No games available")
               }

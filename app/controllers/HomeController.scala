@@ -327,11 +327,11 @@ class HomeController @Inject()(
     gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x)))
   }
 
-  def getAllCharactersByUser[T <: String](user: T) = Action.async { implicit req =>
+  def getAllCharactersByUser(user: UUID) = Action.async { implicit req =>
     gqGameService.getAllCharactersDataAndHistoryLogsByUser(user).map(Ok(_))
   }
 
-  def getCharactersByUser[T <: String](user: T) = Action.async { implicit req =>
+  def getCharactersByUser(user: UUID) = Action.async { implicit req =>
     gqGameService.getAliveCharacters(user).map(Ok(_))
   }
 
@@ -339,15 +339,15 @@ class HomeController @Inject()(
     gqGameService.getCharacterDataByID(id).map(Ok(_))
   }
 
-  def getCharacterByUserAndID[T <: String](user: T, id: T) = Action.async { implicit req =>
+  def getCharacterByUserAndID(user: UUID, id: String) = Action.async { implicit req =>
     gqGameService.getCharacterByUserAndID(user, id).map(Ok(_))
   }
 
-  def getCharacterHistoryByUser(user: String) = Action.async { implicit req =>
+  def getCharacterHistoryByUser(user: UUID) = Action.async { implicit req =>
     gqGameService.getAllEliminatedCharacters(user).map(Ok(_))
   }
 
-  def getCharacterHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit req =>
+  def getCharacterHistoryByUserAndID(user: UUID, id: String) = Action.async { implicit req =>
     gqGameService.getCharacterHistoryByUserAndID(user, id).map(Ok(_))
   }
 
@@ -355,11 +355,11 @@ class HomeController @Inject()(
     gQCharacterGameHistoryRepo.all().map(x => Ok(Json.toJson(x)))
   }
 
-  def getGQGameHistoryByUser(user: String) = Action.async { implicit req =>
+  def getGQGameHistoryByUser(user: UUID) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.getByUser(user).map(x => Ok(Json.toJson(x)))
   }
 
-  def getGQGameHistoryByUserAndCharacterID[T <: String](user: T, id: T) = Action.async { implicit req =>
+  def getGQGameHistoryByUserAndCharacterID(user: UUID, id: String) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(id, user).map(x => Ok(Json.toJson(x)))
   }
   def getGQGameHistoryByGameID(id: String) = Action.async { implicit req =>

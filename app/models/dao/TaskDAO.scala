@@ -16,15 +16,14 @@ final class TaskDAO @Inject()(
   protected class TaskTable(tag: Tag) extends Table[Task](tag, "TASK") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def tasks = column[Seq[UUID]] ("TASKS")
-    // def duration = column[Int] ("TIME_DURATION")
-    def createdAt = column[Instant] ("CREATED_AT")
-    // def expiredAt = column[Instant] ("EXPIRED_AT")
+    def createdAt = column[Long] ("CREATED_AT")
 
     def * = (id, tasks, createdAt) <> ((Task.apply _).tupled, Task.unapply)
   }
 
   object Query extends TableQuery(new TaskTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
+    def apply(createdAt: Long) = this.withFilter(_.createdAt === createdAt)
   }
 
 }

@@ -1,7 +1,7 @@
 package models.domain.eosio
 
+import java.util.UUID
 import play.api.libs.json._
-
 // Ranking table
 // - character_id
 // - current_streak
@@ -24,14 +24,14 @@ case class GQCharactersLifeTimeWinStreak(character_id: String,
 }
 
 case class GQCharactersRankByEarned(id: String,
-																		owner: String,
+																		owner: UUID,
 																		ghost_class: Int,
 																		ghost_level: Int,
 																		earned: Double) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 case class GQCharactersRankByWinStreak(id: String,
-																			owner: String,
+																			owner: UUID,
 																			ghost_class: Int,
 																			ghost_level: Int,
 																			win_streak: Int) {

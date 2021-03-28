@@ -16,6 +16,7 @@ class TaskRepo @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
+  // private val createAtFn = SimpleFunction.unary[Instant, Long]("CREATED_AT")
 
   def add(task: Task): Future[Int] =
     db.run(dao.Query += task)
@@ -33,13 +34,13 @@ class TaskRepo @Inject()(
     db.run(dao.Query(id).exists.result)
 
   def existByDate(createdAt: Instant): Future[Boolean] =
-    db.run(dao.Query.filter(_.createdAt === createdAt).exists.result)
+    db.run(dao.Query.filter(_.createdAt === createdAt.getEpochSecond).exists.result)
 
   def findByID(id: UUID): Future[Seq[Task]] =
     db.run(dao.Query.filter(r => r.id === id).result)
 
   def getDailyTaskByDate(createdAt: Instant): Future[Option[Task]] =
-    db.run(dao.Query.filter(_.createdAt === createdAt).result.headOption)
+    db.run(dao.Query.filter(v => v.createdAt === createdAt.getEpochSecond).result.headOption)
   // def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
   //  db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate )
   //    .drop(offset)

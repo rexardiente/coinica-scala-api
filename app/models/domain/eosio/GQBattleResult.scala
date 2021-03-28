@@ -9,5 +9,5 @@ object GameLog {
 object GQBattleResult {
   implicit def implicitGQBattleResult = Json.format[GQBattleResult]
 }
-case class GameLog(round: Int, attacker: String, defender: String, damage: Int, is_crit: Boolean)
-case class GQBattleResult(id: UUID, characters: Map[String, (String, Boolean)], logs: List[GameLog])
+case class GameLog(round: Int, attacker: UUID, defender: UUID, damage: Int, is_crit: Boolean)
+case class GQBattleResult(id: UUID, characters: Map[String, (UUID, Boolean)], logs: List[GameLog])

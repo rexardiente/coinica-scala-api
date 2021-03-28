@@ -29,7 +29,7 @@ case class TaskHistory(id: UUID,
 	def toJson(): JsValue = Json.toJson(this)
 }
 // tasks are Seq[UUID] of game_id
-case class Task(id: UUID, tasks: Seq[UUID], created_at: Instant) {
+case class Task(id: UUID, tasks: Seq[UUID], created_at: Long) {
 	// require(duration >= 1 || duration <= 3, "Invalid duration range")
 	def toJson(): JsValue = Json.toJson(this)
 }

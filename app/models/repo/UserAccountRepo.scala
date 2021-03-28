@@ -28,6 +28,9 @@ class UserAccountRepo @Inject()(
   def exist(id: UUID): Future[Boolean] =
     db.run(dao.Query(id).exists.result)
 
+  def getByID(id: UUID): Future[Option[UserAccount]] =
+    db.run(dao.Query(id).result.headOption)
+
   def isCodeExist(code: String): Future[Boolean] =
     db.run(dao.Query.filter(_.referralCode === code).exists.result)
 

@@ -2,7 +2,7 @@ package akka
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.UUID
-import java.time.Instant
+import java.time.{ Instant, LocalDate, ZoneOffset, ZoneId }
 import scala.util.{ Success, Failure }
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,7 +13,7 @@ import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellab
 import play.api.libs.ws.WSClient
 import models.domain._
 import models.domain.eosio.{ TableRowsRequest, GQCharacterGameHistory, GQBattleResult }
-import models.repo.OverAllGameHistoryRepo
+import models.repo.{ OverAllGameHistoryRepo, DailyTaskRepo, TaskRepo, UserAccountRepo }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.service.GQSmartContractAPI
 import utils.lib.{ EOSIOSupport, GQBattleCalculation }
@@ -28,8 +28,19 @@ object GQSchedulerActorV2 {
   def props(characterRepo: GQCharacterDataRepo,
             historyRepo: GQCharacterGameHistoryRepo,
             gameTxHistory: OverAllGameHistoryRepo,
+            accountRepo: UserAccountRepo,
+            taskRepo: TaskRepo,
+            dailyTaskRepo: DailyTaskRepo,
             eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) =
-    Props(classOf[GQSchedulerActorV2], characterRepo, historyRepo, gameTxHistory, eosioHTTPSupport, system)
+    Props(classOf[GQSchedulerActorV2],
+          characterRepo,
+          historyRepo,
+          gameTxHistory,
+          accountRepo,
+          taskRepo,
+          dailyTaskRepo,
+          eosioHTTPSupport,
+          system)
 }
 
 @Singleton
@@ -37,10 +48,14 @@ class GQSchedulerActorV2 @Inject()(
       characterRepo: GQCharacterDataRepo,
       gQGameHistoryRepo: GQCharacterGameHistoryRepo,
       gameTxHistory: OverAllGameHistoryRepo,
+      accountRepo: UserAccountRepo,
+      taskRepo: TaskRepo,
+      dailyTaskRepo: DailyTaskRepo,
       eosioHTTPSupport: EOSIOHTTPSupport,
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
     )(implicit system: ActorSystem ) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
+  private val defaultTimeZone: ZoneId = ZoneOffset.UTC
   private val eosTblRowsRequest: TableRowsRequest = new TableRowsRequest(
                                                         Config.GQ_CODE,
                                                         Config.GQ_TABLE,
@@ -50,6 +65,7 @@ class GQSchedulerActorV2 @Inject()(
                                                         None,
                                                         None,
                                                         None)
+
   override def preStart: Unit = {
     super.preStart
     system.actorSelection("/user/GQSchedulerActorV2").resolveOne().onComplete {
@@ -94,13 +110,27 @@ class GQSchedulerActorV2 @Inject()(
               val winner = count._2.characters.filter(_._2._2).head
               val loser = count._2.characters.filter(!_._2._2).head
 
-              eosioHTTPSupport.battleResult(count._1.toString, (winner._1, winner._2._1), (loser._1, loser._2._1)).map {
-                case Some(e) => (e, count)
-                case e => null
-              }
+
+              for {
+                p1 <- accountRepo.getByID(winner._2._1)
+                p2 <- accountRepo.getByID(loser._2._1)
+                process <- {
+                  try {
+                    eosioHTTPSupport.battleResult(count._1.toString, (winner._1, p1.get.name), (loser._1, p2.get.name)).map {
+                      case Some(e) => (e, count)
+                      case e => null
+                    }
+                  } catch {
+                    case e: Throwable => Future(null)
+                  }
+                }
+              } yield (process)
             }.toSeq).map(_.filterNot(_ == null))
           // remove failed txs on the list before inserting to DB OverAllGameHistory
-          saveHistoryDB(withTxHash)
+          for {
+            _ <- withTxHash.map(saveHistoryDB)
+            _ <- withTxHash.map(insertOrUpdateDailyTasks)
+          } yield ()
         }
         case e => log.info(e)
       }
@@ -121,34 +151,41 @@ class GQSchedulerActorV2 @Inject()(
     case GQRowsResponse(rows, hasNext, nextKey, sender) =>
     {
       rows.foreach { row =>
-        val username: String = row.username
-        val data: GQGame = row.data
+        // find account info and return ID..
+        accountRepo.getByName(row.username).map {
+          case Some(account) =>
+            // val username: String = row.username
+            val data: GQGame = row.data
 
-        val characters = data.characters.map { ch =>
-          val key = ch.key
-          val time = ch.value.createdAt
-          new GQCharacterData(key,
-                              username,
-                              ch.value.life,
-                              ch.value.hp,
-                              ch.value.`class`,
-                              ch.value.level,
-                              ch.value.status,
-                              ch.value.attack,
-                              ch.value.defense,
-                              ch.value.speed,
-                              ch.value.luck,
-                              ch.value.limit,
-                              ch.value.count,
-                              if (time <= Instant.now().getEpochSecond - (60 * 5)) false else true,
-                              time)
-        }
-        sender match {
-          case Some("REQUEST_ON_BATTLE") =>
-            characters.map(v => GQBattleScheduler.characters.addOne(v.key, v))
-          case Some("REQUEST_REMOVE_NO_LIFE") =>
-            characters.map(v => GQBattleScheduler.eliminatedOrWithdrawn.addOne(v.key, v))
-          case _ => log.info("GQRowsResponse: unknown data")
+            val characters = data.characters.map { ch =>
+              val key = ch.key
+              val time = ch.value.createdAt
+              new GQCharacterData(key,
+                                  account.id,
+                                  ch.value.life,
+                                  ch.value.hp,
+                                  ch.value.`class`,
+                                  ch.value.level,
+                                  ch.value.status,
+                                  ch.value.attack,
+                                  ch.value.defense,
+                                  ch.value.speed,
+                                  ch.value.luck,
+                                  ch.value.limit,
+                                  ch.value.count,
+                                  if (time <= Instant.now().getEpochSecond - (60 * 5)) false else true,
+                                  time)
+            }
+
+            sender match {
+              case Some("REQUEST_ON_BATTLE") =>
+                characters.map(v => GQBattleScheduler.characters.addOne(v.key, v))
+              case Some("REQUEST_REMOVE_NO_LIFE") =>
+                characters.map(v => GQBattleScheduler.eliminatedOrWithdrawn.addOne(v.key, v))
+              case _ => log.info("GQRowsResponse: unknown data")
+            }
+
+          case _ => ()
         }
       }
 
@@ -178,12 +215,16 @@ class GQSchedulerActorV2 @Inject()(
       val successToRemove: ListBuffer[GQCharacterData] = new ListBuffer()
       // remove from smartcontract
       filteredByStatus.map { case (id, data) =>
-        eosioHTTPSupport.eliminate(data.owner, id).map {
-          case Some(txID) =>
-            // remove from Charater DB and move to history
-            characterRepo.remove(data.owner, id)
-            characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-          case None => log.info("Error: removing character from smartcontract")
+        accountRepo.getByID(data.owner).map {
+          case Some(account) =>
+            eosioHTTPSupport.eliminate(account.name, id).map {
+              case Some(txID) =>
+                // remove from Charater DB and move to history
+                characterRepo.remove(account.id, id)
+                characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+              case None => log.info("Error: removing character from smartcontract")
+            }
+          case _ => ()
         }
       }
       // clean back the list to get ready for later battle schedule..
@@ -202,8 +243,8 @@ class GQSchedulerActorV2 @Inject()(
     case _ => ()
   }
 
-  def saveHistoryDB(data: Future[Seq[(String, (UUID, GQBattleResult))]]): Unit = {
-    data.map(_.map { case (txHash, (gameID, result)) =>
+  def saveHistoryDB(data: Seq[(String, (UUID, GQBattleResult))]): Unit = {
+    data.map { case (txHash, (gameID, result)) =>
       val winner = result.characters.filter(_._2._2).head
       val loser = result.characters.filter(!_._2._2).head
       val time = Instant.now
@@ -244,7 +285,7 @@ class GQSchedulerActorV2 @Inject()(
       Thread.sleep(500)
       // broadcast GQ game result..
       dynamicBroadcast ! Array(winner, loser)
-    })
+    }
     // broadcast to spicific user if his characters doesnt have enemy..
     dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
 
@@ -302,6 +343,39 @@ class GQSchedulerActorV2 @Inject()(
   //   GQBattleScheduler.noEnemy.clear
   //   self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
   // }
+  // Insert into tasks daily tracker
+  // tx hash, game id, battle result
+  def insertOrUpdateDailyTasks(seq: Seq[(String, (UUID, GQBattleResult))]): Unit = {
+    val createdAt: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant
+    // val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
+    // taskRepo.existByDate(createdAt).map { isCreated =>
+    //   if (!isCreated) {
+    //     for {
+    //       // remove currentChallengeGame and shuffle the result
+    //       // get head, and create new Challenge for the day
+    //       _ <- Future.successful {
+    //         try {
+    //           taskRepo.add(Task(UUID.randomUUID, Seq(UUID.randomUUID), createdAt.getEpochSecond))
+    //         } catch {
+    //           case e: Throwable => println("Error: No games available")
+    //         }
+    //       }
+    //     } yield ()
+    //   }
+    // }
+    taskRepo.getDailyTaskByDate(createdAt).map {
+      case Some(task) => seq.map { case (hash, (gameID, result)) =>
+        // result.characters.map(v => DailyTask(user: UUID, game_id: UUID, game_count: Int))
+        // val winner = result.characters.filter(_._2._2).head
+        // val loser = result.characters.filter(!_._2._2).head
+
+      }
+        // task.id
+        // DailyTask(user: UUID, game_id: UUID, game_count: Int)
+
+      case _ => ()
+    }
+  }
 
   def battleProcess(params: HashMap[String, GQCharacterData]): Unit = {
     // val characters: HashMap[String, GQCharacterData] = params
