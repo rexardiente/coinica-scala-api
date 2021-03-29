@@ -32,9 +32,9 @@ class ReferralHistoryService @Inject()(userAccountRepo: UserAccountRepo, referra
     } yield result
   // check if user exists and not referred by someone
   // make sure code doenst belong to itself
-  def applyReferralCode(code: String, appliedBy: String): Future[Int] =
+  def applyReferralCode(appliedBy: UUID, code: String): Future[Int] =
     for {
-      isCodeOwnedBySelf <- userAccountRepo.isCodeOwnedBy(code, appliedBy)
+      isCodeOwnedBySelf <- userAccountRepo.isCodeOwnedBy(appliedBy, code)
       hasNoReferral <- userAccountRepo.hasNoReferral(appliedBy)
       result <- {
         if (!isCodeOwnedBySelf && hasNoReferral != None) {

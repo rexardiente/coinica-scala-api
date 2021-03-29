@@ -34,14 +34,14 @@ class UserAccountRepo @Inject()(
   def isCodeExist(code: String): Future[Boolean] =
     db.run(dao.Query.filter(_.referralCode === code).exists.result)
 
-  def isCodeOwnedBy(name: String, code: String): Future[Boolean] =
-    db.run(dao.Query.filter(x => x.name === name && x.referralCode === code).exists.result)
+  def isCodeOwnedBy(id: UUID, code: String): Future[Boolean] =
+    db.run(dao.Query.filter(x => x.id === id && x.referralCode === code).exists.result)
 
   def getByName(name: String): Future[Option[UserAccount]] =
     db.run(dao.Query.filter(x => x.name === name).result.headOption)
   // if user has no referral get result else no result
-  def hasNoReferral(name: String): Future[Option[UserAccount]] =
-    db.run(dao.Query.filter(x => x.name === name && x.referredBy.isEmpty.?).result.headOption)
+  def hasNoReferral(id: UUID): Future[Option[UserAccount]] =
+    db.run(dao.Query.filter(x => x.id === id && x.referredBy.isEmpty.?).result.headOption)
 
   def exist(name: String): Future[Boolean] =
     db.run(dao.Query(name).exists.result)

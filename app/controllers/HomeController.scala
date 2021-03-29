@@ -48,7 +48,7 @@ class HomeController @Inject()(
   /*  CUSTOM FORM VALIDATION */
   private def referralForm = Form(tuple(
     "code" -> nonEmptyText,
-    "applied_by" -> nonEmptyText))
+    "applied_by" -> uuid))
   private def challengeForm = Form(tuple(
     "name" -> uuid,
     "description" -> nonEmptyText,
@@ -108,7 +108,7 @@ class HomeController @Inject()(
       { case (code, appliedBy)  =>
         try {
           referralHistoryService
-            .applyReferralCode(code, appliedBy)
+            .applyReferralCode(appliedBy, code)
             .map(r => if(r < 0) InternalServerError else Created )
         } catch {
           case _: Throwable => Future(InternalServerError)
