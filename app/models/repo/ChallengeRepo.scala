@@ -27,7 +27,7 @@ class ChallengeRepo @Inject()(
   def update(challenge: Challenge): Future[Int] =
     db.run(dao.Query.filter(_.id === challenge.id).update(challenge))
 
-  def existByDate(createAt: Instant): Future[Boolean] =
+  def existByDate(createAt: Long): Future[Boolean] =
     db.run(dao.Query(createAt).exists.result)
 
   def all(): Future[Seq[Challenge]] =

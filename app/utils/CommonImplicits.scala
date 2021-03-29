@@ -476,7 +476,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 						(json \ "game").as[String],
 						(json \ "info").as[TransactionType],
 						(json \ "is_confirmed").as[Boolean],
-						(json \ "created_at").as[Instant]))
+						(json \ "created_at").as[Long]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}

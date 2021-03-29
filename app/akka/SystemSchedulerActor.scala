@@ -136,8 +136,8 @@ class SystemSchedulerActor @Inject()(
       // val todayMidnight: LocalDateTime = LocalDateTime.of(today, midnight)
       val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
       // convert LocalDatetime to Instant
-      val createdAt: Instant = startOfDay.atZone(defaultTimeZone).toInstant()
-      val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
+      val createdAt: Long = startOfDay.atZone(defaultTimeZone).toInstant().getEpochSecond
+      val expiredAt: Long = createdAt + ((60 * 60 * 24) - 1)
       // val todayEpoch: Long = todayInstant.getEpochSecond
       // check if challenge already for today else do nothing..
       challengeRepo.existByDate(createdAt).map { isCreated =>
@@ -155,7 +155,7 @@ class SystemSchedulerActor @Inject()(
                                                 game.id,
                                                 "Challenge content is different every day, use you ingenuity to get the first place.",
                                                 createdAt,
-                                                Instant.ofEpochSecond(expiredAt))
+                                                expiredAt)
 
                 SystemSchedulerActor.currentChallengeGame = Some(game.id)
                 challengeRepo.add(newChallenge)
@@ -221,7 +221,7 @@ class SystemSchedulerActor @Inject()(
 
     case ProcessOverAllChallenge(expiredAt) =>
       // always process when time is equals or greater to its current time..
-      if (Instant.now.getEpochSecond >= expiredAt) {
+      // if (Instant.now.getEpochSecond >= expiredAt) {
         for {
           // get all challenge result
           tracked <- challengeTrackerRepo.all()
@@ -231,15 +231,15 @@ class SystemSchedulerActor @Inject()(
           // save result into Challenge history
           case v: Seq[ChallengeTracker] =>
             challengeHistoryRepo
-              .add(new ChallengeHistory(UUID.randomUUID, v, Instant.now))
+              .add(new ChallengeHistory(UUID.randomUUID, v, Instant.now.getEpochSecond))
               .map(x => if (x > 0) challengeTrackerRepo.clearTable else println("Error: challengeTracker.clearTable"))
         }
-      }
+      // }
 
     case RankingScheduler =>
       // get date range to fecth from overall history...
-      val start: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
-      val end: Instant = Instant.ofEpochSecond(start.getEpochSecond + ((60 * 60 * 24) - 1))
+      val start: Long = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant().getEpochSecond
+      val end: Long = start + (60 * 60 * 24) - 1
       // fetch overAllGameHistory by date ranges
       for {
         gameHistory <- overAllGameHistory.getByDateRange(start, end)

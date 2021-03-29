@@ -247,7 +247,7 @@ class GQSchedulerActorV2 @Inject()(
     data.map { case (txHash, (gameID, result)) =>
       val winner = result.characters.filter(_._2._2).head
       val loser = result.characters.filter(!_._2._2).head
-      val time = Instant.now
+      val time = Instant.now.getEpochSecond
       ((new OverAllGameHistory(
                             UUID.randomUUID,
                             txHash,
@@ -272,7 +272,7 @@ class GQSchedulerActorV2 @Inject()(
                       loser._2._1,
                       loser._1,
                       result.logs,
-                      time.getEpochSecond))
+                      time))
     }.map { case ((winner, loser), character) =>
       // insert Tx and character contineously
       // broadcast game result to connected users

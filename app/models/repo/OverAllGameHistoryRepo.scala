@@ -2,7 +2,7 @@ package models.repo
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.Instant
+// import java.time.Instant
 import java.text.SimpleDateFormat
 import java.util.Date
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,7 +16,7 @@ class OverAllGameHistoryRepo @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
-  private val createAtFn = SimpleFunction.unary[Instant, Long]("CREATED_AT")
+  // private val createAtFn = SimpleFunction.unary[Instant, Long]("CREATED_AT")
 
   def add(tx: OverAllGameHistory): Future[Int] = db.run(dao.Query += tx)
   def all(): Future[Seq[OverAllGameHistory]] = db.run(dao.Query.result)
@@ -43,6 +43,6 @@ class OverAllGameHistoryRepo @Inject()(
       .take(limit)
       .result)
 
-  def getByDateRange(start: Instant, end : Instant): Future[Seq[OverAllGameHistory]] =
+  def getByDateRange(start: Long, end : Long): Future[Seq[OverAllGameHistory]] =
     db.run(dao.Query.filter(r => r.createdAt >= start && r.createdAt <= end ).result)
 }

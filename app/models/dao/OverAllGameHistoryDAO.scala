@@ -1,7 +1,6 @@
 package models.dao
 
 import java.util.UUID
-import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.{ OverAllGameHistory, TransactionType }
@@ -19,7 +18,7 @@ final class OverAllGameHistoryDAO @Inject()(
     def game = column[String] ("GAME")
     def `type` = column[TransactionType] ("TYPE")
     def isConfirmed = column[Boolean] ("IS_CONFIRMED")
-    def createdAt = column[Instant] ("CREATED_AT")
+    def createdAt = column[Long] ("CREATED_AT")
 
    def * = (id,
             tx_hash,

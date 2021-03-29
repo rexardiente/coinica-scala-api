@@ -124,8 +124,8 @@ class HomeController @Inject()(
           challengeRepo
             .add(Challenge(name,
                           description,
-                          Instant.ofEpochSecond(startAt),
-                          expiredAt.map(Instant.ofEpochSecond).getOrElse(Instant.ofEpochSecond(startAt + 86400))))
+                          startAt,
+                          expiredAt.getOrElse(startAt + 86400)))
             .map(r => if(r < 0) InternalServerError else Created )
         } catch {
           case _: Throwable => Future(InternalServerError)
@@ -143,8 +143,8 @@ class HomeController @Inject()(
             .update(Challenge(id,
                               name,
                               description,
-                              Instant.ofEpochSecond(startAt),
-                              Instant.ofEpochSecond(expiredAt.get)))
+                              startAt,
+                              expiredAt.getOrElse(Instant.now.getEpochSecond)))
             .map(r => if(r < 0) NotFound else Ok)
         } catch {
           case _: Throwable => Future(InternalServerError)

@@ -24,7 +24,7 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
     if (date == None) {
       val now: LocalDate = LocalDate.now()
       val startOfDay: Instant = now.atStartOfDay(ZoneId.systemDefault).plusDays(-1).toInstant()
-      rankingHistoryRepo.findByDateRange(startOfDay)
+      rankingHistoryRepo.findByDateRange(startOfDay.getEpochSecond)
 
     } else {
       val startOfDay: Instant = LocalDateTime
@@ -32,7 +32,7 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
                                   .toLocalDate()
                                   .atStartOfDay(ZoneId.systemDefault)
                                   .toInstant()
-      rankingHistoryRepo.findByDateRange(startOfDay)
+      rankingHistoryRepo.findByDateRange(startOfDay.getEpochSecond)
     }
   }
   // def getRankingByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
