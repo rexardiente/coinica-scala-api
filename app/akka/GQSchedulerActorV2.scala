@@ -72,7 +72,10 @@ class GQSchedulerActorV2 @Inject()(
       case Success(actor) =>
         if (!GQSchedulerActorV2.isIntialized) {
           GQSchedulerActorV2.isIntialized = true
-          // scheduled 5minutes to start battle..
+          // remove no life characters in first load...
+          self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
+          // scheduled to start battle based on settings..
+          GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
           systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
           // set true if actor already initialized
           log.info("GQ Scheduler Actor V2 Initialized")
@@ -130,7 +133,9 @@ class GQSchedulerActorV2 @Inject()(
           for {
             _ <- withTxHash.map(saveHistoryDB)
             _ <- withTxHash.map(insertOrUpdateDailyTasks)
-          } yield ()
+          } yield (Thread.sleep(3000))
+
+          self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
         }
         case e => log.info(e)
       }
@@ -182,13 +187,17 @@ class GQSchedulerActorV2 @Inject()(
                 characters.map(v => GQBattleScheduler.characters.addOne(v.key, v))
               case Some("REQUEST_REMOVE_NO_LIFE") =>
                 characters.map(v => GQBattleScheduler.eliminatedOrWithdrawn.addOne(v.key, v))
-              case _ => log.info("GQRowsResponse: unknown data")
+              case Some("REQUEST_UPDATE_CHARACTERS_DB") =>
+                if (GQBattleScheduler.isUpdatedCharacters.isEmpty)
+                  characters.map(v => GQBattleScheduler.isUpdatedCharacters.addOne(v.key, v))
+              case e => log.info("GQRowsResponse: unknown data")
             }
 
           case _ => ()
         }
       }
 
+      Thread.sleep(3000)
       if (hasNext) self ! REQUEST_TABLE_ROWS(new TableRowsRequest(Config.GQ_CODE,
                                                                   Config.GQ_TABLE,
                                                                   Config.GQ_SCOPE,
@@ -204,6 +213,12 @@ class GQSchedulerActorV2 @Inject()(
             self ! REQUEST_BATTLE_NOW
           case Some("REQUEST_REMOVE_NO_LIFE") =>
             self ! REQUEST_CHARACTER_ELIMINATE
+          case Some("REQUEST_UPDATE_CHARACTERS_DB") =>
+            if (GQBattleScheduler.isUpdatedCharacters.isEmpty) {
+              val seq: Seq[GQCharacterData] = GQBattleScheduler.isUpdatedCharacters.map(_._2).toSeq
+              characterRepo.updateOrInsertAsSeq(seq)
+              GQBattleScheduler.isUpdatedCharacters.clear
+            }
           case _ =>
         }
       }
@@ -218,10 +233,11 @@ class GQSchedulerActorV2 @Inject()(
         accountRepo.getByID(data.owner).map {
           case Some(account) =>
             eosioHTTPSupport.eliminate(account.name, id).map {
-              case Some(txID) =>
-                // remove from Charater DB and move to history
-                characterRepo.remove(account.id, id)
-                characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+              case Some(txHash) => // remove from Charater DB and move to history
+                for {
+                  _ <- characterRepo.remove(account.id, id)
+                  _ <- characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                } (Thread.sleep(1000))
               case None => log.info("Error: removing character from smartcontract")
             }
           case _ => ()
@@ -231,12 +247,12 @@ class GQSchedulerActorV2 @Inject()(
       GQBattleScheduler.eliminatedOrWithdrawn.clear
       // update character DB if it has new characters added..
       self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+      Thread.sleep(2000)
       // on battle start reset timer to 0 and set new timer until the battle finished
       // set back the time for next battle..
       GQBattleScheduler.REQUEST_BATTLE_STATUS = ""
       GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
       // broadcast to all connected users the next GQ battle
-      println("Battle Finished")
       dynamicBroadcast ! "BROADCAST_NEXT_BATTLE"
       systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
     }
@@ -291,7 +307,6 @@ class GQSchedulerActorV2 @Inject()(
 
     GQBattleScheduler.battleCounter.clear
     GQBattleScheduler.noEnemy.clear
-    self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
   }
   // def saveHistoryDB(data: HashMap[UUID, GQBattleResult]): Unit = {
   //   data.map { count =>

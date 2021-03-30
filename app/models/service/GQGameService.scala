@@ -99,7 +99,7 @@ class GQGameService @Inject()(
         }
       }
       ranks <- Future.successful {
-        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.key, c.owner, c.level, c.`class`, amount) }
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.key, c.owner, c.`class`, c.level, amount) }
       }
     } yield ranks
   }
@@ -119,7 +119,7 @@ class GQGameService @Inject()(
         }
       }
       ranks <- Future.successful {
-        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.key, c.owner, c.level, c.`class`, amount) }
+        getCharaterInfo.map{ case (c, amount) => GQCharactersRankByEarned(c.key, c.owner, c.`class`, c.level, amount) }
       }
     } yield ranks
   }
@@ -386,8 +386,8 @@ class GQGameService @Inject()(
           winstreak <- Future.successful {
             GQCharactersRankByWinStreak(v._1,
                                         either.owner,
-                                        either.level,
                                         either.`class`,
+                                        either.level,
                                         v._2)
           }
         } yield winstreak
