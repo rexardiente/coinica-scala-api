@@ -196,12 +196,13 @@ class SystemSchedulerActor @Inject()(
       // re-insert failed txs on DB
       // TODO: if failed again make new DB records to track and manually insert it..
       trackedFailedInsertion.map(taskHistoryRepo.add)
-      // Update: Thread.sleep(2000)
-      self ! CreateNewDailyTask
+      Thread.sleep(2000)
+      self ! (CreateNewDailyTask, yesterday)
 
-    case CreateNewDailyTask =>
-      val startOfDay: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant()
-      taskRepo.existByDate(startOfDay).map { isCreated =>
+    case (CreateNewDailyTask, yesterday: Instant) =>
+      val startOfDay: Long = yesterday.getEpochSecond + (60 * 60 * 24)
+      // val startOfDay: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant()
+      taskRepo.existByDate(Instant.ofEpochSecond(startOfDay)).map { isCreated =>
         if (!isCreated) {
           for {
             // remove currentChallengeGame and shuffle the result
@@ -210,7 +211,7 @@ class SystemSchedulerActor @Inject()(
             _ <- Future.successful {
               try {
                 val tasks: Seq[UUID] = availableGames.map(_.id)
-                taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay.getEpochSecond))
+                taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay))
               } catch {
                 case e: Throwable => println("Error: No games available")
               }

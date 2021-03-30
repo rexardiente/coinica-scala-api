@@ -84,7 +84,8 @@ class WebSocketActor@Inject()(
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    eosioHTTPSupport.getTableRows(new TableRowsRequest(Config.GQ_CODE,
+                    if (GQBattleScheduler.isUpdatedCharacters.isEmpty) {
+                      eosioHTTPSupport.getTableRows(new TableRowsRequest(Config.GQ_CODE,
                                                                         Config.GQ_TABLE,
                                                                         Config.GQ_SCOPE,
                                                                         None,
@@ -92,7 +93,8 @@ class WebSocketActor@Inject()(
                                                                         None,
                                                                         None,
                                                                         None), None)
-                    .map(_.map(self ! _).getOrElse(out ! OutEvent(JsNull, JsString("characters updated"))))
+                      .map(_.map(self ! _).getOrElse(out ! OutEvent(JsNull, JsString("characters updated"))))
+                    } else out ! OutEvent(JsNull, JsString("characters updated"))
                   // if result is empty it means on battle else standby mode..
                   case cc: GQGetNextBattle =>
                     if (GQBattleScheduler.nextBattle == 0)
