@@ -1,6 +1,6 @@
 package akka
 
-import javax.inject.{ Inject, Singleton }
+import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
 import java.time._
 import scala.util.{ Success, Failure, Random }
@@ -8,9 +8,9 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
-import com.typesafe.config.{ Config, ConfigFactory}
 import Ordering.Double.IeeeOrdering
 import akka.util.Timeout
+import utils.Config
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
@@ -90,10 +90,10 @@ class SystemSchedulerActor @Inject()(
                                       overAllGameHistory: OverAllGameHistoryRepo,
                                       userAccountRepo: UserAccountRepo,
                                       rankingHistoryRepo: RankingHistoryRepo,
+                                      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
-  private val dynamicBroadcast: ActorRef = system.actorOf(Props(classOf[DynamicBroadcastActor], None, system))
 
   override def preStart: Unit = {
     super.preStart
@@ -103,7 +103,7 @@ class SystemSchedulerActor @Inject()(
         if (!SystemSchedulerActor.isIntialized) {
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = {ConfigFactory.load().getInt("platform.default.system.scheduler")}.hours
+          val dailySchedInterval: FiniteDuration = { Config.DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
           val dailySchedDelay   : FiniteDuration = {
               val time = LocalTime.of(0, 0).toSecondOfDay
               val now = LocalTime.now().toSecondOfDay
@@ -136,8 +136,8 @@ class SystemSchedulerActor @Inject()(
       // val todayMidnight: LocalDateTime = LocalDateTime.of(today, midnight)
       val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
       // convert LocalDatetime to Instant
-      val createdAt: Instant = startOfDay.atZone(defaultTimeZone).toInstant()
-      val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
+      val createdAt: Long = startOfDay.atZone(defaultTimeZone).toInstant().getEpochSecond
+      val expiredAt: Long = createdAt + ((60 * 60 * 24) - 1)
       // val todayEpoch: Long = todayInstant.getEpochSecond
       // check if challenge already for today else do nothing..
       challengeRepo.existByDate(createdAt).map { isCreated =>
@@ -155,7 +155,7 @@ class SystemSchedulerActor @Inject()(
                                                 game.id,
                                                 "Challenge content is different every day, use you ingenuity to get the first place.",
                                                 createdAt,
-                                                Instant.ofEpochSecond(expiredAt))
+                                                expiredAt)
 
                 SystemSchedulerActor.currentChallengeGame = Some(game.id)
                 challengeRepo.add(newChallenge)
@@ -170,8 +170,7 @@ class SystemSchedulerActor @Inject()(
         // else self ! ProcessOverAllChallenge(expiredAt)
       }
     case DailyTaskScheduler =>
-      val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
-      val yesterday: Instant = startOfDay.atZone(defaultTimeZone).plusDays(-1).toInstant()
+      val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
       // process first all available task before creating new tasks
       val trackedFailedInsertion = ListBuffer.empty[TaskHistory]
 
@@ -185,8 +184,8 @@ class SystemSchedulerActor @Inject()(
                                                 x.game_id,
                                                 x.user,
                                                 x.game_count,
-                                                v.created_at,
-                                                Instant.ofEpochSecond(v.created_at.getEpochSecond + ((60 * 60 * 24) - 1)))
+                                                Instant.ofEpochSecond(v.created_at),
+                                                Instant.ofEpochSecond(Instant.ofEpochSecond(v.created_at).getEpochSecond + ((60 * 60 * 24) - 1)))
               // insert and if failed do insert 1 more time..
               taskHistoryRepo.add(taskHistory).map(isAdded => if(isAdded > 0)() else trackedFailedInsertion.addOne(taskHistory) )
             })
@@ -197,14 +196,12 @@ class SystemSchedulerActor @Inject()(
       // re-insert failed txs on DB
       // TODO: if failed again make new DB records to track and manually insert it..
       trackedFailedInsertion.map(taskHistoryRepo.add)
-      Thread.sleep(2000)
+      // Update: Thread.sleep(2000)
       self ! CreateNewDailyTask
 
     case CreateNewDailyTask =>
-      val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
-      val createdAt: Instant = startOfDay.atZone(defaultTimeZone).toInstant()
-      // val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
-      taskRepo.existByDate(createdAt).map { isCreated =>
+      val startOfDay: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant()
+      taskRepo.existByDate(startOfDay).map { isCreated =>
         if (!isCreated) {
           for {
             // remove currentChallengeGame and shuffle the result
@@ -213,7 +210,7 @@ class SystemSchedulerActor @Inject()(
             _ <- Future.successful {
               try {
                 val tasks: Seq[UUID] = availableGames.map(_.id)
-                taskRepo.add(new Task(UUID.randomUUID, tasks, createdAt))
+                taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay.getEpochSecond))
               } catch {
                 case e: Throwable => println("Error: No games available")
               }
@@ -224,7 +221,7 @@ class SystemSchedulerActor @Inject()(
 
     case ProcessOverAllChallenge(expiredAt) =>
       // always process when time is equals or greater to its current time..
-      if (Instant.now.getEpochSecond >= expiredAt) {
+      // if (Instant.now.getEpochSecond >= expiredAt) {
         for {
           // get all challenge result
           tracked <- challengeTrackerRepo.all()
@@ -234,15 +231,15 @@ class SystemSchedulerActor @Inject()(
           // save result into Challenge history
           case v: Seq[ChallengeTracker] =>
             challengeHistoryRepo
-              .add(new ChallengeHistory(UUID.randomUUID, v, Instant.now))
+              .add(new ChallengeHistory(UUID.randomUUID, v, Instant.now.getEpochSecond))
               .map(x => if (x > 0) challengeTrackerRepo.clearTable else println("Error: challengeTracker.clearTable"))
         }
-      }
+      // }
 
     case RankingScheduler =>
       // get date range to fecth from overall history...
-      val start: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
-      val end: Instant = Instant.ofEpochSecond(start.getEpochSecond + ((60 * 60 * 24) - 1))
+      val start: Long = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant().getEpochSecond
+      val end: Long = start + (60 * 60 * 24) - 1
       // fetch overAllGameHistory by date ranges
       for {
         gameHistory <- overAllGameHistory.getByDateRange(start, end)
@@ -370,16 +367,6 @@ class SystemSchedulerActor @Inject()(
         }
       } yield ()
 
-    case _ =>
-  }
-
-  def mergeSeqTaskHistory(sequence: Seq[OverAllGameHistory]) = {
-    sequence.foldRight(List.empty[OverAllGameHistory]) {
-      // case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) if (c == j && d == k) =>
-      case (OverAllGameHistory(a, b, c, d, e, f), OverAllGameHistory(h, i, j, k, l, m) :: list) =>
-        ???
-        // TaskHistory(newTempID, b, c, d, (e + l), f, n) :: list
-      case (other, list) => other :: list
-    }
+    case _ => ()
   }
 }

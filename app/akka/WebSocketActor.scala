@@ -9,12 +9,15 @@ import play.api.libs.json._
 import models.domain._
 import models.domain.enum._
 import models.domain.Event._
+import models.domain.eosio.TableRowsRequest
+import models.domain.eosio.GQ.v2.{ GQRowsResponse, GQGame, GQCharacterData }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.repo.OverAllGameHistoryRepo
 import models.service.UserAccountService
 import models.service.GQSmartContractAPI
 import akka.common.objects.{ Connect, GQBattleScheduler }
 import utils.lib.EOSIOSupport
+import utils.Config
 
 object WebSocketActor {
   def props(
@@ -46,13 +49,6 @@ class WebSocketActor@Inject()(
       eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) extends Actor {
   private val code: Int = out.hashCode
   private val log: LoggingAdapter = Logging(context.system, this)
-  private val characterUpdateActor: ActorRef = system.actorOf(
-                                        Props(classOf[GQSchedulerActorV2],
-                                              characterRepo,
-                                              historyRepo,
-                                              overAllGameHistory,
-                                              eosioHTTPSupport,
-                                              system))
 
   override def preStart(): Unit = {
     super.preStart
@@ -88,10 +84,15 @@ class WebSocketActor@Inject()(
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    characterUpdateActor ! akka.common.objects.REQUEST_TABLE_ROWS(GQSchedulerActorV2.eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
-                    Thread.sleep(2000)
-                    out ! OutEvent(JsNull, JsString("characters updated"))
-
+                    eosioHTTPSupport.getTableRows(new TableRowsRequest(Config.GQ_CODE,
+                                                                        Config.GQ_TABLE,
+                                                                        Config.GQ_SCOPE,
+                                                                        None,
+                                                                        Some("uint64_t"),
+                                                                        None,
+                                                                        None,
+                                                                        None), None)
+                    .map(_.map(self ! _).getOrElse(out ! OutEvent(JsNull, JsString("characters updated"))))
                   // if result is empty it means on battle else standby mode..
                   case cc: GQGetNextBattle =>
                     if (GQBattleScheduler.nextBattle == 0)
@@ -103,10 +104,9 @@ class WebSocketActor@Inject()(
                     // Check if notification relates to TH
                     // save into DB if found..
                     println("EOSNotifyTransaction" + e)
-
                   // send out the message to self and process separately..
                   case vip: VIPWSRequest => self ! vip
-                  case _ => self ! "invalid"
+                  case _ => ()
                 }
             }
 
@@ -127,7 +127,7 @@ class WebSocketActor@Inject()(
                 case true =>
                   // update its akka actorRef if already exists
                   WebSocketActor.subscribers(id) = out
-                  out ! OutEvent(JsString(id), JsString("already subscribed"))
+                  out ! OutEvent(JsNull, Json.obj("error" -> "session exists"))
                 case _ =>
                   WebSocketActor.subscribers.addOne(id -> out)
                   out ! OutEvent(JsString(id), JsString(msg))
@@ -141,6 +141,52 @@ class WebSocketActor@Inject()(
       } catch {
         case e: Throwable => out ! OutEvent(JsNull, JsString("invalid"))
       }
+
+    case GQRowsResponse(rows, hasNext, nextKey, sender) =>
+    {
+      rows.foreach { row =>
+        userAccountService.getUserByName(row.username).map {
+          case Some(account) =>
+            val data: GQGame = row.data
+
+            data.characters.map { ch =>
+              val key = ch.key
+              val time = ch.value.createdAt
+              new GQCharacterData(key,
+                                  account.id,
+                                  ch.value.life,
+                                  ch.value.hp,
+                                  ch.value.`class`,
+                                  ch.value.level,
+                                  ch.value.status,
+                                  ch.value.attack,
+                                  ch.value.defense,
+                                  ch.value.speed,
+                                  ch.value.luck,
+                                  ch.value.limit,
+                                  ch.value.count,
+                                  if (time <= Instant.now().getEpochSecond - (60 * 5)) false else true,
+                                  time)
+            }
+            .map(v => GQBattleScheduler.isUpdatedCharacters.addOne(v.key, v))
+          case _ => ()
+        }
+      }
+      if (hasNext) eosioHTTPSupport.getTableRows(new TableRowsRequest(Config.GQ_CODE,
+                                                                      Config.GQ_TABLE,
+                                                                      Config.GQ_SCOPE,
+                                                                      None,
+                                                                      Some("uint64_t"),
+                                                                      None,
+                                                                      None,
+                                                                      Some(nextKey)), sender).map(_.map(self ! _))
+      else {
+        val seq: Seq[GQCharacterData] = GQBattleScheduler.isUpdatedCharacters.map(_._2).toSeq
+        characterRepo.updateOrInsertAsSeq(seq)
+        GQBattleScheduler.isUpdatedCharacters.clear
+        out ! OutEvent(JsNull, JsString("characters updated"))
+      }
+    }
 
     case VIPWSRequest(id, cmd, req) => req match {
       case "info" =>

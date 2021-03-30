@@ -1,5 +1,6 @@
 package models.domain.eosio.GQ.v2
 
+import java.util.UUID
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
@@ -45,7 +46,7 @@ object GQCharacterDataHistory {
 }
 trait GQCharacterDataTrait {
     val key: String
-    val owner: String
+    val owner: UUID
     // val prize: Double
     val `class`: Int
     val level: Int
@@ -53,7 +54,7 @@ trait GQCharacterDataTrait {
 }
 case class GQCharacterData(
     key: String,
-    owner: String,
+    owner: UUID,
     life: Int,
     hp: Int,
     `class`: Int,
@@ -69,7 +70,7 @@ case class GQCharacterData(
     createdAt: Long) extends GQCharacterDataTrait
 case class GQCharacterDataHistory(
     key: String,
-    owner: String,
+    owner: UUID,
     life: Int,
     hp: Int,
     `class`: Int,

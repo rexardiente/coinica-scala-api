@@ -2,7 +2,6 @@ package models.dao
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.Instant
 import play.api.libs.json._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.{ RankingHistory, RankType }
@@ -19,7 +18,7 @@ final class RankingHistoryDAO @Inject()(
     def payouts = column[Seq[RankType]] ("PAYOUTS")
     def wagered = column[Seq[RankType]] ("WAGERED")
     def multipliers = column[Seq[RankType]] ("MULTIPLIERS")
-    def createdAt = column[Instant] ("CREATED_AT")
+    def createdAt = column[Long] ("CREATED_AT")
 
     def * = (id,
     				profits,

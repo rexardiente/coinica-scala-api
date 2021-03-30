@@ -17,7 +17,7 @@ final class ReferralHistoryDAO @Inject()(
   protected class ReferralHistoryTable(tag: Tag) extends Table[ReferralHistory](tag, "REFERRAL_HISTORY") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def code = column[String] ("CODE")
-    def appliedBy = column[String] ("APPLIED_BY")
+    def appliedBy = column[UUID] ("APPLIED_BY")
     // def fee = column[Double] ("FEE")
     // def status = column[Boolean] ("STATUS")
     def createdAt = column[Instant] ("CREATED_AT")

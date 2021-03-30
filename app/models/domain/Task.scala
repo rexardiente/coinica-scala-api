@@ -9,12 +9,12 @@ import play.api.libs.json._
 object TaskHistory extends utils.CommonImplicits
 object Task extends utils.CommonImplicits
 object DailyTask extends utils.CommonImplicits {
-	val tupled = (apply: (String, UUID, Int) => DailyTask).tupled
+	val tupled = (apply: (UUID, UUID, Int) => DailyTask).tupled
 }
 // case class TaskPerGame(game_id: UUID, game: String, limit: Int)
 // before adding new Task if not user already exists else update
 // Note: do not add if game hasnt exist in the list of tasks..
-case class DailyTask(user: String, game_id: UUID, game_count: Int) {
+case class DailyTask(user: UUID, game_id: UUID, game_count: Int) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 // for getting history by week and month
@@ -22,14 +22,14 @@ case class DailyTask(user: String, game_id: UUID, game_count: Int) {
 case class TaskHistory(id: UUID,
 											task_id: UUID,
 											game_id: UUID,
-											user: String,
+											user: UUID,
 											game_count: Int,
-											created_at: Instant,
+											valid_at: Instant,
 											expired_at: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 // tasks are Seq[UUID] of game_id
-case class Task(id: UUID, tasks: Seq[UUID], created_at: Instant) {
+case class Task(id: UUID, tasks: Seq[UUID], created_at: Long) {
 	// require(duration >= 1 || duration <= 3, "Invalid duration range")
 	def toJson(): JsValue = Json.toJson(this)
 }

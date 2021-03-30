@@ -17,7 +17,7 @@ final class GQCharacterDataDAO @Inject()(
             extends Table[GQCharacterData](tag, "GQ_CHARACTER_DATA")
             with models.service.DynamicSortBySupport.ColumnSelector {
     def key = column[String] ("CHARACTER_ID", O.PrimaryKey)
-    def owner = column[String] ("PLAYER")
+    def owner = column[UUID] ("PLAYER")
     def life = column[Int] ("LIFE")
     def hp = column[Int] ("HP")
     def ghostClass= column[Int] ("CLASS")

@@ -25,11 +25,11 @@ class TaskService @Inject()(
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
 
-  def getTodayTaskUpdates(user: String, gameID: UUID): Future[Option[DailyTask]] = {
+  def getTodayTaskUpdates(user: UUID, gameID: UUID): Future[Option[DailyTask]] = {
     dailyTaskRepo.getTodayTaskByUserAndGame(user, gameID)
   }
 
-  def getMonthlyTaskUpdates(user: String, gameID: UUID): Future[Seq[TaskHistory]] = {
+  def getMonthlyTaskUpdates(user: UUID, gameID: UUID): Future[Seq[TaskHistory]] = {
     val startOfDay: LocalDate = LocalDate.now()
     val start: Instant = startOfDay.atStartOfDay().withDayOfMonth(1).toInstant(ZoneOffset.UTC)
     val end: Instant = startOfDay.atStartOfDay().withDayOfMonth(startOfDay.lengthOfMonth()).toInstant(ZoneOffset.UTC)

@@ -1,7 +1,6 @@
 package models.domain
 
 import java.util.UUID
-import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
@@ -33,6 +32,6 @@ case class RankingHistory(id: UUID,
 													payouts: Seq[RankType], // Seq[RankPayout]
 													wagered: Seq[RankType], // Seq[RankWagered]
 													multipliers: Seq[RankType], // Seq[RankMultiplier]
-													created_at: Instant) {
+													created_at: Long) {
 	def toJson(): JsValue = Json.toJson(this)
 }

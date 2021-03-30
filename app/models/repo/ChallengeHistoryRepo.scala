@@ -25,6 +25,6 @@ class ChallengeHistoryRepo @Inject()(
   def update(challenge: ChallengeHistory): Future[Int] =
     db.run(dao.Query.filter(_.id === challenge.id).update(challenge))
 
-  def findByDate(date: Instant): Future[Option[ChallengeHistory]] =
+  def findByDate(date: Long): Future[Option[ChallengeHistory]] =
     db.run(dao.Query.filter(_.createdAt === date).result.headOption)
 }

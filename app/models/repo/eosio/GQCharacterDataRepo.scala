@@ -27,7 +27,7 @@ class GQCharacterDataRepo @Inject()(
   def insert(data: GQCharacterData): Future[Int] =
     db.run(dataDAO.Query += data)
 
-  def remove(user: String, key: String): Future[Int] =
+  def remove(user: UUID, key: String): Future[Int] =
     db.run(dataDAO.Query.filter(x => x.owner === user && x.key === key).delete)
 
   def update(data: GQCharacterData): Future[Int] =
@@ -42,16 +42,16 @@ class GQCharacterDataRepo @Inject()(
   def find(id: String): Future[Option[GQCharacterData]] =
     db.run(dataDAO.Query(id).result.headOption)
 
-  def find(user: String, id: String): Future[Boolean] =
+  def find(user: UUID, id: String): Future[Boolean] =
     db.run(dataDAO.Query.filter(x => x.owner === user && x.key === id).exists.result)
 
-  def getByUserAndID(user: String, id: String): Future[Seq[GQCharacterData]] =
+  def getByUserAndID(user: UUID, id: String): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.filter(x => x.owner === user && x.key === id).result)
 
   def getByID(id: String): Future[Option[GQCharacterData]] =
     db.run(dataDAO.Query.filter(_.key === id).result.headOption)
 
-  def getByUser(user: String): Future[Seq[GQCharacterData]] =
+  def getByUser(user: UUID): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.filter(_.owner === user).result)
 
   def getNoLifeCharacters(): Future[Seq[GQCharacterData]] =
@@ -70,10 +70,10 @@ class GQCharacterDataRepo @Inject()(
   def insertDataHistory(data: GQCharacterDataHistory): Future[Int] =
     db.run(dataHistoryDAO.Query += data)
 
-  def getHistoryByUser(user: String): Future[Seq[GQCharacterDataHistory]] =
+  def getHistoryByUser(user: UUID): Future[Seq[GQCharacterDataHistory]] =
     db.run(dataHistoryDAO.Query.filter(_.owner === user).result)
 
-  def getCharacterHistoryByUserAndID(user: String, id: String): Future[Seq[GQCharacterDataHistory]] =
+  def getCharacterHistoryByUserAndID(user: UUID, id: String): Future[Seq[GQCharacterDataHistory]] =
     db.run(dataHistoryDAO.Query.filter(v => v.owner === user && v.key === id).result)
 
   def getCharacterHistoryByID(id: String): Future[Option[GQCharacterDataHistory]] =

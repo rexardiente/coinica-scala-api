@@ -13,8 +13,7 @@ import models.domain.eosio.TableRowsRequest
 
 @Singleton
 class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val config       : Config = ConfigFactory.load()
-  val nodeServerURI: String = config.getString("eosio.eosjs.node.server.uri")
+  val nodeServerURI: String = utils.Config.NODE_SERVER_URI
 
   def getTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
@@ -43,6 +42,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         }
         else None
       }
+      .recover { case e: Exception => None }
   }
 
   def battleResult(gameid: String, winner: (String, String), loser: (String, String)): Future[Option[String]] =  {
@@ -58,6 +58,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         "loser" -> Json.obj("first" -> loser._1, "second" -> loser._2)
       ))
       .map(v => (v.json \ "data" \ "transaction").asOpt[String])
+      .recover { case e: Exception => None }
       // return transaction ID
   }
 
@@ -73,6 +74,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         "ghost_id" -> characterID
       ))
       .map(v => (v.json \ "data" \ "transaction").asOpt[String])
+      .recover { case e: Exception => None }
       // return transaction ID
   }
 }

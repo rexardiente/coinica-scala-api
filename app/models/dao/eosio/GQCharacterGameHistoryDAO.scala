@@ -15,14 +15,16 @@ final class GQCharacterGameHistoryDAO @Inject()(
 
   protected class GQCharacterGameHistoryTable(tag: Tag) extends Table[GQCharacterGameHistory](tag, "GQ_CHARACTER_GAME_HISTORY") {
     def id = column[String] ("GAME_ID", O.PrimaryKey)
-    def winner = column[String] ("PLAYER_1")
+    def txHash = column[String] ("TX_HASH")
+    def winner = column[UUID] ("PLAYER_1")
     def winnerID = column[String] ("PLAYER_1_ID")
-    def loser = column[String] ("PLAYER_2")
+    def loser = column[UUID] ("PLAYER_2")
     def loserID = column[String] ("PLAYER_2_ID")
     def log = column[List[GameLog]] ("GAME_LOG")
     def timeExecuted = column[Long] ("TIME_EXECUTED")
 
     def * = (id,
+            txHash,
             winner,
             winnerID,
             loser,

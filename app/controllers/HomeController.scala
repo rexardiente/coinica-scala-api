@@ -48,7 +48,7 @@ class HomeController @Inject()(
   /*  CUSTOM FORM VALIDATION */
   private def referralForm = Form(tuple(
     "code" -> nonEmptyText,
-    "applied_by" -> nonEmptyText))
+    "applied_by" -> uuid))
   private def challengeForm = Form(tuple(
     "name" -> uuid,
     "description" -> nonEmptyText,
@@ -108,7 +108,7 @@ class HomeController @Inject()(
       { case (code, appliedBy)  =>
         try {
           referralHistoryService
-            .applyReferralCode(code, appliedBy)
+            .applyReferralCode(appliedBy, code)
             .map(r => if(r < 0) InternalServerError else Created )
         } catch {
           case _: Throwable => Future(InternalServerError)
@@ -124,8 +124,8 @@ class HomeController @Inject()(
           challengeRepo
             .add(Challenge(name,
                           description,
-                          Instant.ofEpochSecond(startAt),
-                          expiredAt.map(Instant.ofEpochSecond).getOrElse(Instant.ofEpochSecond(startAt + 86400))))
+                          startAt,
+                          expiredAt.getOrElse(startAt + 86400)))
             .map(r => if(r < 0) InternalServerError else Created )
         } catch {
           case _: Throwable => Future(InternalServerError)
@@ -143,8 +143,8 @@ class HomeController @Inject()(
             .update(Challenge(id,
                               name,
                               description,
-                              Instant.ofEpochSecond(startAt),
-                              Instant.ofEpochSecond(expiredAt.get)))
+                              startAt,
+                              expiredAt.getOrElse(Instant.now.getEpochSecond)))
             .map(r => if(r < 0) NotFound else Ok)
         } catch {
           case _: Throwable => Future(InternalServerError)
@@ -166,11 +166,11 @@ class HomeController @Inject()(
     challengeService.getDailyRanksChallenge.map(x => Ok(Json.toJson(x)))
   }
 
-  def getTodayTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
+  def getTodayTaskUpdates(user: UUID, gameID: UUID) = Action.async { implicit req =>
     taskService.getTodayTaskUpdates(user, gameID).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
   }
 
-  def getMonthlyTaskUpdates(user: String, gameID: UUID) = Action.async { implicit req =>
+  def getMonthlyTaskUpdates(user: UUID, gameID: UUID) = Action.async { implicit req =>
     taskService.getTodayTaskUpdates(user, gameID).map(x => Ok(Json.toJson(x)))
   }
   // def getWeeklyTaskUpdates(user: String, gameID: UUID)
@@ -327,11 +327,11 @@ class HomeController @Inject()(
     gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x)))
   }
 
-  def getAllCharactersByUser[T <: String](user: T) = Action.async { implicit req =>
+  def getAllCharactersByUser(user: UUID) = Action.async { implicit req =>
     gqGameService.getAllCharactersDataAndHistoryLogsByUser(user).map(Ok(_))
   }
 
-  def getCharactersByUser[T <: String](user: T) = Action.async { implicit req =>
+  def getCharactersByUser(user: UUID) = Action.async { implicit req =>
     gqGameService.getAliveCharacters(user).map(Ok(_))
   }
 
@@ -339,15 +339,15 @@ class HomeController @Inject()(
     gqGameService.getCharacterDataByID(id).map(Ok(_))
   }
 
-  def getCharacterByUserAndID[T <: String](user: T, id: T) = Action.async { implicit req =>
+  def getCharacterByUserAndID(user: UUID, id: String) = Action.async { implicit req =>
     gqGameService.getCharacterByUserAndID(user, id).map(Ok(_))
   }
 
-  def getCharacterHistoryByUser(user: String) = Action.async { implicit req =>
+  def getCharacterHistoryByUser(user: UUID) = Action.async { implicit req =>
     gqGameService.getAllEliminatedCharacters(user).map(Ok(_))
   }
 
-  def getCharacterHistoryByUserAndID[T <: String](user: T, id: T) = Action.async { implicit req =>
+  def getCharacterHistoryByUserAndID(user: UUID, id: String) = Action.async { implicit req =>
     gqGameService.getCharacterHistoryByUserAndID(user, id).map(Ok(_))
   }
 
@@ -355,11 +355,11 @@ class HomeController @Inject()(
     gQCharacterGameHistoryRepo.all().map(x => Ok(Json.toJson(x)))
   }
 
-  def getGQGameHistoryByUser(user: String) = Action.async { implicit req =>
+  def getGQGameHistoryByUser(user: UUID) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.getByUser(user).map(x => Ok(Json.toJson(x)))
   }
 
-  def getGQGameHistoryByUserAndCharacterID[T <: String](user: T, id: T) = Action.async { implicit req =>
+  def getGQGameHistoryByUserAndCharacterID(user: UUID, id: String) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(id, user).map(x => Ok(Json.toJson(x)))
   }
   def getGQGameHistoryByGameID(id: String) = Action.async { implicit req =>

@@ -32,7 +32,7 @@ class RankingHistoryRepo @Inject()(
       .take(limit)
       .result)
 
-  def findByDateRange(date: Instant): Future[Option[RankingHistory]] =
+  def findByDateRange(date: Long): Future[Option[RankingHistory]] =
    db.run(dao.Query.filter(r => r.createdAt >= date && r.createdAt <= date).result.headOption)
 
   def findAll(limit: Int, offset: Int): Future[Seq[RankingHistory]] =

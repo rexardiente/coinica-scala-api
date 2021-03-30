@@ -162,9 +162,10 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 				try {
 					JsSuccess(GQCharacterGameHistory(
 						(json \ "game_id").as[String],
-						(json \ "winner").as[String],
+						(json \ "tx_hash").as[String],
+						(json \ "winner").as[UUID],
 						(json \ "winner_id").as[String],
-						(json \ "loser").as[String],
+						(json \ "loser").as[UUID],
 						(json \ "loser_id").as[String],
 						(json \ "gameplay_log").as[List[GameLog]],
 						(json \ "time_executed").as[Long]))
@@ -178,6 +179,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implicitGQCharacterGameHistoryWrites = new Writes[GQCharacterGameHistory] {
 	  def writes(tx: GQCharacterGameHistory): JsValue = Json.obj(
 		"game_id" -> tx.id,
+		"tx_hash" -> tx.txHash,
 		"winner" -> tx.winner,
 		"winner_id" -> tx.winnerID,
 		"loser" -> tx.loser,
@@ -192,7 +194,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
         try {
           JsSuccess(GQCharacterData(
             (json \ "KEY").as[String],
-            (json \ "OWNER").as[String],
+            (json \ "OWNER").as[UUID],
             (json \ "LIFE").as[Int],
             (json \ "HP").as[Int],
             (json \ "CLASS").as[Int],
@@ -238,7 +240,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
         try {
           JsSuccess(GQCharacterDataHistory(
             (json \ "KEY").as[String],
-            (json \ "OWNER").as[String],
+            (json \ "OWNER").as[UUID],
             (json \ "LIFE").as[Int],
             (json \ "HP").as[Int],
             (json \ "CLASS").as[Int],
@@ -469,11 +471,12 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 				try {
 					JsSuccess(OverAllGameHistory(
 						(json \ "id").as[UUID],
+						(json \ "tx_hash").as[String],
 						(json \ "game_id").as[UUID],
 						(json \ "game").as[String],
 						(json \ "info").as[TransactionType],
 						(json \ "is_confirmed").as[Boolean],
-						(json \ "created_at").as[Instant]))
+						(json \ "created_at").as[Long]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -484,6 +487,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implicitOverAllGameHistoryWrites = new Writes[OverAllGameHistory] {
 	  def writes(tx: OverAllGameHistory): JsValue = Json.obj(
 		"id" -> tx.id,
+		"tx_hash" -> tx.tx_hash,
 		"game_id" -> tx.gameID,
 		"game" -> tx.game,
 		"info" -> tx.info,

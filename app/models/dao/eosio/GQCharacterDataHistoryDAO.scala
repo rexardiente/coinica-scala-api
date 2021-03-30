@@ -17,7 +17,7 @@ final class GQCharacterDataHistoryDAO @Inject()(
           extends Table[GQCharacterDataHistory](tag, "GQ_CHARACTER_DATA_HISTORY")
           with models.service.DynamicSortBySupport.ColumnSelector {
     def key = column[String] ("CHARACTER_ID", O.PrimaryKey)
-    def owner = column[String] ("PLAYER")
+    def owner = column[UUID] ("PLAYER")
     def life = column[Int] ("LIFE")
     def hp = column[Int] ("HP")
     def ghostClass= column[Int] ("CLASS")
@@ -67,6 +67,6 @@ final class GQCharacterDataHistoryDAO @Inject()(
 
   object Query extends TableQuery(new GQCharacterDataHistoryTable(_)) {
     def apply(key: String) = this.withFilter(_.key === key)
-    def apply(key: String, owner: String) = this.withFilter(x => x.key === key && x.owner === owner)
+    def apply(key: String, owner: UUID) = this.withFilter(x => x.key === key && x.owner === owner)
   }
 }

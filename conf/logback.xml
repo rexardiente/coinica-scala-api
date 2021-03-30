@@ -37,6 +37,7 @@
   <logger name="akka.WebSocketActor" level="TRACE" />
   <logger name="akka.GQSchedulerActorV2" level="TRACE" />
   <logger name="akka.SystemSchedulerActor" level="TRACE" />
+  <logger name="akka.DynamicBroadcastActor" level="TRACE" />
   <logger name="utils.db.schema.VIPBenefitGenerator" level="TRACE" />
   <logger name="utils.db.schema.DBMockupGenerator" level="TRACE" />
 

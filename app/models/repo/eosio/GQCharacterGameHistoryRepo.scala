@@ -29,7 +29,7 @@ class GQCharacterGameHistoryRepo @Inject()(
   def filteredByID(id: String): Future[Seq[GQCharacterGameHistory]] =
     db.run(dao.Query(id).result)
   // check if user has history by using winner and loser field ID
-  def getByUser(player: String): Future[Seq[GQCharacterGameHistory]] = {
+  def getByUser(player: UUID): Future[Seq[GQCharacterGameHistory]] = {
     for {
       aswinner <- db.run(dao.Query.filter(v => v.winner === player).result)
       asloser <- db.run(dao.Query.filter(v => v.loser === player).result)
@@ -38,7 +38,7 @@ class GQCharacterGameHistoryRepo @Inject()(
     }
   }
 
-  def getByUsernameAndCharacterID(id: String, player: String): Future[Seq[GQCharacterGameHistory]] =
+  def getByUsernameAndCharacterID(id: String, player: UUID): Future[Seq[GQCharacterGameHistory]] =
     for {
       aswinner <- db.run(dao.Query.filter(v => v.winnerID === id && v.winner === player).result)
       asloser <- db.run(dao.Query.filter(v => v.loserID === id && v.loser === player).result)
@@ -46,7 +46,7 @@ class GQCharacterGameHistoryRepo @Inject()(
       case (p1, p2) => mergeSeq[GQCharacterGameHistory, Seq[GQCharacterGameHistory]](p1, p2)
     }
 
-  def getByUsernameAndGameID(id: String, player: String): Future[Seq[GQCharacterGameHistory]] =
+  def getByUsernameAndGameID(id: String, player: UUID): Future[Seq[GQCharacterGameHistory]] =
     for {
       filtered <- filteredByID(id)
       aswinner <- Future.successful(filtered.filter(_.winner == player))

@@ -26,7 +26,7 @@ class GQGameService @Inject()(
 
   // get all characters from specific player
   // characters are separate by status
-  def getAllCharactersDataAndHistoryLogsByUser(user: String): Future[JsValue] = {
+  def getAllCharactersDataAndHistoryLogsByUser(user: UUID): Future[JsValue] = {
     for {
       // get all characters that are still alive
       alive <- charDataRepo.getByUser(user)
@@ -124,8 +124,8 @@ class GQGameService @Inject()(
     } yield ranks
   }
 
-  def classifyHighEarnChar(history: Seq[GQCharacterGameHistory], limit: Int): Seq[(String, (String, Double))] = {
-    val characters = HashMap.empty[String, (String, Double)]
+  def classifyHighEarnChar(history: Seq[GQCharacterGameHistory], limit: Int): Seq[(String, (UUID, Double))] = {
+    val characters = HashMap.empty[String, (UUID, Double)]
     history.map { tx =>
       // processTxStatus
       if (!characters.exists(_._1 == tx.winnerID)) characters(tx.winnerID) = (tx.winner, 0)
@@ -141,7 +141,7 @@ class GQGameService @Inject()(
     characters.filter(_._2._2 > 0).toSeq.sortBy(- _._2._2).take(limit)
   }
 
-  def getCharacterByUserAndID[T <: String](user: T, id: T): Future[JsValue] = {
+  def getCharacterByUserAndID(user: UUID, id: String): Future[JsValue] = {
     for {
       // get all characters that are still alive
       alive <- charDataRepo.getByUserAndID(user, id)
@@ -178,7 +178,7 @@ class GQGameService @Inject()(
     } yield logs
   }
 
-  def getAliveCharacters(user: String): Future[JsValue] = {
+  def getAliveCharacters(user: UUID): Future[JsValue] = {
     for {
       characters <- charDataRepo.getByUser(user)
 
@@ -233,7 +233,7 @@ class GQGameService @Inject()(
       } yield logs
     }
 
-  def getCharacterHistoryByUserAndID[T <: String](user: T, id: T): Future[JsValue] = {
+  def getCharacterHistoryByUserAndID(user: UUID, id: String): Future[JsValue] = {
       for {
         characters <- charDataRepo.getCharacterHistoryByUserAndID(user, id)
 
@@ -261,7 +261,7 @@ class GQGameService @Inject()(
       } yield logs
     }
 
-  def getAllEliminatedCharacters(user: String): Future[JsValue] = {
+  def getAllEliminatedCharacters(user: UUID): Future[JsValue] = {
     for {
       characters <- charDataRepo
         .getHistoryByUser(user)

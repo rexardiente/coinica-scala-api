@@ -44,9 +44,9 @@ class ChallengeService @Inject()(
     val midnight: LocalTime = LocalTime.MIDNIGHT
     val todayMidnight: LocalDateTime = LocalDateTime.of(today, midnight)
     // convert LocalDatetime to Instant
-    val todayInstant: Instant = todayMidnight.atZone(defaultTimeZone).toInstant()
+    val todayEpoch: Long = todayMidnight.atZone(defaultTimeZone).toInstant().getEpochSecond
     // val todayEpoch: Long = todayInstant.getEpochSecond
-    history.findByDate(todayInstant)
+    history.findByDate(todayEpoch)
   }
 
   def getDailyRanksChallenge(): Future[Seq[ChallengeTracker]] =
