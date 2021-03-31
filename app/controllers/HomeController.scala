@@ -87,7 +87,7 @@ class HomeController @Inject()(
   }
 
   def index() = Action.async { implicit req =>
-    Future.successful(Ok(views.html.index()))
+    Future.successful(Ok(JsString("OK")))
   }
 
   def userAccount(user: String) = Action.async { implicit req =>

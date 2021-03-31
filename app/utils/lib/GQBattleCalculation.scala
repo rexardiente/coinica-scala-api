@@ -77,5 +77,5 @@ class GQBattleCalculation[T <: GQCharacterData](plyr1: T, plyr2: T) {
 	// }
 	def result(): Option[GQBattleResult] = battleResult
 	// start battle..
-	run()
+	try { run() } catch { case _: Throwable =>	battleResult = None }
 }
