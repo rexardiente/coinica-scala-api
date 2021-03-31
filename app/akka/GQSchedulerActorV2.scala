@@ -209,8 +209,7 @@ class GQSchedulerActorV2 @Inject()(
               case Some("REQUEST_REMOVE_NO_LIFE") =>
                 characters.map(v => GQBattleScheduler.eliminatedOrWithdrawn.addOne(v.key, v))
               case Some("REQUEST_UPDATE_CHARACTERS_DB") =>
-                if (GQBattleScheduler.isUpdatedCharacters.isEmpty)
-                  characters.map(v => GQBattleScheduler.isUpdatedCharacters.addOne(v.key, v))
+                characters.map(v => GQBattleScheduler.isUpdatedCharacters.addOne(v.key, v))
               case e => log.info("GQRowsResponse: unknown data")
             }
 
@@ -235,11 +234,9 @@ class GQSchedulerActorV2 @Inject()(
           case Some("REQUEST_REMOVE_NO_LIFE") =>
             self ! REQUEST_CHARACTER_ELIMINATE
           case Some("REQUEST_UPDATE_CHARACTERS_DB") =>
-            if (GQBattleScheduler.isUpdatedCharacters.isEmpty) {
-              val seq: Seq[GQCharacterData] = GQBattleScheduler.isUpdatedCharacters.map(_._2).toSeq
-              characterRepo.updateOrInsertAsSeq(seq)
-              GQBattleScheduler.isUpdatedCharacters.clear
-            }
+            val seq: Seq[GQCharacterData] = GQBattleScheduler.isUpdatedCharacters.map(_._2).toSeq
+            characterRepo.updateOrInsertAsSeq(seq)
+            GQBattleScheduler.isUpdatedCharacters.clear
           case _ =>
         }
       }
