@@ -126,11 +126,17 @@ class WebSocketActor@Inject()(
 
                     // save into DB overAllGameHistory
                     // if success then broadcast into users
-                    overAllGameHistory.add(gameHistory).map { x =>
-                      if(x > 0)
-                        dynamicBroadcast ! gameHistory
-                      else
-                        out ! OutEvent(JsString("TH"), Json.obj("error" -> "txHash"))
+                    overAllGameHistory.isExistsByTxHash(txHash).map { isExists =>
+                      if (!isExists) {
+                        overAllGameHistory.add(gameHistory).map { x =>
+                          if(x > 0) {
+                            out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> false))
+                            dynamicBroadcast ! gameHistory
+                          }
+                          else out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> true))
+                        }
+                      }
+                      else out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> true))
                     }
 
                   case e: EOSNotifyTransaction =>
