@@ -2,7 +2,7 @@ package akka
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
-import java.time._
+import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset, ZoneId }
 import scala.util.{ Success, Failure, Random }
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -97,6 +97,9 @@ class SystemSchedulerActor @Inject()(
 
   override def preStart: Unit = {
     super.preStart
+    // keep alive connection
+    // https://stackoverflow.com/questions/13700452/scheduling-a-task-at-a-fixed-time-of-the-day-with-akka
+    akka.stream.scaladsl.Source.tick(0.seconds, 20.seconds, "SystemSchedulerActor").runForeach(n => ())
     // check if intializer is the SchedulerActor module..
     system.actorSelection("/user/SystemSchedulerActor").resolveOne().onComplete {
       case Success(actor) =>
