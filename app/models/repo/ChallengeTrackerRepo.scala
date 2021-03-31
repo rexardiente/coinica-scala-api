@@ -40,8 +40,15 @@ class ChallengeTrackerRepo @Inject()(
       find <- findUserByID(task.user)
       check <- {
         find match {
+          // user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double
           // if found auto add 1 on its game count
-          case Some(v) => update(task)
+          case Some(v) =>
+            val updatedChallenge: ChallengeTracker = v.copy(bets=(v.bets +  task.bets),
+                                                            wagered=(v.wagered +  task.wagered),
+                                                            ratio=(v.ratio +  task.ratio),
+                                                            points=(v.points +  task.points))
+
+            update(updatedChallenge)
           // else add to DB
           case _ => add(task)
         }

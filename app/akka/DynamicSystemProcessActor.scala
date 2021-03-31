@@ -34,6 +34,9 @@ class DynamicSystemProcessActor@Inject()(
     case task: DailyTask =>
       dailyTask.addOrUpdate(task)
 
+    case challenge: ChallengeTracker =>
+      dailyChallenge.addOrUpdate(challenge)
+
     case e => log.info("DynamicSystemProcessActor: invalid request")
       // out.map(_ ! OutEvent(JsNull, JsString("invalid")))
   }

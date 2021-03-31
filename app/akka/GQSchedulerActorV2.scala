@@ -332,35 +332,15 @@ class GQSchedulerActorV2 @Inject()(
   def insertOrUpdateSystemProcess(seq: Seq[(String, (UUID, GQBattleResult))]): Unit = {
     val createdAt: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant
     seq.map { case (hash, (gameID, result)) =>
-      // DailyTask(user: UUID, game_id: UUID, game_count: Int)
+      result.characters.map(v => dynamicProcessor ! DailyTask(v._2._1, Config.GQ_GAME_ID, 1))
+      // TODO: proper deduction per game wagered..
+      // ChallengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double)
+      // for {
+      //   count <- gQGameHistoryRepo.getByUsernameAndCharacterID(v._2._1, v._1)
+      // } yield ()
       result
         .characters
-        .map(v => new DailyTask(v._2._1, gameID, 1))
-        .map(dynamicProcessor ! _)
-      // ChallengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double)
-      // result
-      //   .characters
-      //   .map { v =>
-      //     for {
-      //       // get character info
-
-      //       // check character overall gameplay
-      //       count <- gQGameHistoryRepo.getByUsernameAndCharacterID(v._2._1, v._1)
-      //       _ <- Future {
-      //         if (count.size < 21) ()
-      //       }
-      //     } yield ()
-
-      //     // float house_edge;
-      //     // float init_prize = character->second.LIFE * 10000;
-      //     // if (character->second.GAME_COUNT < 21) { house_edge = init_prize * 0.06; }
-      //     // else if (character->second.GAME_COUNT > 20 && character->second.GAME_COUNT < 41) { house_edge = init_prize * 0.07; }
-      //     // else if (character->second.GAME_COUNT > 40 && character->second.GAME_COUNT < 61) { house_edge = init_prize * 0.08; }
-      //     // else if (character->second.GAME_COUNT > 60 && character->second.GAME_COUNT < 81) { house_edge = init_prize * 0.09; }
-      //     // else { house_edge = init_prize * 0.1;}
-      //     // return asset(init_prize - house_edge, symbol(MAIN_TOKEN, PRECISION));
-      //     (v._2._1, 1, (if(v._2._2) 1 else 0), 1, (if(v._2._2) 1 else 0))
-      //   }
+        .map(v => dynamicProcessor ! ChallengeTracker(v._2._1, 1, (if(v._2._2) 2 else 0), 1, (if(v._2._2) 0.5 else 0)))
     }
   }
 
