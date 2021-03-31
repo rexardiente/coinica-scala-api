@@ -363,7 +363,7 @@ class HomeController @Inject()(
   }
 
   def getGQGameHistoryByUserAndCharacterID(user: UUID, id: String) = Action.async { implicit req =>
-    gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(id, user).map(x => Ok(Json.toJson(x)))
+    gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(user, id).map(x => Ok(Json.toJson(x)))
   }
   def getGQGameHistoryByGameID(id: String) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.filteredByID(id).map(x => Ok(Json.toJson(x)))
