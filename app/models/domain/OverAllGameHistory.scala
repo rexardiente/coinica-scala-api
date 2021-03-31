@@ -24,6 +24,19 @@ case class GQGameHistory(user: String, prediction: String, result: Boolean, bet:
 case class THGameHistory(user: String, prediction: List[Int], result: List[Int], bet: Double, amount: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
+// case class THGameHistory(user: String,
+// 												destination: Int,
+// 												enemy_count: Int,
+// 												maxprize: Double,
+// 												nextprize: Double,
+// 												bet: Double,
+// 												panel_set: Seq[THPanelSet],
+// 												prize: Double,
+// 												status: Int,
+// 												unopentile: Int,
+// 												win_count: Int) extends TransactionType {
+// 	override def toJson(): JsValue = Json.toJson(this)
+// }
 case class GameType(user: String, isWin: Boolean, bet: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
@@ -33,7 +46,7 @@ case class PaymentType(user: String, data: String, bet: Double) extends Transact
 }
 case class OverAllGameHistory(id: UUID,
 															tx_hash: String,
-															gameID: UUID, // name or ID
+															gameID: String, // name or ID
 															game: String, // name or ID
 															info: TransactionType,
 															isConfirmed: Boolean, // update `confirmed` when system get notified from EOSIO net

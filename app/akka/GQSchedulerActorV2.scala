@@ -284,7 +284,7 @@ class GQSchedulerActorV2 @Inject()(
       ((new OverAllGameHistory(
                             UUID.randomUUID,
                             txHash,
-                            gameID,
+                            gameID.toString,
                             Config.GQ_CODE,
                             GQGameHistory(winner._1, "WIN", true),
                             true,
@@ -292,7 +292,7 @@ class GQSchedulerActorV2 @Inject()(
         new OverAllGameHistory(
                             UUID.randomUUID,
                             txHash,
-                            gameID,
+                            gameID.toString,
                             Config.GQ_CODE,
                             GQGameHistory(loser._1, "WIN", false),
                             true,

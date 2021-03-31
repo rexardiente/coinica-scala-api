@@ -1,7 +1,8 @@
 package akka
 
-import javax.inject.{ Singleton, Inject }
+import javax.inject.{ Singleton, Inject, Named }
 import java.time.Instant
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor._
 import akka.event.{ Logging, LoggingAdapter }
@@ -26,7 +27,8 @@ object WebSocketActor {
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
-      eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) =
+      eosioHTTPSupport: EOSIOHTTPSupport,
+      dynamicBroadcast: ActorRef)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor],
           out,
           userAccountService,
@@ -34,6 +36,7 @@ object WebSocketActor {
           historyRepo,
           overAllGameHistory,
           eosioHTTPSupport,
+          dynamicBroadcast,
           system)
 
   val subscribers = scala.collection.mutable.HashMap.empty[String, ActorRef]
@@ -46,7 +49,8 @@ class WebSocketActor@Inject()(
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
-      eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) extends Actor {
+      eosioHTTPSupport: EOSIOHTTPSupport,
+      dynamicBroadcast: ActorRef)(implicit system: ActorSystem) extends Actor {
   private val code: Int = out.hashCode
   private val log: LoggingAdapter = Logging(context.system, this)
 
@@ -101,6 +105,33 @@ class WebSocketActor@Inject()(
                       out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
                     else
                       out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+
+                  case th: THGameResult =>
+                    // TODO: Save overall game data into TH history
+                    // default constructors..
+                    val txHash: String = th.tx_hash
+                    val gameID: String = th.game_id
+                    val prediction: List[Int] = th.data.panel_set.map(_.isopen).toList
+                    val result: List[Int] = th.data.panel_set.map(_.iswin).toList
+                    val betAmount: Double = 1D
+                    val prize: Double = th.data.prize
+
+                    val gameHistory = OverAllGameHistory(UUID.randomUUID,
+                                                        txHash,
+                                                        gameID,
+                                                        Config.TH_CODE,
+                                                        THGameHistory(user, prediction, result, betAmount, prize),
+                                                        true,
+                                                        Instant.now.getEpochSecond)
+
+                    // save into DB overAllGameHistory
+                    // if success then broadcast into users
+                    overAllGameHistory.add(gameHistory).map { x =>
+                      if(x > 0)
+                        dynamicBroadcast ! gameHistory
+                      else
+                        out ! OutEvent(JsString("TH"), Json.obj("error" -> "txHash"))
+                    }
 
                   case e: EOSNotifyTransaction =>
                     // Check if notification relates to TH

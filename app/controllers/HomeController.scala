@@ -1,10 +1,11 @@
 package controllers
 
-import javax.inject.{ Inject, Singleton }
+import javax.inject.{ Inject, Named, Singleton }
 import java.util.UUID
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import akka.actor._
 import play.api._
 import play.api.mvc._
 import play.api.data.Form
@@ -40,6 +41,7 @@ class HomeController @Inject()(
       overAllGameHistoryRepo: OverAllGameHistoryRepo,
       gqGameService: GQGameService,
       eosioHTTPSupport: akka.EOSIOHTTPSupport,
+      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
       mat: akka.stream.Materializer,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
@@ -82,7 +84,8 @@ class HomeController @Inject()(
                           gQCharacterDataRepo,
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
-                          eosioHTTPSupport)
+                          eosioHTTPSupport,
+                          dynamicBroadcast)
     }
   }
 
