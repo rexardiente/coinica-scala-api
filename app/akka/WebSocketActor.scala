@@ -4,6 +4,7 @@ import javax.inject.{ Singleton, Inject, Named }
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import akka.actor._
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
@@ -28,7 +29,8 @@ object WebSocketActor {
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
       eosioHTTPSupport: EOSIOHTTPSupport,
-      dynamicBroadcast: ActorRef)(implicit system: ActorSystem) =
+      dynamicBroadcast: ActorRef,
+      dynamicProcessor: ActorRef)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor],
           out,
           userAccountService,
@@ -37,6 +39,7 @@ object WebSocketActor {
           overAllGameHistory,
           eosioHTTPSupport,
           dynamicBroadcast,
+          dynamicProcessor,
           system)
 
   val subscribers = scala.collection.mutable.HashMap.empty[String, ActorRef]
@@ -50,7 +53,8 @@ class WebSocketActor@Inject()(
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
       eosioHTTPSupport: EOSIOHTTPSupport,
-      dynamicBroadcast: ActorRef)(implicit system: ActorSystem) extends Actor {
+      dynamicBroadcast: ActorRef,
+      dynamicProcessor: ActorRef)(implicit system: ActorSystem) extends Actor {
   private val code: Int = out.hashCode
   private val log: LoggingAdapter = Logging(context.system, this)
 
@@ -132,6 +136,13 @@ class WebSocketActor@Inject()(
                           if(x > 0) {
                             out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> false))
                             dynamicBroadcast ! gameHistory
+
+                            userAccountService.getUserByName(user).map {
+                              case Some(v) =>
+                                dynamicProcessor ! DailyTask(v.id, Config.TH_GAME_ID, 1)
+                                dynamicProcessor ! ChallengeTracker(v.id, betAmount, prize, 1, 0.5)
+                              case _ => ()
+                            }
                           }
                           else out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> true))
                         }

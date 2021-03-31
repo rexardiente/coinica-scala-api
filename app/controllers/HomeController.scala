@@ -42,6 +42,7 @@ class HomeController @Inject()(
       gqGameService: GQGameService,
       eosioHTTPSupport: akka.EOSIOHTTPSupport,
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
+      @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
       mat: akka.stream.Materializer,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
@@ -85,6 +86,7 @@ class HomeController @Inject()(
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
                           eosioHTTPSupport,
+                          dynamicProcessor,
                           dynamicBroadcast)
     }
   }
