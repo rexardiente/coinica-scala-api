@@ -8,6 +8,7 @@ object GQCharacterCreated
 object GQGetNextBattle
 object VIPWSRequest
 object EOSNotifyTransaction
+object THGameResult
 
 sealed trait InEventMessage {
   def toJson(): JsValue = Json.toJson(this)
@@ -23,6 +24,18 @@ case class EOSNotifyTransaction(EOS_NET_TRANSACTION: JsValue) extends InEventMes
 	// require(GQ_NEXT_BATTLE == "get", "GQ Next Battle: invalid request")
 }
 
+case class THPanelSet(key: Int, isopen: Int, iswin: Int) extends utils.CommonImplicits
+case class THGameData(destination: Int,
+											enemy_count: Int,
+											maxprize: Double,
+											nextprize: Double,
+											odds: Double,
+											panel_set: Seq[THPanelSet],
+											prize: Double,
+											status: Int,
+											unopentile: Int,
+											win_count: Int) extends utils.CommonImplicits
+case class THGameResult(tx_hash: String, game_id: String, data: THGameData) extends InEventMessage
 // VIP objects
 case class VIPWSRequest(user: String, command: String, request: String) extends InEventMessage {
 	require(command == "vip", "VIP Command: invalid request")

@@ -29,7 +29,7 @@ class DailyTaskRepo @Inject()(
 
   def addOrUpdate(task: DailyTask): Future[Int] = {
     for {
-      find <- findUserByID(task.user)
+      find <- getTodayTaskByUserAndGame(task.user, task.game_id)
       check <- {
         find match {
           // if found auto add 1 on its game count

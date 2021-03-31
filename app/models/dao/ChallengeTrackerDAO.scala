@@ -14,18 +14,18 @@ final class ChallengeTrackerDAO @Inject()(
   import profile.api._
 
   protected class ChallengeTrackerTable(tag: Tag) extends Table[ChallengeTracker](tag, "CHALLENGE_TRACKER") {
-    def user = column[String] ("USER", O.PrimaryKey)
-    def challengeID = column[UUID] ("CHALLENGE_ID")
+    def user = column[UUID] ("USER", O.PrimaryKey)
+    // def challengeID = column[UUID] ("CHALLENGE_ID")
     def bets = column[Double] ("BETS")
     def wagered = column[Double] ("WAGERED")
     def ratio = column[Double] ("RATIO")
     def points = column[Double] ("VIP_POINTS")
 
-    def * = (user, challengeID, bets, wagered, ratio, points) <> (ChallengeTracker.tupled, ChallengeTracker.unapply)
+    def * = (user, bets, wagered, ratio, points) <> (ChallengeTracker.tupled, ChallengeTracker.unapply)
   }
 
   object Query extends TableQuery(new ChallengeTrackerTable(_)) {
-    def apply(user: String) = this.withFilter(_.user === user)
+    def apply(user: UUID) = this.withFilter(_.user === user)
     def clearTbl = this.delete
   }
 }

@@ -43,6 +43,9 @@ class OverAllGameHistoryRepo @Inject()(
       .take(limit)
       .result)
 
+  def isExistsByTxHash(txHash: String): Future[Boolean] =
+    db.run(dao.Query.filter(r => r.tx_hash === txHash).exists.result)
+
   def getByDateRange(start: Long, end : Long): Future[Seq[OverAllGameHistory]] =
     db.run(dao.Query.filter(r => r.createdAt >= start && r.createdAt <= end ).result)
 }

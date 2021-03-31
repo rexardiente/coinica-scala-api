@@ -38,7 +38,7 @@ class GQCharacterGameHistoryRepo @Inject()(
     }
   }
 
-  def getByUsernameAndCharacterID(id: String, player: UUID): Future[Seq[GQCharacterGameHistory]] =
+  def getByUsernameAndCharacterID(player: UUID, id: String): Future[Seq[GQCharacterGameHistory]] =
     for {
       aswinner <- db.run(dao.Query.filter(v => v.winnerID === id && v.winner === player).result)
       asloser <- db.run(dao.Query.filter(v => v.loserID === id && v.loser === player).result)

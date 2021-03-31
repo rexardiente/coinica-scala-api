@@ -153,7 +153,7 @@ class SystemSchedulerActor @Inject()(
                 val game: Game = availableGames.head
                 val newChallenge = new Challenge(UUID.randomUUID,
                                                 game.id,
-                                                "Challenge content is different every day, use you ingenuity to get the first place.",
+                                                "Challenge content is different every day, use your ingenuity to get the first place.",
                                                 createdAt,
                                                 expiredAt)
 

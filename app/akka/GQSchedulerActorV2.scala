@@ -52,7 +52,8 @@ class GQSchedulerActorV2 @Inject()(
       taskRepo: TaskRepo,
       dailyTaskRepo: DailyTaskRepo,
       eosioHTTPSupport: EOSIOHTTPSupport,
-      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
+      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
+      @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
     )(implicit system: ActorSystem ) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
@@ -147,7 +148,8 @@ class GQSchedulerActorV2 @Inject()(
             // remove failed txs on the list before inserting to DB OverAllGameHistory
             for {
               _ <- withTxHash.map(saveHistoryDB)
-              _ <- withTxHash.map(insertOrUpdateDailyTasks)
+              // update system process
+              _ <- withTxHash.map(insertOrUpdateSystemProcess)
             } yield (Thread.sleep(3000))
 
             self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
@@ -284,7 +286,7 @@ class GQSchedulerActorV2 @Inject()(
       ((new OverAllGameHistory(
                             UUID.randomUUID,
                             txHash,
-                            gameID,
+                            gameID.toString,
                             Config.GQ_CODE,
                             GQGameHistory(winner._1, "WIN", true),
                             true,
@@ -292,7 +294,7 @@ class GQSchedulerActorV2 @Inject()(
         new OverAllGameHistory(
                             UUID.randomUUID,
                             txHash,
-                            gameID,
+                            gameID.toString,
                             Config.GQ_CODE,
                             GQGameHistory(loser._1, "WIN", false),
                             true,
@@ -325,86 +327,41 @@ class GQSchedulerActorV2 @Inject()(
     GQBattleScheduler.battleCounter.clear
     GQBattleScheduler.noEnemy.clear
   }
-  // def saveHistoryDB(data: HashMap[UUID, GQBattleResult]): Unit = {
-  //   data.map { count =>
-  //     // val txHash = count._1
-  //     val winner = count._2.characters.filter(_._2._2).head
-  //     val loser = count._2.characters.filter(!_._2._2).head
-  //     val time = Instant.now
-  //     ((new OverAllGameHistory(
-  //                           UUID.randomUUID,
-  //                           ???,
-  //                           count._1,
-  //                           Config.GQ_CODE,
-  //                           GQGameHistory(winner._1, "WIN", true),
-  //                           true,
-  //                           time),
-  //       new OverAllGameHistory(
-  //                           UUID.randomUUID,
-  //                           ???,
-  //                           count._1,
-  //                           Config.GQ_CODE,
-  //                           GQGameHistory(loser._1, "WIN", false),
-  //                           true,
-  //                           time)),
-  //       new GQCharacterGameHistory(
-  //                     count._1.toString, // Game ID
-  //                     winner._2._1,
-  //                     winner._1,
-  //                     loser._2._1,
-  //                     loser._1,
-  //                     count._2.logs,
-  //                     time.getEpochSecond))
-  //   }.map { case ((winner, loser), character) =>
-  //     // insert Tx and character contineously
-  //     // broadcast game result to connected users
-  //     // use live data to feed on history update..
-  //     for {
-  //       _ <- gQGameHistoryRepo.insert(character)
-  //       _ <- gameTxHistory.add(winner)
-  //       _ <- gameTxHistory.add(loser)
-  //     } yield ()
-  //     Thread.sleep(500)
-  //     // broadcast GQ game result..
-  //     dynamicBroadcast ! Array(winner, loser)
-  //   }
-  //   // broadcast to spicific user if his characters doesnt have enemy..
-  //   dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
-
-  //   GQBattleScheduler.battleCounter.clear
-  //   GQBattleScheduler.noEnemy.clear
-  //   self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
-  // }
   // Insert into tasks daily tracker
   // tx hash, game id, battle result
-  def insertOrUpdateDailyTasks(seq: Seq[(String, (UUID, GQBattleResult))]): Unit = {
+  def insertOrUpdateSystemProcess(seq: Seq[(String, (UUID, GQBattleResult))]): Unit = {
     val createdAt: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant
+    seq.map { case (hash, (gameID, result)) =>
+      // DailyTask(user: UUID, game_id: UUID, game_count: Int)
+      result
+        .characters
+        .map(v => new DailyTask(v._2._1, gameID, 1))
+        .map(dynamicProcessor ! _)
+      // ChallengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double)
+      // result
+      //   .characters
+      //   .map { v =>
+      //     for {
+      //       // get character info
 
-    taskRepo.getDailyTaskByDate(createdAt).map {
-      case Some(task) => seq.map { case (hash, (gameID, result)) =>
-        result
-          .characters
-          .map(v => new DailyTask(v._2._1, gameID, 1))
-          .map(dailyTaskRepo.addOrUpdate)
-      }
-      case _ => ()
+      //       // check character overall gameplay
+      //       count <- gQGameHistoryRepo.getByUsernameAndCharacterID(v._2._1, v._1)
+      //       _ <- Future {
+      //         if (count.size < 21) ()
+      //       }
+      //     } yield ()
+
+      //     // float house_edge;
+      //     // float init_prize = character->second.LIFE * 10000;
+      //     // if (character->second.GAME_COUNT < 21) { house_edge = init_prize * 0.06; }
+      //     // else if (character->second.GAME_COUNT > 20 && character->second.GAME_COUNT < 41) { house_edge = init_prize * 0.07; }
+      //     // else if (character->second.GAME_COUNT > 40 && character->second.GAME_COUNT < 61) { house_edge = init_prize * 0.08; }
+      //     // else if (character->second.GAME_COUNT > 60 && character->second.GAME_COUNT < 81) { house_edge = init_prize * 0.09; }
+      //     // else { house_edge = init_prize * 0.1;}
+      //     // return asset(init_prize - house_edge, symbol(MAIN_TOKEN, PRECISION));
+      //     (v._2._1, 1, (if(v._2._2) 1 else 0), 1, (if(v._2._2) 1 else 0))
+      //   }
     }
-    // val expiredAt: Long = createdAt.getEpochSecond + ((60 * 60 * 24) - 1)
-    // taskRepo.existByDate(createdAt).map { isCreated =>
-    //   if (!isCreated) {
-    //     for {
-    //       // remove currentChallengeGame and shuffle the result
-    //       // get head, and create new Challenge for the day
-    //       _ <- Future.successful {
-    //         try {
-    //           taskRepo.add(Task(UUID.randomUUID, Seq(UUID.randomUUID), createdAt.getEpochSecond))
-    //         } catch {
-    //           case e: Throwable => println("Error: No games available")
-    //         }
-    //       }
-    //     } yield ()
-    //   }
-    // }
   }
 
   def battleProcess(params: HashMap[String, GQCharacterData]): Unit = {
@@ -420,7 +377,7 @@ class GQSchedulerActorV2 @Inject()(
         val removedOwned: HashMap[String, GQCharacterData] =
           params.filterNot(_._2.owner == player._2.owner)
         // check chracters spicific history to avoid battling again as posible..
-        gQGameHistoryRepo.getByUsernameAndCharacterID(player._1, player._2.owner).map { history =>
+        gQGameHistoryRepo.getByUsernameAndCharacterID(player._2.owner, player._1).map { history =>
           removedOwned
             .filterNot(ch => history.map(_.loserID).contains(ch._1))
             .filterNot(ch => history.map(_.winnerID).contains(ch._1))

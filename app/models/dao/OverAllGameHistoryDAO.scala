@@ -14,7 +14,7 @@ final class OverAllGameHistoryDAO @Inject()(
   protected class OverAllGameHistoryTable(tag: Tag) extends Table[OverAllGameHistory](tag, "OVER_ALL_GAME_HISTORY") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def tx_hash = column[String] ("TX_HASH")
-    def gameID = column[UUID] ("GAME_ID")
+    def gameID = column[String] ("GAME_ID")
     def game = column[String] ("GAME")
     def `type` = column[TransactionType] ("TYPE")
     def isConfirmed = column[Boolean] ("IS_CONFIRMED")

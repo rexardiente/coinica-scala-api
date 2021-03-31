@@ -20,7 +20,7 @@ class ChallengeTrackerRepo @Inject()(
   def add(challengeTracker: ChallengeTracker): Future[Int] =
     db.run(dao.Query += challengeTracker)
 
-  def delete(user: String): Future[Int] =
+  def delete(user: UUID): Future[Int] =
     db.run(dao.Query(user).delete)
 
   def clearTable(): Future[Int] =
@@ -29,11 +29,28 @@ class ChallengeTrackerRepo @Inject()(
   def update(challengeTracker: ChallengeTracker): Future[Int] =
     db.run(dao.Query.filter(_.user === challengeTracker.user).update(challengeTracker))
 
-  def exist(user: String): Future[Boolean] =
+  def exist(user: UUID): Future[Boolean] =
     db.run(dao.Query(user).exists.result)
 
   def all(): Future[Seq[ChallengeTracker]] =
     db.run(dao.Query.result)
+
+  def addOrUpdate(task: ChallengeTracker): Future[Int] = {
+    for {
+      find <- findUserByID(task.user)
+      check <- {
+        find match {
+          // if found auto add 1 on its game count
+          case Some(v) => update(task)
+          // else add to DB
+          case _ => add(task)
+        }
+      }
+    } yield (check)
+  }
+
+  def findUserByID(user: UUID): Future[Option[ChallengeTracker]] =
+    db.run(dao.Query(user).result.headOption)
 
   def getSize(): Future[Int] =
     db.run(dao.Query.length.result)

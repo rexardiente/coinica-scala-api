@@ -1,10 +1,11 @@
 package controllers
 
-import javax.inject.{ Inject, Singleton }
+import javax.inject.{ Inject, Named, Singleton }
 import java.util.UUID
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import akka.actor._
 import play.api._
 import play.api.mvc._
 import play.api.data.Form
@@ -40,6 +41,7 @@ class HomeController @Inject()(
       overAllGameHistoryRepo: OverAllGameHistoryRepo,
       gqGameService: GQGameService,
       eosioHTTPSupport: akka.EOSIOHTTPSupport,
+      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
       mat: akka.stream.Materializer,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
@@ -82,7 +84,8 @@ class HomeController @Inject()(
                           gQCharacterDataRepo,
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
-                          eosioHTTPSupport)
+                          eosioHTTPSupport,
+                          dynamicBroadcast)
     }
   }
 
@@ -360,7 +363,7 @@ class HomeController @Inject()(
   }
 
   def getGQGameHistoryByUserAndCharacterID(user: UUID, id: String) = Action.async { implicit req =>
-    gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(id, user).map(x => Ok(Json.toJson(x)))
+    gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(user, id).map(x => Ok(Json.toJson(x)))
   }
   def getGQGameHistoryByGameID(id: String) = Action.async { implicit req =>
     gQCharacterGameHistoryRepo.filteredByID(id).map(x => Ok(Json.toJson(x)))
