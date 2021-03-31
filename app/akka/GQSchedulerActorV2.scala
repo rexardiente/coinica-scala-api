@@ -76,6 +76,9 @@ class GQSchedulerActorV2 @Inject()(
           // remove no life characters in first load...
           // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
           // scheduled to start battle based on settings..
+          self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+          Thread.sleep(5000)
+
           GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
           systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
           // set true if actor already initialized

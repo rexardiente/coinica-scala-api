@@ -92,17 +92,17 @@ class WebSocketActor@Inject()(
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    if (GQBattleScheduler.isUpdatedCharacters.isEmpty) {
-                      eosioHTTPSupport.getTableRows(new TableRowsRequest(Config.GQ_CODE,
-                                                                        Config.GQ_TABLE,
-                                                                        Config.GQ_SCOPE,
-                                                                        None,
-                                                                        Some("uint64_t"),
-                                                                        None,
-                                                                        None,
-                                                                        None), None)
-                      .map(_.map(self ! _).getOrElse(out ! OutEvent(JsNull, JsString("characters updated"))))
-                    } else out ! OutEvent(JsNull, JsString("characters updated"))
+                    // if (GQBattleScheduler.isUpdatedCharacters.isEmpty) {
+                    eosioHTTPSupport.getTableRows(new TableRowsRequest(Config.GQ_CODE,
+                                                                      Config.GQ_TABLE,
+                                                                      Config.GQ_SCOPE,
+                                                                      None,
+                                                                      Some("uint64_t"),
+                                                                      None,
+                                                                      None,
+                                                                      None), None)
+                    .map(_.map(self ! _).getOrElse(out ! OutEvent(JsNull, JsString("characters updated"))))
+                    // } else out ! OutEvent(JsNull, JsString("characters updated"))
                   // if result is empty it means on battle else standby mode..
                   case cc: GQGetNextBattle =>
                     if (GQBattleScheduler.nextBattle == 0)
