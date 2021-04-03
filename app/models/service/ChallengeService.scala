@@ -1,7 +1,7 @@
 package models.service
 
 import javax.inject.{ Inject, Singleton }
-import java.time.{ LocalTime, LocalDate, LocalDateTime, Instant, ZoneId }
+import java.time.{ LocalTime, LocalDate, LocalDateTime, Instant, ZoneId, ZoneOffset }
 import java.util.UUID
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -19,7 +19,7 @@ class ChallengeService @Inject()(
   challenge: ChallengeRepo,
   tracker: ChallengeTrackerRepo,
   history: ChallengeHistoryRepo) {
-  private val defaultTimeZone: ZoneId = ZoneId.systemDefault
+  private val defaultTimeZone: ZoneId = ZoneOffset.UTC
 
   def paginatedResult[T >: Challenge](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 	  for {
@@ -30,7 +30,7 @@ class ChallengeService @Inject()(
   }
 
   // get 12:00 AM of the day based on the date...
-  def getChallenge(date: Instant): Future[Option[ChallengeHistory]] = {
+  def getChallenge(date: Option[Instant]): Future[Option[ChallengeHistory]] = {
     // // get todays local time..
     // val today: LocalDate = LocalDate.now(defaultTimeZone)
     // // instance of MIDNIGHT time
@@ -40,7 +40,8 @@ class ChallengeService @Inject()(
 
     // Scenario: get midnight based on input time and date...
     // convert Instant to LocalDate
-    val today = date.atZone(defaultTimeZone).toLocalDate()
+    val today = date.map(_.atZone(defaultTimeZone))
+                    .getOrElse(Instant.now.atZone(defaultTimeZone).plusDays(-1)).toLocalDate()
     val midnight: LocalTime = LocalTime.MIDNIGHT
     val todayMidnight: LocalDateTime = LocalDateTime.of(today, midnight)
     // convert LocalDatetime to Instant
