@@ -153,7 +153,7 @@ class GQSchedulerActorV2 @Inject()(
               _ <- withTxHash.map(saveHistoryDB)
               // update system process
               _ <- withTxHash.map(insertOrUpdateSystemProcess)
-            } yield (Thread.sleep(3000))
+            } yield (Thread.sleep(10000))
 
             self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
           }
@@ -265,9 +265,11 @@ class GQSchedulerActorV2 @Inject()(
           case _ => ()
         }
       }
-      Thread.sleep(2000)
+      Thread.sleep(5000)
       // update character DB if it has new characters added..
-      self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+      // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+      val remainingCharacters = GQBattleScheduler.eliminatedOrWithdrawn.filterNot(x => x._2.life <= 0).map(_._2).toSeq
+      characterRepo.updateOrInsertAsSeq(remainingCharacters)
       // clean back the list to get ready for later battle schedule..
       GQBattleScheduler.eliminatedOrWithdrawn.clear
       // on battle start reset timer to 0 and set new timer until the battle finished

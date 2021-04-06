@@ -62,7 +62,7 @@ class GQCharacterDataRepo @Inject()(
       for {
         isExists <- exist(data.key)
         _ <- if (isExists) update(data) else insert(data)
-      } yield ()
+      } yield (Thread.sleep(300))
     }
   }
 
