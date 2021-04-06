@@ -72,17 +72,17 @@ class GQSchedulerActorV2 @Inject()(
     system.actorSelection("/user/GQSchedulerActorV2").resolveOne().onComplete {
       case Success(actor) =>
         if (!GQSchedulerActorV2.isIntialized) {
-          GQSchedulerActorV2.isIntialized = true
-          // remove no life characters in first load...
-          // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
-          // scheduled to start battle based on settings..
-          self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
-          Thread.sleep(5000)
+          // GQSchedulerActorV2.isIntialized = true
+          // // remove no life characters in first load...
+          // // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
+          // // scheduled to start battle based on settings..
+          // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+          // Thread.sleep(5000)
 
-          GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
-          systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
-          // set true if actor already initialized
-          log.info("GQ Scheduler Actor V2 Initialized")
+          // GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
+          // systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
+          // // set true if actor already initialized
+          // log.info("GQ Scheduler Actor V2 Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
     }
@@ -326,8 +326,7 @@ class GQSchedulerActorV2 @Inject()(
           _ <- gQGameHistoryRepo.insert(character)
           _ <- gameTxHistory.add(winner)
           _ <- gameTxHistory.add(loser)
-        } yield ()
-        Thread.sleep(500)
+        } yield (Thread.sleep(1500))
         // broadcast GQ game result..
         dynamicBroadcast ! Array(winner, loser)
       }
