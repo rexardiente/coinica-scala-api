@@ -99,6 +99,10 @@ class HomeController @Inject()(
     userAccRepo.getUserAccount(user).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
   }
 
+  def getUserAccountByCode(code: String) = Action.async { implicit req =>
+    userAccRepo.getAccountByReferralCode(code).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+  }
+
   def vipUser(id: UUID) = Action.async { implicit req =>
     vipUserRepo.findByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
   }

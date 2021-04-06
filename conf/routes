@@ -90,6 +90,7 @@ GET   /donut/api/v1/news controllers.HomeController.news
 
 # User Account
 GET   /donut/api/v1/account/user/:user controllers.HomeController.userAccount(user)
+GET   /donut/api/v1/account/code/:code controllers.HomeController.getUserAccountByCode(code: String)
 # VIP Account
 GET   /donut/api/v1/vip 				controllers.HomeController.vipUser(id: UUID)
 
