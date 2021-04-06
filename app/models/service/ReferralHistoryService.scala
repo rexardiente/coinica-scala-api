@@ -31,15 +31,24 @@ class ReferralHistoryService @Inject()(userAccountRepo: UserAccountRepo, referra
       result <- if (isExists) referralRepo.getByCode(code) else Future(Seq.empty)
     } yield result
   // check if user exists and not referred by someone
-  // make sure code doenst belong to itself
+  // make sure code doesn't belong to itself
+  // referry will get `1` credit and referred will get `.5` credit..
   def applyReferralCode(appliedBy: UUID, code: String): Future[Int] =
     for {
       isCodeOwnedBySelf <- userAccountRepo.isCodeOwnedBy(appliedBy, code)
       hasNoReferral <- userAccountRepo.hasNoReferral(appliedBy)
+      getAccByReferralCode <- userAccountRepo.getAccountByReferralCode(code)
       result <- {
-        if (!isCodeOwnedBySelf && hasNoReferral != None) {
+        // code doesn't belong to itself and no existing claimed referral code
+        if (isCodeOwnedBySelf == None && hasNoReferral != None && getAccByReferralCode != None) {
+          // update each accounts referral statuses..
           for {
-            _ <- userAccountRepo.update(hasNoReferral.get)
+            _ <- Future {
+              hasNoReferral.map(acc => userAccountRepo.update(acc.copy(referral = (acc.referral + 0.5), referred_by = Some(code))))
+            }
+            _ <- Future {
+              getAccByReferralCode.map(acc => userAccountRepo.update(acc.copy(referral = (acc.referral + 1))))
+            }
             _ <- referralRepo.add(new ReferralHistory(UUID.randomUUID, code, appliedBy, Instant.now))
           } yield (1)
         }
