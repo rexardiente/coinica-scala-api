@@ -41,6 +41,11 @@ class DynamicBroadcastActor@Inject()(implicit system: ActorSystem) extends Actor
         actorRef ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
       }
 
+    case "BROADCAST_DB_UPDATED" =>
+      WebSocketActor.subscribers.foreach { case (id, actorRef) =>
+        actorRef ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "CHARACTERS_UPDATED"))
+      }
+
     case ("BROADCAST_CHARACTER_NO_ENEMY", map: Map[_, _]) =>
       try {
         map.asInstanceOf[Map[String, HashMap[String, String]]].map {

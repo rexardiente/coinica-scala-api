@@ -244,7 +244,7 @@ class WebSocketActor@Inject()(
           }
         }
         // update remaining characters that are still on battle
-        characterRepo.updateOrInsertAsSeq(seq.filterNot(x => x.life <= 0))
+        seq.filter(x => x.life > 0).map(characterRepo.updateOrInsertAsSeq)
         GQBattleScheduler.isUpdatedCharacters.clear
         out ! OutEvent(JsNull, JsString("characters updated"))
       }

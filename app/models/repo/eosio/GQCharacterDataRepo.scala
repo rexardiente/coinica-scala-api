@@ -56,14 +56,12 @@ class GQCharacterDataRepo @Inject()(
 
   def getNoLifeCharacters(): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.filter(_.life < 1).result)
-
-  def updateOrInsertAsSeq(seq: Seq[GQCharacterData]): Unit = {
-    seq.foreach { data =>
-      for {
+  // def updateOrInsertAsSeq(seq: Seq[GQCharacterData]): Future[Int] = {
+  def updateOrInsertAsSeq(data: GQCharacterData): Future[Int] = {
+    for {
         isExists <- exist(data.key)
-        _ <- if (isExists) update(data) else insert(data)
-      } yield (Thread.sleep(300))
-    }
+        result <- if (isExists) update(data) else insert(data)
+      } yield (result)
   }
 
   // History Functions...

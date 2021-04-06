@@ -69,20 +69,20 @@ class GQSchedulerActorV2 @Inject()(
 
   override def preStart: Unit = {
     super.preStart
+
+    akka.stream.scaladsl.Source.tick(0.seconds, 20.seconds, "GQSchedulerActorV2").runForeach(n => removeNoLifeCharactersScheduler)
     system.actorSelection("/user/GQSchedulerActorV2").resolveOne().onComplete {
       case Success(actor) =>
         if (!GQSchedulerActorV2.isIntialized) {
-          // GQSchedulerActorV2.isIntialized = true
-          // // remove no life characters in first load...
-          // // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
-          // // scheduled to start battle based on settings..
-          // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
-          // Thread.sleep(5000)
+          GQSchedulerActorV2.isIntialized = true
+          // scheduled to start battle based on settings..
+          self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+          Thread.sleep(5000)
 
-          // GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
-          // systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
-          // // set true if actor already initialized
-          // log.info("GQ Scheduler Actor V2 Initialized")
+          GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
+          systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
+          // set true if actor already initialized
+          log.info("GQ Scheduler Actor V2 Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
     }
@@ -153,9 +153,17 @@ class GQSchedulerActorV2 @Inject()(
               _ <- withTxHash.map(saveHistoryDB)
               // update system process
               _ <- withTxHash.map(insertOrUpdateSystemProcess)
-            } yield (Thread.sleep(10000))
-
-            self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
+            } yield (Thread.sleep(5000))
+            // remove chracters that has no more available life..
+            // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
+            // self ! REQUEST_CHARACTER_ELIMINATE
+            // on battle start reset timer to 0 and set new timer until the battle finished
+            // set back the time for next battle..
+            GQBattleScheduler.REQUEST_BATTLE_STATUS = ""
+            GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
+            // broadcast to all connected users the next GQ battle
+            dynamicBroadcast ! "BROADCAST_NEXT_BATTLE"
+            systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
           }
         }
         case e => log.info(e)
@@ -235,7 +243,7 @@ class GQSchedulerActorV2 @Inject()(
             self ! REQUEST_CHARACTER_ELIMINATE
           case Some("REQUEST_UPDATE_CHARACTERS_DB") =>
             val seq: Seq[GQCharacterData] = GQBattleScheduler.isUpdatedCharacters.map(_._2).toSeq
-            characterRepo.updateOrInsertAsSeq(seq)
+            seq.foreach(characterRepo.updateOrInsertAsSeq)
             GQBattleScheduler.isUpdatedCharacters.clear
           case _ =>
         }
@@ -245,31 +253,51 @@ class GQSchedulerActorV2 @Inject()(
     case REQUEST_CHARACTER_ELIMINATE =>
     {
       val filteredByStatus = GQBattleScheduler.eliminatedOrWithdrawn.filter(x => x._2.life <= 0)
-      // val successToRemove: ListBuffer[GQCharacterData] = new ListBuffer()
       // remove from smartcontract
-      filteredByStatus.map { case (id, data) =>
-        accountRepo.getByID(data.owner).map {
-          case Some(account) =>
-            eosioHTTPSupport.eliminate(account.name, id).map {
-              case Some(txHash) => // remove from Charater DB and move to history
-                // for {
-                //   _ <- characterRepo.remove(account.id, id)
-                //   _ <- characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-                // } (Thread.sleep(1000))
-                characterRepo.remove(account.id, id).map { isDeleted =>
-                  if (isDeleted > 0) characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-                  else characterRepo.insert(data)
-                }
-              case None => log.info("Error: removing character from smartcontract")
+      filteredByStatus.foreach { case (id, data) =>
+        for {
+          account <- accountRepo.getByID(data.owner)
+          _ <- {
+            if (account != None) {
+              val acc: UserAccount =  account.get
+
+              eosioHTTPSupport.eliminate(acc.name, id).map {
+                // track successfully remove in contract
+                case Some(txHash) => GQBattleScheduler.toRemovedCharacters.addOne((id, data))
+                  // characterRepo.remove(acc.id, id).map { isDeleted =>
+                  //   println("characterRepo.remove >>> " + isDeleted)
+                  //   if (isDeleted > 0) characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                  //   else failedToRemove.addOne(data)
+                  //     // characterRepo.insert(data)
+                  // }
+                case None => // log.info("Error: removing character from smartcontract")
+              }
             }
-          case _ => ()
-        }
+            else Future(0)
+          }
+        } yield (Thread.sleep(1000))
+        // accountRepo.getByID(data.owner).map {
+        //   case Some(account) =>
+        //     eosioHTTPSupport.eliminate(account.name, id).map {
+        //       case Some(txHash) => // remove from Charater DB and move to history
+        //         // for {
+        //         //   _ <- characterRepo.remove(account.id, id)
+        //         //   _ <- characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+        //         // } (Thread.sleep(1000))
+        //         characterRepo.remove(account.id, id).map { isDeleted =>
+        //           if (isDeleted > 0) characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+        //           else characterRepo.insert(data)
+        //         }
+        //       case None => log.info("Error: removing character from smartcontract")
+        //     }
+        //   case _ => ()
+        // }
       }
-      Thread.sleep(5000)
+      // Thread.sleep(5000)
       // update character DB if it has new characters added..
       // self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
-      val remainingCharacters = GQBattleScheduler.eliminatedOrWithdrawn.filterNot(x => x._2.life <= 0).map(_._2).toSeq
-      characterRepo.updateOrInsertAsSeq(remainingCharacters)
+      // val remainingCharacters = GQBattleScheduler.eliminatedOrWithdrawn.filter(x => x._2.life > 0).map(_._2).toSeq
+      // characterRepo.updateOrInsertAsSeq(remainingCharacters)
       // clean back the list to get ready for later battle schedule..
       GQBattleScheduler.eliminatedOrWithdrawn.clear
       // on battle start reset timer to 0 and set new timer until the battle finished
@@ -278,7 +306,6 @@ class GQSchedulerActorV2 @Inject()(
       GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTime)
       // broadcast to all connected users the next GQ battle
       dynamicBroadcast ! "BROADCAST_NEXT_BATTLE"
-      println("BROADCAST_NEXT_BATTLE >> FINISHED")
       systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
     }
     case _ => ()
@@ -336,6 +363,7 @@ class GQSchedulerActorV2 @Inject()(
 
     GQBattleScheduler.battleCounter.clear
     GQBattleScheduler.noEnemy.clear
+    self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_REMOVE_NO_LIFE"))
   }
   // Insert into tasks daily tracker
   // tx hash, game id, battle result
@@ -406,5 +434,38 @@ class GQSchedulerActorV2 @Inject()(
         self ! REQUEST_BATTLE_NOW
       }
     }
+  }
+
+  def removeNoLifeCharactersScheduler(): Unit = {
+    // check if characters is not empty then process
+    // if (GQBattleScheduler.toRemovedCharacters.size > 0)
+    // check chracters DB has existing characters with no life
+    // then add to the process
+    val characters = GQBattleScheduler.toRemovedCharacters.map(_._2).toSeq
+    for {
+      hasNoLife <- characterRepo.getNoLifeCharacters
+      _ <- Future.successful {
+        val mergeSeq = characterRepo.mergeSeq[GQCharacterData, Seq[GQCharacterData]](characters, hasNoLife)
+
+        mergeSeq.foreach { data =>
+          for {
+            isRemoved <- characterRepo.remove(data.owner, data.key)
+            result <- {
+              if (isRemoved > 0) {
+                val newData: GQCharacterDataHistory = GQCharacterData.toCharacterDataHistory(data)
+                characterRepo.insertDataHistory(newData)
+              }
+              else Future(0) // TODO: re-try if failed tx.
+            }
+          } yield if (result > 0) Thread.sleep(1000)
+        }
+      }
+    } yield ()
+
+    GQBattleScheduler.toRemovedCharacters.clear
+    dynamicBroadcast ! "BROADCAST_DB_UPDATED"
+    // broadcast users that DB has been update..
+    // update again overall DB to make sure its updated..
+    self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
   }
 }
