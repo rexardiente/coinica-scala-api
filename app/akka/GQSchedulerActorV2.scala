@@ -287,12 +287,16 @@ class GQSchedulerActorV2 @Inject()(
       val winner = result.characters.filter(_._2._2).head
       val loser = result.characters.filter(!_._2._2).head
       val time = Instant.now.getEpochSecond
-      ((new OverAllGameHistory(
+
+      (for {
+        winnerAcc <- accountRepo.getByID(winner._2._1)
+        loserAcc <- accountRepo.getByID(loser._2._1)
+      } yield ((new OverAllGameHistory(
                             UUID.randomUUID,
                             txHash,
                             gameID.toString,
                             Config.GQ_CODE,
-                            GQGameHistory(winner._1, "WIN", true),
+                            GQGameHistory(winnerAcc.map(_.name).getOrElse("no_user"), "WIN", true),
                             true,
                             time),
         new OverAllGameHistory(
@@ -300,7 +304,7 @@ class GQSchedulerActorV2 @Inject()(
                             txHash,
                             gameID.toString,
                             Config.GQ_CODE,
-                            GQGameHistory(loser._1, "WIN", false),
+                            GQGameHistory(loserAcc.map(_.name).getOrElse("no_user"), "WIN", false),
                             true,
                             time)),
         new GQCharacterGameHistory(
@@ -311,19 +315,20 @@ class GQSchedulerActorV2 @Inject()(
                       loser._2._1,
                       loser._1,
                       result.logs,
-                      time))
-    }.map { case ((winner, loser), character) =>
-      // insert Tx and character contineously
-      // broadcast game result to connected users
-      // use live data to feed on history update..
-      for {
-        _ <- gQGameHistoryRepo.insert(character)
-        _ <- gameTxHistory.add(winner)
-        _ <- gameTxHistory.add(loser)
-      } yield ()
-      Thread.sleep(500)
-      // broadcast GQ game result..
-      dynamicBroadcast ! Array(winner, loser)
+                      time)))
+      .map { case ((winner, loser), character) =>
+        // insert Tx and character contineously
+        // broadcast game result to connected users
+        // use live data to feed on history update..
+        for {
+          _ <- gQGameHistoryRepo.insert(character)
+          _ <- gameTxHistory.add(winner)
+          _ <- gameTxHistory.add(loser)
+        } yield ()
+        Thread.sleep(500)
+        // broadcast GQ game result..
+        dynamicBroadcast ! Array(winner, loser)
+      }
     }
     // broadcast to spicific user if his characters doesnt have enemy..
     dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
