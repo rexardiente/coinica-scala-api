@@ -232,7 +232,19 @@ class WebSocketActor@Inject()(
                                                                       Some(nextKey)), sender).map(_.map(self ! _))
       else {
         val seq: Seq[GQCharacterData] = GQBattleScheduler.isUpdatedCharacters.map(_._2).toSeq
-        characterRepo.updateOrInsertAsSeq(seq)
+        // remove characters with no life..
+        seq.filter(x => x.life <= 0).map { data =>
+          userAccountService.getUserByID(data.owner).map {
+            case Some(account) =>
+              characterRepo.remove(account.id, data.key).map { isDeleted =>
+                if (isDeleted > 0) characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                else characterRepo.insert(data)
+              }
+            case _ => ()
+          }
+        }
+        // update remaining characters that are still on battle
+        characterRepo.updateOrInsertAsSeq(seq.filterNot(x => x.life <= 0))
         GQBattleScheduler.isUpdatedCharacters.clear
         out ! OutEvent(JsNull, JsString("characters updated"))
       }

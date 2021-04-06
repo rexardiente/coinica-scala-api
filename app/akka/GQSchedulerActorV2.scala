@@ -252,10 +252,14 @@ class GQSchedulerActorV2 @Inject()(
           case Some(account) =>
             eosioHTTPSupport.eliminate(account.name, id).map {
               case Some(txHash) => // remove from Charater DB and move to history
-                for {
-                  _ <- characterRepo.remove(account.id, id)
-                  _ <- characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-                } (Thread.sleep(1000))
+                // for {
+                //   _ <- characterRepo.remove(account.id, id)
+                //   _ <- characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                // } (Thread.sleep(1000))
+                characterRepo.remove(account.id, id).map { isDeleted =>
+                  if (isDeleted > 0) characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                  else characterRepo.insert(data)
+                }
               case None => log.info("Error: removing character from smartcontract")
             }
           case _ => ()
