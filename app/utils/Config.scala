@@ -22,4 +22,5 @@ object Config {
 	val TH_GAME_ID: UUID = UUID.fromString(TH(3))
 
 	val NODE_SERVER_URI: String = config.getString("eosio.eosjs.node.server.uri")
+	val EOS_TO_USD_CONVERSION: Double = config.getDouble("platform.EOS_TO_USD_CONVERSION")
 }
