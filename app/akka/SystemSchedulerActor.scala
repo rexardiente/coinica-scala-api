@@ -225,7 +225,7 @@ class SystemSchedulerActor @Inject()(
 
     case ProcessOverAllChallenge(expiredAt) =>
       // always process when time is equals or greater to its current time..
-      // if (Instant.now.getEpochSecond >= expiredAt) {
+      // if (Instant.now.getEpochSecond >= expiredAt)
         for {
           // get all challenge result
           tracked <- challengeTrackerRepo.all()
@@ -238,7 +238,6 @@ class SystemSchedulerActor @Inject()(
               .add(new ChallengeHistory(UUID.randomUUID, v, Instant.now.getEpochSecond))
               .map(x => if (x > 0) challengeTrackerRepo.clearTable else println("Error: challengeTracker.clearTable"))
         }
-      // }
 
     case RankingScheduler =>
       // get date range to fecth from overall history...

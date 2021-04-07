@@ -40,8 +40,7 @@ class ChallengeService @Inject()(
 
     // Scenario: get midnight based on input time and date...
     // convert Instant to LocalDate
-    val today = date.map(_.atZone(defaultTimeZone))
-                    .getOrElse(Instant.now.atZone(defaultTimeZone).plusDays(-1)).toLocalDate()
+    val today = date.map(_.atZone(defaultTimeZone)).getOrElse(Instant.now.atZone(defaultTimeZone).plusDays(-1)).toLocalDate()
     val midnight: LocalTime = LocalTime.MIDNIGHT
     val todayMidnight: LocalDateTime = LocalDateTime.of(today, midnight)
     // convert LocalDatetime to Instant

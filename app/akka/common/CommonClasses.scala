@@ -19,20 +19,14 @@ case class REQUEST_TABLE_ROWS(req: TableRowsRequest, sender: Option[String])
 object REQUEST_UPDATE_CHARACTERS_DB
 object GQBattleScheduler {
 	var nextBattle: Long = 0
-  // var battleStatus: String = "to_update" // "to_update", "on_update", "to_battle", "on_battle"
   val characters = HashMap.empty[String, GQCharacterData]
   val eliminatedOrWithdrawn = HashMap.empty[String, GQCharacterData]
   val isUpdatedCharacters = HashMap.empty[String, GQCharacterData]
   val toRemovedCharacters = HashMap.empty[String, GQCharacterData] // character ID and user
   val battleCounter = HashMap.empty[UUID, GQBattleResult]
   val noEnemy = HashMap.empty[String, UUID] // character ID and username
-  // val smartcontractTxFailed = ListBuffer.empty[UUID] // character ID and username
-  // var isRemoving: Boolean = false
   var REQUEST_BATTLE_STATUS = ""
 }
-// object RemoveCharacterWithNoLife
-// object GQResetScheduler
-// object GQSchedulerStatus
 object ChallengeScheduler
 object DailyTaskScheduler
 object CreateNewDailyTask
