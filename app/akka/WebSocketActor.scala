@@ -106,9 +106,9 @@ class WebSocketActor@Inject()(
                   // if result is empty it means on battle else standby mode..
                   case cc: GQGetNextBattle =>
                     if (GQBattleScheduler.nextBattle == 0)
-                      out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
+                      out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
                     else
-                      out ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+                      out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
 
                   case th: THGameResult =>
                     // TODO: Save overall game data into TH history
@@ -134,7 +134,7 @@ class WebSocketActor@Inject()(
                       if (!isExists) {
                         overAllGameHistory.add(gameHistory).map { x =>
                           if(x > 0) {
-                            out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> false))
+                            out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> false))
                             dynamicBroadcast ! Array(gameHistory)
 
                             userAccountService.getUserByName(user).map {
@@ -144,10 +144,10 @@ class WebSocketActor@Inject()(
                               case _ => ()
                             }
                           }
-                          else out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> true))
+                          else out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> true))
                         }
                       }
-                      else out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> true))
+                      else out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> true))
                     }
 
                   case e: EOSNotifyTransaction =>
@@ -269,17 +269,3 @@ class WebSocketActor@Inject()(
     case _ => out ! OutEvent(JsNull, JsString("invalid"))
   }
 }
-
-// Check if user session exist to use as reference for akka actor..
-// save into DB for easy broadcast of messages..
-
-// Broadcast into specific user if still active else broadcast all result.
-// Bradcast all will be the best solution for game win and lose updates
-// specified broadcast if theres only changes on specific user games
-
-// January 13, 2021
-// Save Connected users into DB and akka actorRef
-// on subscribe check if user exist in DB(update if true) else insert new
-// after GQ battle action, broadcast to all connected users the next battle schedule...
-// how to handle if new user connected and track the exact time of the game..
-// solution: create TBL for GQ_BATTLE_SCHEDULE(next_battle, total_active_user, total_que_characters)

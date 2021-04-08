@@ -8,6 +8,7 @@ import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
 import models.domain._
 import akka.common.objects._
+import utils.Config
 
 object DynamicBroadcastActor {
   def props(implicit system: ActorSystem) =
@@ -38,27 +39,26 @@ class DynamicBroadcastActor@Inject()(implicit system: ActorSystem) extends Actor
 
     case "BROADCAST_NEXT_BATTLE" =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
       }
 
     case "BROADCAST_DB_UPDATED" =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "CHARACTERS_UPDATED"))
+        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "CHARACTERS_UPDATED"))
       }
 
     case ("BROADCAST_CHARACTER_NO_ENEMY", map: Map[_, _]) =>
       try {
         map.asInstanceOf[Map[String, HashMap[String, String]]].map {
           case (user: String, characters) => WebSocketActor.subscribers(user) !
-            OutEvent(JsString("GQ"), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(x => JsString(x._1)).toSeq)))
+            OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(x => JsString(x._1)).toSeq)))
         }
       } catch { case _: Throwable => {} }
     case "BROADCAST_NO_CHARACTERS_AVAILABLE" =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString("GQ"), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
       }
 
     case e => log.info("DynamicBroadcastActor: invalid request")
-      // out.map(_ ! OutEvent(JsNull, JsString("invalid")))
   }
 }
