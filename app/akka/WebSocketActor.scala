@@ -117,7 +117,7 @@ class WebSocketActor@Inject()(
                     val gameID: String = th.game_id
                     val prediction: List[Int] = th.data.panel_set.map(_.isopen).toList
                     val result: List[Int] = th.data.panel_set.map(_.iswin).toList
-                    val betAmount: Double = th.data.odds
+                    val betAmount: Double = th.data.destination
                     val prize: Double = th.data.prize
 
                     val gameHistory = OverAllGameHistory(UUID.randomUUID,
