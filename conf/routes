@@ -84,6 +84,8 @@ GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime control
 
 # Overall History
 GET   /donut/api/v1/game/all/history controllers.HomeController.overAllHistory(limit: Int ?= 10)
+GET   /donut/api/v1/game/all/history/:game controllers.HomeController.overAllHistoryByGameID(game: UUID)
+GET   /donut/api/v1/game/all/history/:game/:user controllers.HomeController.gameHistoryByGameIDAndUser(game: UUID, user: UUID)
 
 # TODO: News with pagination
 GET   /donut/api/v1/news controllers.HomeController.news

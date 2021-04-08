@@ -39,6 +39,7 @@ class HomeController @Inject()(
       gQCharacterDataRepo: GQCharacterDataRepo,
       gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
       overAllGameHistoryRepo: OverAllGameHistoryRepo,
+      overAllHistoryService: OverAllHistoryService,
       gqGameService: GQGameService,
       eosioHTTPSupport: akka.EOSIOHTTPSupport,
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
@@ -409,5 +410,13 @@ class HomeController @Inject()(
 
   def overAllHistory(limit: Int) = Action.async { implicit req =>
     overAllGameHistoryRepo.all(limit).map(x => Ok(Json.toJson(x)))
+  }
+
+  def overAllHistoryByGameID(game: UUID) = Action.async { implicit req =>
+    overAllHistoryService.gameHistoryByGameID(game).map(x => Ok(Json.toJson(x)))
+  }
+
+  def gameHistoryByGameIDAndUser(game: UUID, user: UUID) = Action.async { implicit req =>
+    overAllHistoryService.gameHistoryByGameIDAndUser(user, game).map(x => Ok(Json.toJson(x)))
   }
 }
