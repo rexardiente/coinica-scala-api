@@ -441,31 +441,34 @@ class GQSchedulerActorV2 @Inject()(
     // if (GQBattleScheduler.toRemovedCharacters.size > 0)
     // check chracters DB has existing characters with no life
     // then add to the process
-    val characters = GQBattleScheduler.toRemovedCharacters.map(_._2).toSeq
     for {
+      characters <- Future(GQBattleScheduler.toRemovedCharacters.map(_._2).toSeq)
       hasNoLife <- characterRepo.getNoLifeCharacters
       _ <- Future.successful {
         val mergeSeq = characterRepo.mergeSeq[GQCharacterData, Seq[GQCharacterData]](characters, hasNoLife)
 
-        mergeSeq.foreach { data =>
-          for {
-            isRemoved <- characterRepo.remove(data.owner, data.key)
-            result <- {
-              if (isRemoved > 0) {
-                val newData: GQCharacterDataHistory = GQCharacterData.toCharacterDataHistory(data)
-                characterRepo.insertDataHistory(newData)
+        if (!mergeSeq.isEmpty) {
+          mergeSeq.foreach { data =>
+            for {
+              isRemoved <- characterRepo.remove(data.owner, data.key)
+              result <- {
+                if (isRemoved > 0) {
+                  val newData: GQCharacterDataHistory = GQCharacterData.toCharacterDataHistory(data)
+                  characterRepo.insertDataHistory(newData)
+                }
+                else Future(0) // TODO: re-try if failed tx.
               }
-              else Future(0) // TODO: re-try if failed tx.
-            }
-          } yield if (result > 0) Thread.sleep(1000)
+            } yield if (result > 0) Thread.sleep(1000)
+          }
+
+          GQBattleScheduler.toRemovedCharacters.clear
+          // broadcast users that DB has been update..
+          // update again overall DB to make sure its updated..
+          self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
+          Thread.sleep(3000)
+          dynamicBroadcast ! "BROADCAST_DB_UPDATED"
         }
       }
     } yield ()
-
-    GQBattleScheduler.toRemovedCharacters.clear
-    dynamicBroadcast ! "BROADCAST_DB_UPDATED"
-    // broadcast users that DB has been update..
-    // update again overall DB to make sure its updated..
-    self ! REQUEST_TABLE_ROWS(eosTblRowsRequest, Some("REQUEST_UPDATE_CHARACTERS_DB"))
   }
 }

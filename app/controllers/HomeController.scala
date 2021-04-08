@@ -87,8 +87,8 @@ class HomeController @Inject()(
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
                           eosioHTTPSupport,
-                          dynamicProcessor,
-                          dynamicBroadcast)
+                          dynamicBroadcast,
+                          dynamicProcessor)
     }
   }
 

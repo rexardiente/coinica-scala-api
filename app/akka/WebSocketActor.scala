@@ -120,7 +120,7 @@ class WebSocketActor@Inject()(
                     val betAmount: Double = th.data.destination
                     val prize: Double = th.data.prize
 
-                    val gameHistory = OverAllGameHistory(UUID.randomUUID,
+                    val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
                                                         txHash,
                                                         gameID,
                                                         Config.TH_CODE,
@@ -135,7 +135,7 @@ class WebSocketActor@Inject()(
                         overAllGameHistory.add(gameHistory).map { x =>
                           if(x > 0) {
                             out ! OutEvent(JsString("TH"), Json.obj("tx" -> txHash, "is_error" -> false))
-                            dynamicBroadcast ! gameHistory
+                            dynamicBroadcast ! Array(gameHistory)
 
                             userAccountService.getUserByName(user).map {
                               case Some(v) =>
