@@ -37,6 +37,19 @@ class GQCharacterGameHistoryRepo @Inject()(
       case (p1, p2) => mergeSeq[GQCharacterGameHistory, Seq[GQCharacterGameHistory]](p1, p2)
     }
   }
+  // add date range by month of Txs
+  def getByUsernameCharacterIDAndDate(player: UUID, id: String, startDate: Long, endDate: Long):
+    Future[Seq[GQCharacterGameHistory]] =
+      for {
+        aswinner <- db.run(dao.Query.filter { v =>
+            v.winnerID === id && v.winner === player && v.timeExecuted >= startDate && v.timeExecuted <= endDate
+          }.result)
+        asloser <- db.run(dao.Query.filter { v =>
+            v.loserID === id && v.loser === player && v.timeExecuted >= startDate && v.timeExecuted <= endDate
+          }.result)
+      } yield (aswinner, asloser) match {
+        case (p1, p2) => mergeSeq[GQCharacterGameHistory, Seq[GQCharacterGameHistory]](p1, p2)
+      }
 
   def getByUsernameAndCharacterID(player: UUID, id: String): Future[Seq[GQCharacterGameHistory]] =
     for {
