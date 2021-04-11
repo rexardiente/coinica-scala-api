@@ -40,4 +40,9 @@ class RankingHistoryRepo @Inject()(
 
   def getSize(): Future[Int] =
     db.run(dao.Query.length.result)
+
+  def getHistoryByDateRange(start: Long, end: Long): Future[Seq[RankingHistory]] = {
+    db.run(dao.Query.filter(r => r.createdAt >= start && r.createdAt <= end).result)
+    // db.run(dao.Query.sortBy(_.createdAt.desc).take(limit).result)
+  }
 }

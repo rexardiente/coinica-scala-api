@@ -241,8 +241,15 @@ class HomeController @Inject()(
   //     .map(r => if(r < 0) NotFound else Ok)
   // }
 
-  def getRankingByDate(date: Option[Instant]) = Action.async { implicit req =>
-    rankingService.getRankingByDate(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
+  // def getRankingByDate(date: Option[Instant]) = Action.async { implicit req =>
+  //   rankingService.getRankingByDate(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
+  // }
+
+  def getRankingDaily() = Action.async { implicit req =>
+    rankingService.getRankingDaily().map(x => Ok(Json.toJson(x)))
+  }
+  def getRankingHistory() = Action.async { implicit req =>
+    rankingService.getRankingHistory().map(x => Ok(Json.toJson(x)))
   }
 
   def games() = Action.async { implicit req =>

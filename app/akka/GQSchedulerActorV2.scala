@@ -317,13 +317,13 @@ class GQSchedulerActorV2 @Inject()(
       else {
         val availableCharacters: HashMap[String, GQCharacterData] = characters
         val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
-        val last30Days: Instant = now.plusDays(-30).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
+        val filteredDateForBattle: Instant = now.plusDays(-7).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
         // remove his other owned characters from the list
         var removedOwned = availableCharacters.filter(_._2.owner != player._2.owner)
         // check chracters spicific history to avoid battling again as posible..
         Await.ready(gQGameHistoryRepo.getByUsernameCharacterIDAndDate(player._2.owner,
                                                                       player._1,
-                                                                      last30Days.getEpochSecond,
+                                                                      filteredDateForBattle.getEpochSecond,
                                                                       now.toInstant(ZoneOffset.UTC).getEpochSecond), Duration.Inf)
             .andThen {
               case Success(v) =>

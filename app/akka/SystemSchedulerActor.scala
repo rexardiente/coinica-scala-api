@@ -4,7 +4,7 @@ import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
 import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset, ZoneId }
 import scala.util.{ Success, Failure, Random }
-import scala.concurrent.Future
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
@@ -363,7 +363,7 @@ class SystemSchedulerActor @Inject()(
         //   .map(_.filterNot(_ == null))
         // }
         // grouped history by user..
-        processedBets <- Future {
+        processedBets <- Future.successful {
           grouped.map { case (user, histories) =>
             val bets: Seq[(Double, Double)] = histories.map { history =>
               history.info match {
@@ -380,45 +380,42 @@ class SystemSchedulerActor @Inject()(
         }
         profit <- Future.sequence {
           processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, (bets.map(_._2).sum - bets.map(_._1).sum)) }
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum - bets.map(_._2).sum) }
+            // .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum - bets.map(_._1).sum) }
             .sortBy(-_._3)
             .take(10)
-            .filter(_._3 > 0) // remove 0 total in the list..
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null)))
-          // val multiplierSum: Double = processedBets.map(_._2).sum
+            .filter(_._3 > 0)
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null)))
         }
         payout <- Future.sequence {
           processedBets
             .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum) }
             .sortBy(-_._3)
             .take(10)
-            .filter(_._3 > 0) // remove 0 total in the list..
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null)))
-          // val multiplierSum: Double = processedBets.map(_._2).sum
+            .filter(_._3 > 0)
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null)))
         }
         wagered <- Future.sequence {
           processedBets
             .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum * Config.EOS_TO_USD_CONVERSION) }
             .sortBy(-_._3)
             .take(10)
-            .filter(_._3 > 0) // remove 0 total in the list..
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null)))
-          // val multiplierSum: Double = processedBets.map(_._2).sum
+            .filter(_._3 > 0)
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null)))
         }
         multiplier <- Future.sequence {
           processedBets
             .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).filter(_ > 0).sum) }
             .sortBy(-_._3)
             .take(10)
-            .filter(_._3 > 0) // remove 0 total in the list..
+            .filter(_._3 > 0)
             .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null)))
-          // val multiplierSum: Double = processedBets.map(_._2).sum
         }
         // save ranking to history..
-        _ <- Future {
+        _ <- {
           val rank = RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, start)
           // insert into DB, if failed then re-insert
-          rankingHistoryRepo.add(rank).map(x => if(x > 0)() else rankingHistoryRepo.add(rank))
+          Await.ready(rankingHistoryRepo.add(rank).map(x => if(x > 0)() else rankingHistoryRepo.add(rank)), Duration.Inf)
         }
       } yield ()
 

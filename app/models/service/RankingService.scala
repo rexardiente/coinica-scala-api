@@ -2,11 +2,13 @@ package models.service
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time._
+import java.time.{ Instant, LocalDate, LocalDateTime, ZoneOffset, ZoneId}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ Await, Future }
+import scala.concurrent.duration._
+import scala.util.{ Success, Failure }
 import play.api.libs.json.{ Json, JsValue }
-import models.domain.{ PaginatedResult, RankingHistory }
+import models.domain.{ PaginatedResult, RankingHistory, RankProfit, RankPayout, RankWagered, RankMultiplier }
 import models.repo.RankingHistoryRepo
 
 @Singleton
@@ -19,21 +21,90 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
 
-  // if date is None then it will be 24hrs
-  def getRankingByDate(date: Option[Instant]): Future[Option[RankingHistory]] = {
-    if (date == None) {
-      val now: LocalDate = LocalDate.now()
-      val startOfDay: Instant = now.atStartOfDay(ZoneId.systemDefault).plusDays(-1).toInstant()
-      rankingHistoryRepo.findByDateRange(startOfDay.getEpochSecond)
+  // prev 24hrs tx results
+  def getRankingDaily(): Future[Seq[RankingHistory]] = {
+    val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
+    val end: Instant = now.plusDays(-1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
 
-    } else {
-      val startOfDay: Instant = LocalDateTime
-                                  .ofInstant(date.get, ZoneOffset.UTC)
-                                  .toLocalDate()
-                                  .atStartOfDay(ZoneId.systemDefault)
-                                  .toInstant()
-      rankingHistoryRepo.findByDateRange(startOfDay.getEpochSecond)
-    }
+    rankingHistoryRepo.getHistoryByDateRange(
+                        end.getEpochSecond,
+                        now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().getEpochSecond)
+  }
+
+  def getRankingHistory(): Future[RankingHistory] = {
+    val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
+    val end: Instant = now.plusDays(-30).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
+
+    Await.ready(for {
+      history <- rankingHistoryRepo.getHistoryByDateRange(
+                                      end.getEpochSecond,
+                                      now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().getEpochSecond)
+      calc <- calculateRankHistory(history)
+    } yield (calc), Duration.Inf)
+  }
+
+  // ranking history by 30 days range
+  def calculateRankHistory(v: Seq[RankingHistory]): Future[RankingHistory] = {
+    for {
+      profit <- Future.successful {
+        try {
+          v.map(_.profits).flatten.groupBy(_.user).map { case (id, seq) =>
+            val totalbet = seq.map(_.bet).sum
+            val totalprofit = seq.asInstanceOf[Seq[RankProfit]].map(_.profit).sum
+            RankProfit(id, totalbet, totalprofit)
+          }
+          .toSeq
+          .filter(_.profit > 0)
+          .take(10)
+        } catch {
+          case _: Throwable => Seq.empty
+        }
+      }
+      payout <- Future.successful {
+        try {
+          v.map(_.payouts).flatten.groupBy(_.user).map { case (id, seq) =>
+            val totalbet = seq.map(_.bet).sum
+            val totalpayout = seq.asInstanceOf[Seq[RankPayout]].map(_.payout).sum
+            RankPayout(id, totalbet, totalpayout)
+          }
+          .toSeq
+          .filter(_.payout > 0)
+          .take(10)
+        } catch {
+          case e: Throwable =>
+            println(e)
+            Seq.empty
+        }
+      }
+      wagered <- Future.successful {
+        try {
+          v.map(_.wagered).flatten.groupBy(_.user).map { case (id, seq) =>
+            val totalbet = seq.map(_.bet).sum
+            val totalwagered = seq.asInstanceOf[Seq[RankWagered]].map(_.wagered).sum
+            RankWagered(id, totalbet, totalwagered)
+          }
+          .toSeq
+          .filter(_.wagered > 0)
+          .take(10)
+        } catch {
+          case _: Throwable => Seq.empty
+        }
+      }
+      multiplier <- Future.successful {
+        try {
+          v.map(_.multipliers).flatten.groupBy(_.user).map { case (id, seq) =>
+            val totalbet = seq.map(_.bet).sum
+            val totalwagered = seq.asInstanceOf[Seq[RankMultiplier]].map(_.multiplier).sum
+            RankMultiplier(id, totalbet, totalwagered)
+          }
+          .toSeq
+          .filter(_.multiplier > 0)
+          .take(10)
+        } catch {
+          case _: Throwable => Seq.empty
+        }
+      }
+    } yield (RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, Instant.now.getEpochSecond))
   }
   // def getRankingByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   // 	try {
