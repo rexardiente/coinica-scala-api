@@ -72,9 +72,7 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
           .filter(_.payout > 0)
           .take(10)
         } catch {
-          case e: Throwable =>
-            println(e)
-            Seq.empty
+          case e: Throwable => Seq.empty
         }
       }
       wagered <- Future.successful {

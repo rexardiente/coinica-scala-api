@@ -125,6 +125,11 @@ class SystemSchedulerActor @Inject()(
           })
           // set true if actor already initialized
           SystemSchedulerActor.isIntialized = true
+          // load default SC users/account to avoid adding into user accounts table
+          WebSocketActor.subscribers.addOne(Config.GQ_CODE, self)
+          WebSocketActor.subscribers.addOne(Config.TH_CODE, self)
+          WebSocketActor.subscribers.addOne(Config.MJHilo_CODE, self)
+
           log.info("System Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
