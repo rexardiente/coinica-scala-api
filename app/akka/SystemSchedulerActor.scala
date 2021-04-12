@@ -241,127 +241,13 @@ class SystemSchedulerActor @Inject()(
 
     case RankingScheduler =>
       // get date range to fecth from overall history...
-      val start: Long = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant().getEpochSecond
-      val end: Long = start + (60 * 60 * 24) - 1
+      val start = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1)
+      val end = start.plusDays(1)
       // fetch overAllGameHistory by date ranges
       for {
-        gameHistory <- overAllGameHistory.getByDateRange(start, end)
+        gameHistory <- overAllGameHistory.getByDateRange(start.toInstant().getEpochSecond, (end.toInstant().getEpochSecond - 1))
         // grouped by user -> Map[String, Seq[OverAllGameHistory]]
         grouped <- Future.successful(gameHistory.groupBy(_.info.user))
-        // profit <- {
-        //   // sum of its bets and amount payout
-        //   Future.sequence(grouped.map { case (user, histories) =>
-        //     // extract bets and amount to (pay or received)
-        //     val tempBets: Seq[(Double, Double)] = histories.map { history =>
-        //       // classify which game per txs and return (bet, amount)
-        //       history.info match {
-        //         case GQGameHistory(name, prediction, result, bet) =>
-        //           if (result) (bet, 1) else (bet, -1)
-        //         case THGameHistory(name, prediction, result, bet, amount) =>
-        //           if (prediction == result) (bet, amount) else (bet, -amount)
-        //         // GameType(_, _, _), PaymentType(_, _, _)
-        //         case e => (e.bet, 0)
-        //       }
-        //     }
-
-        //     val betsSum: Double = tempBets.map(_._1).sum
-        //     val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
-        //     (user, betsSum, (toPayOrReceivedSum - betsSum ))
-        //   }
-        //   .toSeq
-        //   .sortBy(-_._3)
-        //   .take(10)
-        //   .map { v =>
-        //     // get userid using name string..
-        //     userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null))
-        //   })
-        //   .map(_.filterNot(_ == null))
-        // }
-        // payout <- {
-        //   // sum of its bets and amount payout
-        //   Future.sequence(grouped.map { case (user, histories) =>
-        //     // extract bets and amount to (pay or received)
-        //     val tempBets: Seq[(Double, Double)] = histories.map { history =>
-        //       // classify which game per txs and return (bet, amount)
-        //       history.info match {
-        //         case GQGameHistory(name, prediction, result, bet) =>
-        //           if (result) (bet, 1) else (bet, -1)
-        //         case THGameHistory(name, prediction, result, bet, amount) =>
-        //           if (prediction == result) (bet, amount) else (bet, -amount)
-        //         // GameType(_, _, _), PaymentType(_, _, _)
-        //         case e => (e.bet, 0)
-        //       }
-        //     }
-
-        //     val betsSum: Double = tempBets.map(_._1).sum
-        //     val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
-        //     (user, betsSum, toPayOrReceivedSum)
-        //   }
-        //   .toSeq
-        //   .sortBy(-_._3)
-        //   .take(10)
-        //   .map { v =>
-        //     // get userid using name string..
-        //     userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null))
-        //   })
-        //   .map(_.filterNot(_ == null))
-        // }
-        // wagered <- {
-        //   // sum of its bets and amount payout
-        //   Future.sequence(grouped.map { case (user, histories) =>
-        //     // extract bets and amount to (pay or received)
-        //     val tempBets: Seq[(Double, Double)] = histories.map { history =>
-        //       // classify which game per txs and return (bet, amount, multiplier)
-        //       history.info match {
-        //         case GQGameHistory(name, prediction, result, bet) =>
-        //           if (result) (bet, 1) else (bet, -1)
-        //         case THGameHistory(name, prediction, result, bet, amount) =>
-        //           if (prediction == result) (bet, amount) else (bet, -amount)
-        //         // GameType(_, _, _), PaymentType(_, _, _)
-        //         case e => (e.bet, 0)
-        //       }
-        //     }
-        //     val betsSum: Double = tempBets.map(_._1).sum
-        //     val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
-        //     (user, betsSum, betsSum)
-        //   }
-        //   .toSeq
-        //   .sortBy(-_._3)
-        //   .take(10)
-        //   .map { v =>
-        //     // get userid using name string..
-        //     userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null))
-        //   })
-        //   .map(_.filterNot(_ == null))
-        // }
-        // multiplier <- {
-        //   // sum of its bets and amount payout
-        //   Future.sequence(grouped.map { case (user, histories) =>
-        //     // extract bets and amount to (pay or received)
-        //     val tempBets: Seq[(Double, Double)] = histories.map { history =>
-        //       // classify which game per txs and return (bet, amount, multiplier)
-        //       history.info match {
-        //         case GQGameHistory(name, prediction, result, bet) =>
-        //           if (result) (bet, 1) else (bet, 0)
-        //         case THGameHistory(name, prediction, result, bet, amount) =>
-        //           if (prediction == result) (bet, 1) else (bet, 0)
-        //         // GameType(_, _, _), PaymentType(_, _, _)
-        //         case e => (e.bet, 0)
-        //       }
-        //     }
-        //     val betsSum: Double = tempBets.map(_._1).sum
-        //     val multiplierSum: Double = tempBets.map(_._2).sum
-        //     (user, betsSum, multiplierSum)
-        //   }
-        //   .toSeq
-        //   .sortBy(-_._3)
-        //   .take(10)
-        //   .map { v =>
-        //     // get userid using name string..
-        //     userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null))
-        //   })
-        //   .map(_.filterNot(_ == null))
-        // }
         // grouped history by user..
         processedBets <- Future.successful {
           grouped.map { case (user, histories) =>
@@ -370,7 +256,7 @@ class SystemSchedulerActor @Inject()(
                 case GQGameHistory(name, prediction, result, bet) =>
                   if (result) (bet, 1) else (bet, 0)
                 case THGameHistory(name, prediction, result, bet, amount) =>
-                  if (prediction == result) (bet, 1) else (bet, 0)
+                  if (prediction == result) (bet, amount) else (bet, amount)
                 case e => (e.bet, 0)
               }
             }
@@ -380,13 +266,13 @@ class SystemSchedulerActor @Inject()(
         }
         profit <- Future.sequence {
           processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum - bets.map(_._2).sum) }
-            // .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum - bets.map(_._1).sum) }
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum - bets.map(_._1).sum) }
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
             .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null)))
         }
+        // total bet amount - total win amount
         payout <- Future.sequence {
           processedBets
             .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum) }
@@ -395,17 +281,19 @@ class SystemSchedulerActor @Inject()(
             .filter(_._3 > 0)
             .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null)))
         }
+        // total bet amount * (EOS price -> USD)
         wagered <- Future.sequence {
           processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum * Config.EOS_TO_USD_CONVERSION) }
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum * Config.EOS_TO_USD_CONVERSION) }
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
             .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null)))
         }
+        // total win size
         multiplier <- Future.sequence {
           processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).filter(_ > 0).sum) }
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).filter(_ > 0).size) }
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
@@ -413,7 +301,7 @@ class SystemSchedulerActor @Inject()(
         }
         // save ranking to history..
         _ <- {
-          val rank = RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, start)
+          val rank = RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, start.toInstant().getEpochSecond)
           // insert into DB, if failed then re-insert
           Await.ready(rankingHistoryRepo.add(rank).map(x => if(x > 0)() else rankingHistoryRepo.add(rank)), Duration.Inf)
         }
