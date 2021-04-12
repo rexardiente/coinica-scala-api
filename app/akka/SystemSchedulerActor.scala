@@ -303,7 +303,7 @@ class SystemSchedulerActor @Inject()(
         _ <- {
           val rank = RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, start.toInstant().getEpochSecond)
           // insert into DB, if failed then re-insert
-          Await.ready(rankingHistoryRepo.add(rank).map(x => if(x > 0)() else rankingHistoryRepo.add(rank)), Duration.Inf)
+          Await.ready(rankingHistoryRepo.add(rank), Duration.Inf)
         }
       } yield ()
 

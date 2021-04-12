@@ -22,13 +22,14 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
   }
 
   // prev 24hrs tx results
-  def getRankingDaily(): Future[Seq[RankingHistory]] = {
+  def getRankingDaily(): Future[Option[RankingHistory]] = {
     val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
     val end: Instant = now.plusDays(-1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
 
     rankingHistoryRepo.getHistoryByDateRange(
                         end.getEpochSecond,
                         now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().getEpochSecond)
+                      .map(_.headOption)
   }
 
   def getRankingHistory(): Future[RankingHistory] = {
