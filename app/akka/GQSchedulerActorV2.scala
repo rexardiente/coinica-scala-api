@@ -68,6 +68,8 @@ class GQSchedulerActorV2 @Inject()(
 
   override def preStart: Unit = {
     super.preStart
+    // keep alive connection
+    akka.stream.scaladsl.Source.tick(0.seconds, 60.seconds, "GQSchedulerActorV2").runForeach(n => ())
     system.actorSelection("/user/GQSchedulerActorV2").resolveOne().onComplete {
       case Success(actor) =>
         if (!GQSchedulerActorV2.isIntialized) {
