@@ -262,7 +262,6 @@ class WebSocketActor@Inject()(
     }
     // save new users into DB users and create VIP profile
     case Connect(user) =>
-      import models.domain.enum._
       for {
         isExist <- userAccountService.isExist(user)
         hasVIP <- vipUserRepo.getBenefitByID(VIP.BRONZE)
@@ -272,7 +271,7 @@ class WebSocketActor@Inject()(
             val acc: UserAccount = UserAccount(user, vip.referral_rate)
             userAccountService
               .newUserAcc(acc)
-              .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, vip.id, vip.id, 0, 0, acc.created_at)))
+              .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, vip.id, vip.id, 0, 0, 0, acc.created_at)))
           }
         }
       } yield ()

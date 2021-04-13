@@ -9,13 +9,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.{ VIPUser, VIPBenefit }
-
-import scala.util.{ Success, Failure }
-import scala.concurrent.{ Await, Future }
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-
-import models.dao._
 import models.domain.enum._
 
 @Singleton

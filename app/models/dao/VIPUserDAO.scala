@@ -17,11 +17,12 @@ final class VIPUserDAO @Inject()(
     def id = column[UUID] ("ID", O.PrimaryKey)
     def rank = column[VIP.value] ("RANK")
     def nxtRank = column[VIP.value] ("NEXT_RANK")
+    def referralCount = column[Int] ("REFERRAL_COUNT")
     def payout = column[Long] ("PAYOUT")
     def points = column[Long] ("POINTS")
     def updatedAt = column[Instant] ("UPDATED_AT")
 
-    def * = (id, rank, nxtRank, payout, points, updatedAt) <> (VIPUser.tupled, VIPUser.unapply)
+    def * = (id, rank, nxtRank, referralCount, payout, points, updatedAt) <> (VIPUser.tupled, VIPUser.unapply)
   }
 
   object Query extends TableQuery(new VIPUserTable(_)) {

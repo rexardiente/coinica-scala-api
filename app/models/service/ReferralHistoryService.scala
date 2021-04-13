@@ -11,10 +11,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json.{ Json, JsValue }
 import models.domain.{ PaginatedResult, ReferralHistory, UserAccount }
-import models.repo.{ UserAccountRepo, ReferralHistoryRepo }
+import models.repo.{ UserAccountRepo, ReferralHistoryRepo, VIPUserRepo }
+import models.domain.enum._
 
 @Singleton
-class ReferralHistoryService @Inject()(userAccountRepo: UserAccountRepo, referralRepo: ReferralHistoryRepo) {
+class ReferralHistoryService @Inject()(
+  userAccountRepo: UserAccountRepo,
+  referralRepo: ReferralHistoryRepo,
+  vipUserRepo: VIPUserRepo) {
   def paginatedResult[T >: ReferralHistory](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 
 	  for {
@@ -40,21 +44,52 @@ class ReferralHistoryService @Inject()(userAccountRepo: UserAccountRepo, referra
       getAccByReferralCode <- userAccountRepo.getAccountByReferralCode(code)
       result <- {
         // code doesn't belong to itself and no existing claimed referral code
-        if (isCodeOwnedBySelf == None && hasNoReferral != None && getAccByReferralCode != None) {
-          // update each accounts referral statuses..
-          for {
-            _ <- Future {
-              hasNoReferral.map(acc => userAccountRepo.update(acc.copy(referral = (acc.referral + 0.5), referred_by = Some(code))))
-            }
-            _ <- Future {
-              getAccByReferralCode.map(acc => userAccountRepo.update(acc.copy(referral = (acc.referral + 1))))
-            }
-            _ <- referralRepo.add(new ReferralHistory(UUID.randomUUID, code, appliedBy, Instant.now))
-          } yield (1)
+        if (!isCodeOwnedBySelf && hasNoReferral != None && getAccByReferralCode != None) {
+          try {
+            // update each accounts referral statuses..
+            // get account referrer
+            val referrer: UserAccount = getAccByReferralCode.get
+            val referred: UserAccount = hasNoReferral.get
+
+            for {
+              _ <- {
+                // get VIP Benefits based on account VIP rank.. (Referrer)
+                for {
+                  vipAccount <- vipUserRepo.findByID(referrer.id)
+                  vipBenefit <- vipUserRepo.getBenefitByID(vipAccount.map(_.rank).getOrElse(VIP.BRONZE))
+                  // check if all validations are true
+                  _ <- Future.successful  {
+                    if (vipAccount != None && vipBenefit != None) {
+                      val referralAmount: Double = vipBenefit.get.referral_rate * vipAccount.get.referral_count
+                      userAccountRepo.update(referrer.copy(referral = referralAmount))
+                    }
+                  }
+                } yield ()
+              }
+              _ <- {
+                // get VIP Benefits based on account VIP rank.. (referred)
+                // (VIP BRONZE VALUE / 2) = referral ammount claimed by referred account
+                for {
+                  vipAccount <- vipUserRepo.findByID(referred.id)
+                  vipBenefit <- vipUserRepo.getBenefitByID(vipAccount.map(_.rank).getOrElse(VIP.BRONZE))
+                  // check if all validations are true
+                  _ <- Future.successful {
+                    if (vipAccount != None && vipBenefit != None) {
+                      userAccountRepo.update(referred.copy(referral = VIPBenefitAmount.BRONZE.id, referred_by = Some(code)))
+                      // userAccountRepo.update(referred.copy(referral = (VIPBenefitAmount.BRONZE.id / 2), referred_by = Some(code)))
+                    }
+                  }
+                } yield ()
+              }
+              _ <- referralRepo.add(new ReferralHistory(UUID.randomUUID, code, appliedBy, Instant.now))
+            } yield (1)
+          } catch {
+            case _: Throwable => Future(0)
+          }
         }
         else Future(0)
       }
-    } yield result
+    } yield (result)
   // def getReferralByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   // 	try {
   // 		for {
