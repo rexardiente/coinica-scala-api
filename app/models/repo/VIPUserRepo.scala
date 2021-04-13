@@ -53,10 +53,10 @@ class VIPUserRepo @Inject()(
   def updateBenefit(benefit: VIPBenefit): Future[Int] =
     db.run(benefitDAO.Query.filter(_.id === benefit.id).update(benefit))
 
-  def getBenefitByAmount(amount: Double): Future[Seq[VIPBenefit]] =
-    db.run(benefitDAO.Query(amount).result)
+  def getBenefitByAmount(amount: Double): Future[Option[VIPBenefit]] =
+    db.run(benefitDAO.Query(amount).result.headOption)
 
-  def getBenefitByID(id: VIP.value): Future[Seq[VIPBenefit]] = {
-    db.run(benefitDAO.Query(id).result)
+  def getBenefitByID(id: VIP.value): Future[Option[VIPBenefit]] = {
+    db.run(benefitDAO.Query(id).result.headOption)
   }
 }

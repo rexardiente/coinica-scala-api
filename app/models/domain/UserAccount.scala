@@ -37,4 +37,4 @@ case class UserAccount(id: UUID,
 											referral: Double = 0,
 											referral_rate: Double = 0,
 											win_rate: Double = 0,
-											created_at: Instant = Instant.now)
+											created_at: Instant = Instant.now())
