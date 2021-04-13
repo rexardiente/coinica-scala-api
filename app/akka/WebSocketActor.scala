@@ -14,7 +14,7 @@ import models.domain.Event._
 import models.domain.eosio.TableRowsRequest
 import models.domain.eosio.GQ.v2.{ GQRowsResponse, GQGame, GQCharacterData }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import models.repo.OverAllGameHistoryRepo
+import models.repo.{ OverAllGameHistoryRepo, VIPUserRepo }
 import models.service.UserAccountService
 import models.service.GQSmartContractAPI
 import akka.common.objects.{ Connect, GQBattleScheduler }
@@ -28,6 +28,7 @@ object WebSocketActor {
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
+      vipUserRepo: VIPUserRepo,
       eosioHTTPSupport: EOSIOHTTPSupport,
       dynamicBroadcast: ActorRef,
       dynamicProcessor: ActorRef)(implicit system: ActorSystem) =
@@ -37,6 +38,7 @@ object WebSocketActor {
           characterRepo,
           historyRepo,
           overAllGameHistory,
+          vipUserRepo,
           eosioHTTPSupport,
           dynamicBroadcast,
           dynamicProcessor,
@@ -52,6 +54,7 @@ class WebSocketActor@Inject()(
       characterRepo: GQCharacterDataRepo,
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
+      vipUserRepo: VIPUserRepo,
       eosioHTTPSupport: EOSIOHTTPSupport,
       dynamicBroadcast: ActorRef,
       dynamicProcessor: ActorRef)(implicit system: ActorSystem) extends Actor {
@@ -65,12 +68,12 @@ class WebSocketActor@Inject()(
     // else send message and close connection
   	// generate new session and send to user
   	// use it for the next ws request...
-    log.info(s"${code} ~> WebSocket Actor Initialized")
+    log.info("WebSocket Actor Initialized")
   	out ! OutEvent(JsNull, JsString("connected"))
   }
 
   override def postStop(): Unit = {
-    log.error(s"${code} ~> Connection closed")
+    log.error("Connection closed")
     // Remove user from subscribers
     WebSocketActor
       .subscribers
@@ -263,7 +266,7 @@ class WebSocketActor@Inject()(
         val acc: UserAccount = UserAccount(user)
         userAccountService
           .newUserAcc(acc)
-          .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, VIP.Bronze, VIP.Bronze, 0, 0, Instant.now)))
+          .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, VIP.BRONZE, VIP.BRONZE, 0, 0, Instant.now)))
       })
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))

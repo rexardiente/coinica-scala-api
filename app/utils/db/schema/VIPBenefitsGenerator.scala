@@ -24,9 +24,9 @@ class VIPBenefitGenerator @Inject()(dao: VIPBenefitDAO,
   override def preStart(): Unit = {
     super.preStart
     val benefits: Seq[VIPBenefit] = Seq(
-      new VIPBenefit(VIP.Bronze, 1.0, 10, 0.12, true, false, VIPBenefitAmount.Bronze, VIPBenefitPoints.Bronze, Instant.now()),
-      new VIPBenefit(VIP.Silver, 3.0, 20, 0.14, true, false, VIPBenefitAmount.Silver, VIPBenefitPoints.Silver, Instant.now()),
-      new VIPBenefit(VIP.Gold, 5.0, 30, 0.16, true, true, VIPBenefitAmount.Gold, VIPBenefitPoints.Gold, Instant.now()))
+      new VIPBenefit(VIP.BRONZE, 1.0, 10, 0.12, true, false, VIPBenefitAmount.BRONZE, VIPBenefitPoints.BRONZE, Instant.now()),
+      new VIPBenefit(VIP.SILVER, 3.0, 20, 0.14, true, false, VIPBenefitAmount.SILVER, VIPBenefitPoints.SILVER, Instant.now()),
+      new VIPBenefit(VIP.GOLD, 5.0, 30, 0.16, true, true, VIPBenefitAmount.GOLD, VIPBenefitPoints.GOLD, Instant.now()))
     // add into DB
     benefits.map(add)
     // after schema is generated..terminate akka actor gracefully

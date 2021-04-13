@@ -86,6 +86,7 @@ class HomeController @Inject()(
                           gQCharacterDataRepo,
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
+                          vipUserRepo,
                           eosioHTTPSupport,
                           dynamicBroadcast,
                           dynamicProcessor)

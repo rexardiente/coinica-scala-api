@@ -16,6 +16,15 @@ object UserAccount {
 						created_at: Instant): UserAccount =
 		new UserAccount(id, name, referred_by, referral_code, referral, referral_rate, win_rate, created_at)
 	def apply(name: String): UserAccount = new UserAccount(UUID.randomUUID, name, None, UUID.randomUUID.toString.replaceAll("-", ""))
+	def apply(name: String, rate: Double): UserAccount = new UserAccount(
+																														UUID.randomUUID,
+																														name,
+																														None,
+																														UUID.randomUUID.toString.replaceAll("-", ""),
+																														0,
+																														rate,
+																														0,
+																														Instant.now)
 	implicit def implUserAccount = Json.format[UserAccount]
 }
 // TODO: Win rate and referral system
@@ -26,6 +35,6 @@ case class UserAccount(id: UUID,
 											referred_by: Option[String],
 											referral_code: String,
 											referral: Double = 0,
-											referral_rate: Double = 2,
+											referral_rate: Double = 0,
 											win_rate: Double = 0,
 											created_at: Instant = Instant.now)
