@@ -98,7 +98,7 @@ class GQSchedulerActorV2 @Inject()(
             dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
           }
         } yield ()
-        Thread.sleep(1000)
+        Thread.sleep(5000)
 
         // cleanup memory by removing tracked data
         GQBattleScheduler.noEnemy.clear
@@ -107,99 +107,91 @@ class GQSchedulerActorV2 @Inject()(
         if (GQBattleScheduler.battleCounter.isEmpty) {
           dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
           GQBattleScheduler.battleCounter.clear
-          GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTimeSet)
-          systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
+          defaultSchedule()
         }
         else {
-          val withTxHash: Future[Seq[(String, (UUID, GQBattleResult))]] =
-              Future.sequence(GQBattleScheduler.battleCounter.map { count =>
-                try {
-                  val winner = count._2.characters.filter(_._2._2).head
-                  val loser = count._2.characters.filter(!_._2._2).head
+          val battleCounter = HashMap.empty[String, (UUID, GQBattleResult)]
 
-                  for {
-                    p1 <- accountRepo.getByID(winner._2._1)
-                    p2 <- accountRepo.getByID(loser._2._1)
-                    process <- {
-                      eosioHTTPSupport.battleResult(count._1.toString, (winner._1, p1.map(_.name).getOrElse("")), (loser._1, p2.map(_.name).getOrElse(""))).map {
-                        case Some(e) => (e, count)
-                        case e => null
-                      }
-                    }
-                  } yield (process)
-                } catch { case e: Throwable => Future(null) }
-              }.toSeq).map(_.filter(_ != null)) // remove failed txs on the list
+          GQBattleScheduler.battleCounter.map { counter =>
+            val winner = counter._2.characters.filter(_._2._2).head
+            val loser = counter._2.characters.filter(!_._2._2).head
 
-          Await.ready(withTxHash, Duration.Inf) andThen {
-            case Success(v) =>
-              if (!v.isEmpty) {
-                for {
-                  _ <- saveToGameHistory(v.toSeq)
-                  _ <- insertOrUpdateSystemProcess(v.toSeq) // update system process
-                } yield (GQBattleScheduler.battleCounter.clear)
-                // fetch SC table rows and save into GQBattleScheduler.eliminatedOrWithdrawn
-                Await.ready(getEOSTableRows(Some("REQUEST_REMOVE_NO_LIFE")), Duration.Inf)
-                Thread.sleep(2000)
-                // remove no life characters
-                // successfully removed characters in SC must be removed from DB
-                Await.ready(removedNoLifeContract(), Duration.Inf) andThen {
-                  case Success(removed) =>
-                    for {
-                      // check if theres existing chracters that has no life
-                      hasNoLife <- characterRepo.getNoLifeCharacters
-                      mergeSeq <- Future.successful(characterRepo.mergeSeq[GQCharacterData, Seq[GQCharacterData]](removed.map(_._2), hasNoLife))
-                      _ <- Future.successful {
-                        if (!mergeSeq.isEmpty) {
-                          Await.ready(Future.sequence(mergeSeq.map { data =>
-                                        for {
-                                          isRemoved <- characterRepo.remove(data.owner, data.key)
-                                          _ <- {
-                                            if (isRemoved > 0)
-                                              characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-                                            else
-                                              Future(0) // TODO: re-try if failed tx.
-                                          }
-                                        } yield (Thread.sleep(1000))
-                                      }), Duration.Inf)
-                          Thread.sleep(2000)
-                          // broadcast users that DB has been update..
-                          // update again overall DB to make sure its updated..
-                          Await.ready(getEOSTableRows(Some("REQUEST_UPDATE_CHARACTERS_DB")), Duration.Inf)
-                          Thread.sleep(2000)
+            for {
+              p1 <- accountRepo.getByID(winner._2._1)
+              p2 <- accountRepo.getByID(loser._2._1)
+              _ <- Await.ready({
+                eosioHTTPSupport.battleResult(counter._1.toString, (winner._1, p1.map(_.name).getOrElse("")), (loser._1, p2.map(_.name).getOrElse(""))).map {
+                  case Some(e) => battleCounter.addOne(e, counter)
+                  case e => null
+                }
+              }, Duration.Inf)
+            } yield ()
+          }
+          Thread.sleep(1000)
 
-                          Await.ready(Future.successful(GQBattleScheduler.isUpdatedCharacters
-                                          .map(_._2)
-                                          .toSeq
-                                          .map(characterRepo.updateOrInsertAsSeq(_))), Duration.Inf) andThen {
-                            case Success(isUpdatedCharacters) =>
-                              dynamicBroadcast ! "BROADCAST_DB_UPDATED"
+          if (!battleCounter.isEmpty) {
+            for {
+              _ <- saveToGameHistory(battleCounter.toSeq)
+              _ <- insertOrUpdateSystemProcess(battleCounter.toSeq) // update system process
+            } yield (GQBattleScheduler.battleCounter.clear)
+            // fetch SC table rows and save into GQBattleScheduler.eliminatedOrWithdrawn
+            Await.ready(getEOSTableRows(Some("REQUEST_REMOVE_NO_LIFE")), Duration.Inf)
+            Thread.sleep(1000)
+            // remove no life characters
+            // successfully removed characters in SC must be removed from DB
+            Await.ready(removedNoLifeContract(), Duration.Inf)
+            Thread.sleep(1000)
 
-                            case Failure(e) => ()
-                          }
-                        }
-                        else ()
-                      }
-                    } yield (Thread.sleep(2000))
-                    GQBattleScheduler.isUpdatedCharacters.clear
-                    GQBattleScheduler.eliminatedOrWithdrawn.clear
-                    defaultSchedule()
-                  // if process failed, then reset scheduler to next battle
-                  case Failure(error) =>
-                    GQBattleScheduler.isUpdatedCharacters.clear
-                    defaultSchedule()
+            Await.ready(for {
+              // check if theres existing chracters that has no life
+              hasNoLife <- characterRepo.getNoLifeCharacters
+              mergeSeq <- Future.successful(characterRepo.mergeSeq[GQCharacterData, Seq[GQCharacterData]](GQBattleScheduler.toRemovedCharacters.map(_._2).toSeq, hasNoLife))
+              _ <- Future.successful {
+                if (!mergeSeq.isEmpty) {
+                  Await.ready(Future.successful(mergeSeq.map { data =>
+                                for {
+                                  isRemoved <- characterRepo.remove(data.owner, data.key)
+                                  _ <- {
+                                    if (isRemoved > 0)
+                                      characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                                    else
+                                      Future(0) // TODO: re-try if failed tx.
+                                  }
+                                } yield (Thread.sleep(1000))
+                              }), Duration.Inf)
+                  Thread.sleep(2000)
+                  // broadcast users that DB has been update..
+                  // update again overall DB to make sure its updated..
+                  Await.ready(getEOSTableRows(Some("REQUEST_UPDATE_CHARACTERS_DB")), Duration.Inf)
+                  Thread.sleep(2000)
+
+                  Await.ready(Future.successful(GQBattleScheduler.isUpdatedCharacters
+                                  .map(_._2)
+                                  .toSeq
+                                  .map(characterRepo.updateOrInsertAsSeq(_))), Duration.Inf)
+                  Thread.sleep(1000)
+                  dynamicBroadcast ! "BROADCAST_DB_UPDATED"
                 }
               }
-              else {
-                dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
-                defaultSchedule()
-              }
+            } yield (), Duration.Inf)
+            Thread.sleep(1000)
 
-            case Failure(e) => defaultSchedule()
+            battleCounter.clear
+            GQBattleScheduler.toRemovedCharacters.clear
+            GQBattleScheduler.isUpdatedCharacters.clear
+            GQBattleScheduler.eliminatedOrWithdrawn.clear
+            defaultSchedule()
+          }
+          else {
+            dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
+            defaultSchedule()
           }
         }
-        println("GQ BattleScheduler Done")
       } catch {
         case _: Throwable => // reset all tracker into default..
+          GQBattleScheduler.noEnemy.clear
+          GQBattleScheduler.toRemovedCharacters.clear
+          GQBattleScheduler.characters.clear
           GQBattleScheduler.battleCounter.clear
           GQBattleScheduler.isUpdatedCharacters.clear
           GQBattleScheduler.eliminatedOrWithdrawn.clear
@@ -209,7 +201,7 @@ class GQSchedulerActorV2 @Inject()(
     case _ => ()
   }
 
-  private def removedNoLifeContract(): Future[Seq[(String, GQCharacterData)]] = {
+  private def removedNoLifeContract(): Future[Any] = {
     try {
       // filter only characters that has no more life..
       val eliminatedOrWithdrawn = GQBattleScheduler.eliminatedOrWithdrawn.filter(x => x._2.life < 1)
@@ -218,23 +210,19 @@ class GQSchedulerActorV2 @Inject()(
         case (id, data) =>
           for {
             account <- accountRepo.getByID(data.owner)
-            result <- {
+            result <- Future.successful {
               if (account != None) {
                 val acc: UserAccount =  account.get
 
                 eosioHTTPSupport.eliminate(acc.name, id).map {
-                  case Some(txHash) => (id, data)
-                  case None => null
+                  case Some(txHash) => GQBattleScheduler.toRemovedCharacters.addOne(id, data)
+                  case None => ()
                 }
               }
-              else Future(null)
             }
           } yield (result)
       })
-      .map(_.toSeq.filter(_ != null))
-    } catch {
-      case _ : Throwable => Future(Seq.empty)
-    }
+    } catch { case _ : Throwable => Future(()) }
   }
   // challengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double)
   private def insertOrUpdateSystemProcess(seq: Seq[(String, (UUID, GQBattleResult))]): Future[Seq[Unit]] = Future.successful {
