@@ -93,13 +93,11 @@ class GQSchedulerActorV2 @Inject()(
         for {
           filtered <- Await.ready(removeEliminatedAndWithdrawn(GQBattleScheduler.characters), Duration.Inf)
           _ <- Await.ready(battleProcess(filtered), Duration.Inf)
-          // broadcast characters no available enemy..
-          _ <- Future.successful {
-            dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
-          }
         } yield ()
         Thread.sleep(5000)
-
+        // broadcast characters no available enemy..
+        dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
+        Thread.sleep(1000)
         // cleanup memory by removing tracked data
         GQBattleScheduler.noEnemy.clear
         GQBattleScheduler.characters.clear
@@ -245,7 +243,7 @@ class GQSchedulerActorV2 @Inject()(
           winnerAcc <- accountRepo.getByID(winner._2._1)
           loserAcc <- accountRepo.getByID(loser._2._1)
         } yield ((new OverAllGameHistory(
-                            UUID.randomUUID,
+                              UUID.randomUUID,
                               txHash,
                               gameID.toString,
                               Config.GQ_CODE,
@@ -314,43 +312,42 @@ class GQSchedulerActorV2 @Inject()(
         val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
         val filteredDateForBattle: Instant = now.plusDays(-7).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
         // remove his other owned characters from the list
-        var removedOwned = availableCharacters.filter(_._2.owner != player._2.owner)
+        val removedOwned = availableCharacters.filter(_._2.owner != player._2.owner)
         // check chracters spicific history to avoid battling again as posible..
-        Await.ready(gQGameHistoryRepo.getByUsernameCharacterIDAndDate(player._2.owner,
-                                                                      player._1,
-                                                                      filteredDateForBattle.getEpochSecond,
-                                                                      now.toInstant(ZoneOffset.UTC).getEpochSecond), Duration.Inf)
-            .andThen {
-              case Success(v) =>
-                removedOwned = removedOwned
-                                  .filterNot(ch => v.map(_.loserID).contains(ch._1))
-                                  .filterNot(ch => v.map(_.winnerID).contains(ch._1))
+        for {
+          ownedCharacters <- {
+            gQGameHistoryRepo.getByUsernameCharacterIDAndDate(
+                                player._2.owner,
+                                player._1,
+                                filteredDateForBattle.getEpochSecond,
+                                now.toInstant(ZoneOffset.UTC).getEpochSecond)
+          }
+          removed <- Future.successful {
+            removedOwned
+              .filterNot(ch => ownedCharacters.map(_.loserID).contains(ch._1))
+              .filterNot(ch => ownedCharacters.map(_.winnerID).contains(ch._1))
+          }
 
-              case Failure(e) => ()
+          _ <- Future.successful {
+            if (!removed.isEmpty) {
+              val enemy: (String, GQCharacterData) = removed.head
+              val battle: GQBattleCalculation[GQCharacterData] = new GQBattleCalculation[GQCharacterData](player._2, enemy._2)
+              // save result into battleCounter
+              if (battle.result.equals(None)) {
+                GQBattleScheduler.noEnemy.addOne(player._1, player._2.owner)
+                GQBattleScheduler.noEnemy.addOne(enemy._1, enemy._2.owner)
+              }
+              else battle.result.map(x => GQBattleScheduler.battleCounter.addOne(x.id, x))
+
+              characters.remove(player._1)
+              characters.remove(enemy._1)
             }
-        // delay to make sure process is finished
-        Thread.sleep(1000)
-
-        if (!removedOwned.isEmpty) {
-          val enemy: (String, GQCharacterData) = removedOwned.head
-          val battle: GQBattleCalculation[GQCharacterData] = new GQBattleCalculation[GQCharacterData](player._2, enemy._2)
-
-          if (!battle.result.equals(None)) {
-            battle.result.map(x => println(x.characters.size))
-            // save result into battleCounter
-            battle.result.map(x => GQBattleScheduler.battleCounter.addOne(x.id, x))
+            else {
+              characters.remove(player._1)
+              GQBattleScheduler.noEnemy.addOne(player._1, player._2.owner)
+            }
           }
-          else {
-            GQBattleScheduler.noEnemy.addOne(player._1, player._2.owner)
-            GQBattleScheduler.noEnemy.addOne(enemy._1, enemy._2.owner)
-          }
-          characters.remove(player._1)
-          characters.remove(enemy._1)
-        }
-        else {
-          characters.remove(player._1)
-          GQBattleScheduler.noEnemy.addOne(player._1, player._2.owner)
-        }
+        } yield ()
       }
     } while (!characters.isEmpty);
   }
