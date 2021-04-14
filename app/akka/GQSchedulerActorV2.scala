@@ -267,20 +267,21 @@ class GQSchedulerActorV2 @Inject()(
                         loser._1,
                         result.logs,
                         time)), Duration.Inf)
-          .andThen {
-            case Success(((winner, loser), character)) =>
-              // insert Tx and character contineously
-              // broadcast game result to connected users
-              // use live data to feed on history update..
-              Await.ready(for {
-                _ <- gQGameHistoryRepo.insert(character)
-                _ <- gameTxHistory.add(winner)
-                _ <- gameTxHistory.add(loser)
-              } yield (Thread.sleep(1000)), Duration.Inf)
-              // broadcast GQ game result
-              dynamicBroadcast ! Array(winner, loser)
-            case Failure(e) => ()
-          }
+      .map {
+        case ((winner, loser), character) =>
+          // insert Tx and character contineously
+          // broadcast game result to connected users
+          // use live data to feed on history update..
+          Await.ready(for {
+            _ <- gQGameHistoryRepo.insert(character)
+            _ <- gameTxHistory.add(winner)
+            _ <- gameTxHistory.add(loser)
+          } yield (), Duration.Inf)
+          // broadcast GQ game result
+          Thread.sleep(1000)
+          dynamicBroadcast ! Array(winner, loser)
+        case _ => ()
+      }
     }
   }
   // make sure no eliminated or withdrawn characters on the list
