@@ -139,44 +139,43 @@ class SystemSchedulerActor @Inject()(
   def receive: Receive = {
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
-      // val today = Instant.now().atZone(defaultTimeZone).toLocalDate()
-      // val midnight: LocalTime = LocalTime.MIDNIGHT
-      // val todayMidnight: LocalDateTime = LocalDateTime.of(today, midnight)
-      val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
-      // convert LocalDatetime to Instant
-      val createdAt: Long = startOfDay.atZone(defaultTimeZone).toInstant().getEpochSecond
-      val expiredAt: Long = createdAt + ((60 * 60 * 24) - 1)
-      // val todayEpoch: Long = todayInstant.getEpochSecond
-      // check if challenge already for today else do nothing..
-      challengeRepo.existByDate(createdAt).map { isCreated =>
-        if (!isCreated) {
-          for {
-            // remove currentChallengeGame and shuffle the result
-            availableGames <- gameRepo
-              .all()
-              .map(games => Random.shuffle(games.filterNot(_.id == SystemSchedulerActor.currentChallengeGame.getOrElse(None))))
-            // get head, and create new Challenge for the day
-            _ <- Future.successful {
-              try {
-                val game: Game = availableGames.head
-                val newChallenge = new Challenge(UUID.randomUUID,
-                                                game.id,
-                                                "Challenge content is different every day, use your ingenuity to get the first place.",
-                                                createdAt,
-                                                expiredAt)
+      val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
+      ProcessOverAllChallenge(yesterday.getEpochSecond)
+      // val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
+      // // convert LocalDatetime to Instant
+      // val createdAt: Long = startOfDay.atZone(defaultTimeZone).toInstant().getEpochSecond
+      // val expiredAt: Long = createdAt + ((60 * 60 * 24) - 1)
+      // // val todayEpoch: Long = todayInstant.getEpochSecond
+      // // check if challenge already for today else do nothing..
+      // challengeRepo.existByDate(createdAt).map { isCreated =>
+      //   if (!isCreated) {
+      //     for {
+      //       // remove currentChallengeGame and shuffle the result
+      //       availableGames <- gameRepo
+      //         .all()
+      //         .map(games => Random.shuffle(games.filterNot(_.id == SystemSchedulerActor.currentChallengeGame.getOrElse(None))))
+      //       // get head, and create new Challenge for the day
+      //       _ <- Future.successful {
+      //         try {
+      //           val game: Game = availableGames.head
+      //           val newChallenge = new Challenge(UUID.randomUUID,
+      //                                           game.id,
+      //                                           "Challenge content is different every day, use your ingenuity to get the first place.",
+      //                                           createdAt,
+      //                                           expiredAt)
 
-                SystemSchedulerActor.currentChallengeGame = Some(game.id)
-                challengeRepo.add(newChallenge)
-              } catch {
-                case e: Throwable => println("Error: No games available")
-              }
-            }
-            // after creating new challenge..
-            // calculate overe all challenge and save to Challengehistory for tracking top ranks
-          } yield (self ! ProcessOverAllChallenge(expiredAt))
-        }
-        // else self ! ProcessOverAllChallenge(expiredAt)
-      }
+      //           SystemSchedulerActor.currentChallengeGame = Some(game.id)
+      //           challengeRepo.add(newChallenge)
+      //         } catch {
+      //           case e: Throwable => println("Error: No games available")
+      //         }
+      //       }
+      //       // after creating new challenge..
+      //       // calculate overe all challenge and save to Challengehistory for tracking top ranks
+      //     } yield (self ! ProcessOverAllChallenge(expiredAt))
+      //   }
+      //   // else self ! ProcessOverAllChallenge(expiredAt)
+      // }
     case DailyTaskScheduler =>
       val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
       // process first all available task before creating new tasks
@@ -228,7 +227,7 @@ class SystemSchedulerActor @Inject()(
         }
       }
 
-    case ProcessOverAllChallenge(expiredAt) =>
+    case ProcessOverAllChallenge(createdAt) =>
       // always process when time is equals or greater to its current time..
       // if (Instant.now.getEpochSecond >= expiredAt)
         for {
@@ -240,7 +239,7 @@ class SystemSchedulerActor @Inject()(
           // save result into Challenge history
           case v: Seq[ChallengeTracker] =>
             challengeHistoryRepo
-              .add(new ChallengeHistory(UUID.randomUUID, v, Instant.now.getEpochSecond))
+              .add(new ChallengeHistory(UUID.randomUUID, v, createdAt))
               .map(x => if (x > 0) challengeTrackerRepo.clearTable else println("Error: challengeTracker.clearTable"))
         }
 
