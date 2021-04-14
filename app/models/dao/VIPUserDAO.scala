@@ -18,8 +18,8 @@ final class VIPUserDAO @Inject()(
     def rank = column[VIP.value] ("RANK")
     def nxtRank = column[VIP.value] ("NEXT_RANK")
     def referralCount = column[Int] ("REFERRAL_COUNT")
-    def payout = column[Long] ("PAYOUT")
-    def points = column[Long] ("POINTS")
+    def payout = column[Double] ("PAYOUT")
+    def points = column[Double] ("POINTS")
     def updatedAt = column[Instant] ("UPDATED_AT")
 
     def * = (id, rank, nxtRank, referralCount, payout, points, updatedAt) <> (VIPUser.tupled, VIPUser.unapply)

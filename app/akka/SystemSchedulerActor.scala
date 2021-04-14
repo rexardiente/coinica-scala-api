@@ -9,14 +9,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import Ordering.Double.IeeeOrdering
+import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
 import utils.Config
-import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects.{
         ChallengeScheduler,
-        ProcessOverAllChallenge,
         DailyTaskScheduler,
         CreateNewDailyTask,
         RankingScheduler }
@@ -36,7 +35,9 @@ import models.domain.{
         THGameHistory,
         UserAccount,
         RankingHistory,
-        OverAllGameHistory }
+        OverAllGameHistory,
+        VIPUser,
+        VIPBenefit }
 import models.repo.{
         ChallengeRepo,
         GameRepo,
@@ -47,7 +48,9 @@ import models.repo.{
         DailyTaskRepo,
         UserAccountRepo,
         RankingHistoryRepo,
+        VIPUserRepo,
         OverAllGameHistoryRepo }
+import models.domain.enum._
 
 object SystemSchedulerActor {
   var currentChallengeGame: Option[UUID] = None
@@ -63,6 +66,7 @@ object SystemSchedulerActor {
             overAllGameHistory: OverAllGameHistoryRepo,
             userAccountRepo: UserAccountRepo,
             rankingHistoryRepo: RankingHistoryRepo,
+            vipUserRepo: VIPUserRepo,
             )(implicit system: ActorSystem) =
     Props(classOf[SystemSchedulerActor],
           gameRepo,
@@ -75,6 +79,7 @@ object SystemSchedulerActor {
           overAllGameHistory,
           userAccountRepo,
           rankingHistoryRepo,
+          vipUserRepo,
           system)
 }
 
@@ -90,6 +95,7 @@ class SystemSchedulerActor @Inject()(
                                       overAllGameHistory: OverAllGameHistoryRepo,
                                       userAccountRepo: UserAccountRepo,
                                       rankingHistoryRepo: RankingHistoryRepo,
+                                      vipUserRepo: VIPUserRepo,
                                       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
@@ -140,7 +146,10 @@ class SystemSchedulerActor @Inject()(
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
       val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
-      ProcessOverAllChallenge(yesterday.getEpochSecond)
+      // update all earned points into users Account
+      Await.ready(processChallengeTrackerAndEarnedVIPPoints(yesterday), Duration.Inf)
+      Thread.sleep(2000)
+      // ProcessOverAllChallenge(yesterday.getEpochSecond)
       // val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
       // // convert LocalDatetime to Instant
       // val createdAt: Long = startOfDay.atZone(defaultTimeZone).toInstant().getEpochSecond
@@ -227,22 +236,6 @@ class SystemSchedulerActor @Inject()(
         }
       }
 
-    case ProcessOverAllChallenge(createdAt) =>
-      // always process when time is equals or greater to its current time..
-      // if (Instant.now.getEpochSecond >= expiredAt)
-        for {
-          // get all challenge result
-          tracked <- challengeTrackerRepo.all()
-          // calculate and get highest wagered and take top 10 results
-          process <- Future.successful(tracked.sortBy(-_.wagered).take(10))
-        } yield (process) match {
-          // save result into Challenge history
-          case v: Seq[ChallengeTracker] =>
-            challengeHistoryRepo
-              .add(new ChallengeHistory(UUID.randomUUID, v, createdAt))
-              .map(x => if (x > 0) challengeTrackerRepo.clearTable else println("Error: challengeTracker.clearTable"))
-        }
-
     case RankingScheduler =>
       // get date range to fecth from overall history...
       val start = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1)
@@ -312,5 +305,33 @@ class SystemSchedulerActor @Inject()(
       } yield ()
 
     case _ => ()
+  }
+
+  private def processChallengeTrackerAndEarnedVIPPoints(time: Instant): Future[Unit] = {
+    for {
+      challenges <- challengeTrackerRepo.all()
+      // update all users vip account points earned..
+      _ <- Future.sequence {
+        challenges.map { case ChallengeTracker(user, bets, wagered, ratio, points) =>
+          for {
+            vipAcc <- vipUserRepo.findByID(user)
+            result <- {
+              val vip: VIPUser = vipAcc.get
+              // new earned points * redemption rate + prev VIP points
+              val newPoints = vip.points + points
+              // create new updated VIP User
+              vipUserRepo.update(vip.copy(points = newPoints))
+            }
+          } yield (result)
+        }
+      }
+      topHighestWagered <- Future.successful(challenges.sortBy(-_.wagered).take(10))
+      addToHistory <- {
+        // get all top 10 challenge result
+        challengeHistoryRepo
+              .add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
+              .map(x => if (x > 0) challengeTrackerRepo.clearTable else ())
+      }
+    } yield ()
   }
 }

@@ -231,12 +231,12 @@ class GQSchedulerActorV2 @Inject()(
     })
     .map(_.toSeq.filter(_ != null))
   }
-
+  // challengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double)
   private def insertOrUpdateSystemProcess(seq: Seq[(String, (UUID, GQBattleResult))]): Future[Seq[Unit]] = Future.successful {
     seq.map { case (hash, (gameID, result)) =>
       result.characters.map { v =>
         dynamicProcessor ! DailyTask(v._2._1, Config.GQ_GAME_ID, 1)
-        dynamicProcessor ! ChallengeTracker(v._2._1, 1, (if(v._2._2) 2 else 0), 1, (if(v._2._2) 0.5 else 0))
+        dynamicProcessor ! ChallengeTracker(v._2._1, 1, (if(v._2._2) 2 else 0), 1, (if(v._2._2) 1 else 0))
       }
     }
   }
