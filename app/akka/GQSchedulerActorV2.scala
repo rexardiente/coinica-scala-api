@@ -90,10 +90,9 @@ class GQSchedulerActorV2 @Inject()(
         Await.ready(getEOSTableRows(Some("REQUEST_ON_BATTLE")), Duration.Inf)
         Thread.sleep(1000)
         // filter characters based on condition and battle all available characters
-        for {
-          filtered <- Await.ready(removeEliminatedAndWithdrawn(GQBattleScheduler.characters), Duration.Inf)
-          _ <- Await.ready(battleProcess(filtered), Duration.Inf)
-        } yield ()
+        Await.ready(removeEliminatedAndWithdrawn(GQBattleScheduler.characters), Duration.Inf)
+        Thread.sleep(1000)
+        Await.ready(battleProcess(GQBattleScheduler.characters), Duration.Inf)
         Thread.sleep(5000)
         // broadcast characters no available enemy..
         dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
@@ -287,17 +286,14 @@ class GQSchedulerActorV2 @Inject()(
   // make sure no eliminated or withdrawn characters on the list
   // and shuflle remaining characters..
   private def removeEliminatedAndWithdrawn(v: HashMap[String, GQCharacterData]): Future[HashMap[String, GQCharacterData]] = {
-    val characters: HashMap[String, GQCharacterData] = v
+    GQBattleScheduler.characters.clear
+    Thread.sleep(1000)
     for {
       // remove no life characters and with max limit
-      removedNoLifeAndLimit <- Future.successful {
-        characters.filterNot(x => x._2.isNew == true || x._2.life <= 0 || x._2.count >= x._2.limit)
-      }
+      removedNoLifeAndLimit <- Future.successful(v.filter(x => !x._2.isNew || x._2.life > 0 || x._2.count < x._2.limit))
       // make sure no eliminated or withdrawn characters on the list
-      removeEliminatedOrWithdrawn <- Future.successful {
-        removedNoLifeAndLimit.filterNot(x => x._2.status == 2  || x._2.status == 3)
-      }
-    } yield (removeEliminatedOrWithdrawn)
+      removeEliminatedOrWithdrawn <- Future.successful(removedNoLifeAndLimit.filterNot(x => x._2.status > 1))
+    } yield (GQBattleScheduler.characters.addAll(removeEliminatedOrWithdrawn))
   }
 
   private def battleProcess(characters: HashMap[String, GQCharacterData]): Future[Unit] = Future.successful {
