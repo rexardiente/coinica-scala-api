@@ -122,9 +122,10 @@ class HomeController @Inject()(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (code, appliedBy)  =>
         try {
+          println(code, appliedBy)
           referralHistoryService
             .applyReferralCode(appliedBy, code)
-            .map(r => if(r < 0) InternalServerError else Created )
+            .map(r => if(r < 1) InternalServerError else Created )
         } catch {
           case _: Throwable => Future(InternalServerError)
         }
@@ -141,7 +142,7 @@ class HomeController @Inject()(
                           description,
                           startAt,
                           expiredAt.getOrElse(startAt + 86400)))
-            .map(r => if(r < 0) InternalServerError else Created )
+            .map(r => if(r < 1) InternalServerError else Created )
         } catch {
           case _: Throwable => Future(InternalServerError)
         }
@@ -160,7 +161,7 @@ class HomeController @Inject()(
                               description,
                               startAt,
                               expiredAt.getOrElse(Instant.now.getEpochSecond)))
-            .map(r => if(r < 0) NotFound else Ok)
+            .map(r => if(r < 1) NotFound else Ok)
         } catch {
           case _: Throwable => Future(InternalServerError)
         }
@@ -170,7 +171,7 @@ class HomeController @Inject()(
   def removeChallenge(id: UUID) = Action.async { implicit req =>
     challengeRepo
       .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
+      .map(r => if(r < 1) NotFound else Ok)
   }
 
   def getChallenge(date: Option[Instant]) = Action.async { implicit req =>
@@ -195,7 +196,7 @@ class HomeController @Inject()(
   //     { case (gameID, info, isValid, datecreated)  =>
   //       taskRepo
   //         .add(Task(UUID.randomUUID, gameID, info, isValid, datecreated))
-  //         .map(r => if(r < 0) InternalServerError else Created )
+  //         .map(r => if(r < 1) InternalServerError else Created )
   //     })
   // }
   // def updateTask(id: UUID) = Action.async { implicit req =>
@@ -204,13 +205,13 @@ class HomeController @Inject()(
   //     { case (gameID, info, isValid, datecreated) =>
   //       taskRepo
   //         .update(Task(id, gameID, info, isValid, datecreated))
-  //         .map(r => if(r < 0) NotFound else Ok)
+  //         .map(r => if(r < 1) NotFound else Ok)
   //     })
   // }
   // def removeTask(id: UUID) = Action.async { implicit req =>
   //   taskRepo
   //     .delete(id)
-  //     .map(r => if(r < 0) NotFound else Ok)
+  //     .map(r => if(r < 1) NotFound else Ok)
   // }
   // def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
   //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
@@ -224,7 +225,7 @@ class HomeController @Inject()(
   //     { case (name, bets,profit,multiplieramount,rankingcreated)  =>
   //       rankingRepo
   //         .add(Ranking(UUID.randomUUID, name, bets,profit,multiplieramount,rankingcreated))
-  //         .map(r => if(r < 0) InternalServerError else Created )
+  //         .map(r => if(r < 1) InternalServerError else Created )
   //     })
   // }
   // def updateRanking(id: UUID) = Action.async { implicit req =>
@@ -233,13 +234,13 @@ class HomeController @Inject()(
   //     { case (name, bets,profit,multiplieramount,rankingcreated) =>
   //       rankingRepo
   //         .update(Ranking(id, name, bets,profit,multiplieramount,rankingcreated))
-  //         .map(r => if(r < 0) NotFound else Ok)
+  //         .map(r => if(r < 1) NotFound else Ok)
   //     })
   // }
   // def removeRanking(id: UUID) = Action.async { implicit req =>
   //   rankingRepo
   //     .delete(id)
-  //     .map(r => if(r < 0) NotFound else Ok)
+  //     .map(r => if(r < 1) NotFound else Ok)
   // }
 
   // def getRankingByDate(date: Option[Instant]) = Action.async { implicit req =>
@@ -267,7 +268,7 @@ class HomeController @Inject()(
             if (isExist)
               gameRepo
                 .add(Game(UUID.randomUUID, game, path, imgURL, genre, description))
-                .map(r => if(r < 0) InternalServerError else Created )
+                .map(r => if(r < 1) InternalServerError else Created )
             else Future.successful(InternalServerError)
           }
         } yield(result)
@@ -288,7 +289,7 @@ class HomeController @Inject()(
               if (isExist)
                 gameRepo
                   .update(Game(id, game, imgURL, path, genre, description))
-                  .map(r => if(r < 0) NotFound else Ok)
+                  .map(r => if(r < 1) InternalServerError else Ok)
               else Future.successful(InternalServerError)
            }
         } yield(result)
@@ -299,7 +300,7 @@ class HomeController @Inject()(
   def removeGame(id: UUID) = Action.async { implicit req =>
     gameRepo
       .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
+      .map(r => if(r < 1) NotFound else Ok)
   }
 
   /* GENRE API */
@@ -317,7 +318,7 @@ class HomeController @Inject()(
       { case (name, description)  =>
         genreRepo
           .add(Genre(UUID.randomUUID, name, description))
-          .map(r => if(r < 0) InternalServerError else Created )
+          .map(r => if(r < 1) InternalServerError else Created )
       })
   }
 
@@ -327,14 +328,14 @@ class HomeController @Inject()(
       { case (name, description) =>
         genreRepo
           .update(Genre(id, name, description))
-          .map(r => if(r < 0) NotFound else Ok)
+          .map(r => if(r < 1) InternalServerError else Ok)
       })
   }
 
   def removeGenre(id: UUID) = Action.async { implicit req =>
     genreRepo
       .delete(id)
-      .map(r => if(r < 0) NotFound else Ok)
+      .map(r => if(r < 1) NotFound else Ok)
   }
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
