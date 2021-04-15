@@ -2,7 +2,7 @@ package akka
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
-import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset, ZoneId }
+import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset, ZoneId, ZonedDateTime }
 import scala.util.{ Success, Failure, Random }
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -261,6 +261,8 @@ class SystemSchedulerActor @Inject()(
           }
           .toSeq
         }
+        // update users VIP accounts with new points claimed..
+        _ <- Await.ready(processOverallHistoryPointsPerUser(processedBets), Duration.Inf)
         profit <- Future.sequence {
           processedBets
             .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum - bets.map(_._1).sum) }
@@ -306,6 +308,26 @@ class SystemSchedulerActor @Inject()(
 
     case _ => ()
   }
+
+  // process overall Game History in 24hrs
+  private def processOverallHistoryPointsPerUser(txs: Seq[(String, Seq[(Double, Double)])]): Future[Seq[Int]] =
+    Future.sequence {
+      txs.map { case (user, bets) =>
+        for {
+          userAcc <- userAccountRepo.getByName(user)
+          vipAcc <- vipUserRepo.findByID(userAcc.map(_.id).getOrElse(UUID.randomUUID))
+          result <- {
+            if (vipAcc != None) {
+              val vip: VIPUser = vipAcc.get
+              val newTotalPayout = bets.map(_._2).sum + vip.payout
+              // create new updated VIP User payout
+              vipUserRepo.update(vip.copy(payout = newTotalPayout))
+            }
+            else Future(0)
+          }
+        } yield (result)
+      }
+    }
 
   private def processChallengeTrackerAndEarnedVIPPoints(time: Instant): Future[Unit] = {
     for {
