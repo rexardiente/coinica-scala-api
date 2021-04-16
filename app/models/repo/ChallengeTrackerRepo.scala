@@ -35,25 +35,23 @@ class ChallengeTrackerRepo @Inject()(
   def all(): Future[Seq[ChallengeTracker]] =
     db.run(dao.Query.result)
 
-  def addOrUpdate(task: ChallengeTracker): Future[Int] = {
+  def addOrUpdate(task: ChallengeTracker): Future[Unit] = {
     for {
       find <- findUserByID(task.user)
-      check <- {
-        find match {
-          // user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double
-          // if found auto add 1 on its game count
-          case Some(v) =>
-            val updatedChallenge: ChallengeTracker = v.copy(bets=(v.bets +  task.bets),
-                                                            wagered=(v.wagered +  task.wagered),
-                                                            ratio=(v.ratio +  task.ratio),
-                                                            points=(v.points +  task.points))
+      _ <- find match {
+        // user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double
+        // if found auto add 1 on its game count
+        case Some(v) =>
+          val updatedChallenge: ChallengeTracker = v.copy(bets=(v.bets +  task.bets),
+                                                          wagered=(v.wagered +  task.wagered),
+                                                          ratio=(v.ratio +  task.ratio),
+                                                          points=(v.points +  task.points))
 
-            update(updatedChallenge)
-          // else add to DB
-          case _ => add(task)
-        }
+          update(updatedChallenge)
+        // else add to DB
+        case _ => add(task).map(x => if(x < 1) add(task))
       }
-    } yield (check)
+    } yield ()
   }
 
   def findUserByID(user: UUID): Future[Option[ChallengeTracker]] =
