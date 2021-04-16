@@ -261,8 +261,6 @@ class SystemSchedulerActor @Inject()(
           }
           .toSeq
         }
-        // update users VIP accounts with new points claimed..
-        _ <- Await.ready(processOverallHistoryPointsPerUser(processedBets), Duration.Inf)
         profit <- Future.sequence {
           processedBets
             .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum - bets.map(_._1).sum) }
@@ -304,28 +302,33 @@ class SystemSchedulerActor @Inject()(
           // insert into DB, if failed then re-insert
           Await.ready(rankingHistoryRepo.add(rank), Duration.Inf)
         }
+        // update users VIP accounts with new points claimed..
+        _ <- Await.ready(processOverallHistoryPointsPerUser(processedBets), Duration.Inf)
       } yield ()
 
     case _ => ()
   }
 
   // process overall Game History in 24hrs
-  private def processOverallHistoryPointsPerUser(txs: Seq[(String, Seq[(Double, Double)])]): Future[Seq[Int]] =
-    Future.sequence {
+  private def processOverallHistoryPointsPerUser(txs: Seq[(String, Seq[(Double, Double)])]): Future[Unit] =
+    Future.successful {
       txs.map { case (user, bets) =>
-        for {
-          userAcc <- userAccountRepo.getByName(user)
-          vipAcc <- vipUserRepo.findByID(userAcc.map(_.id).getOrElse(UUID.randomUUID))
-          result <- {
-            if (vipAcc != None) {
-              val vip: VIPUser = vipAcc.get
-              val newTotalPayout = bets.map(_._2).sum + vip.payout
-              // create new updated VIP User payout
-              vipUserRepo.update(vip.copy(payout = newTotalPayout))
+        try {
+          for {
+            userAcc <- userAccountRepo.getByName(user)
+            vipAcc <- vipUserRepo.findByID(userAcc.get.id)
+            result <- {
+              vipAcc.map { vip =>
+                val newTotalPayout = bets.map(_._2).sum + vip.payout
+                // create new updated VIP User payout
+                vipUserRepo.update(vip.copy(payout = newTotalPayout))
+              }
+              .getOrElse(Future(1))
             }
-            else Future(0)
-          }
-        } yield (result)
+          } yield (result)
+        } catch {
+          case _ : Throwable => ()
+        }
       }
     }
 
