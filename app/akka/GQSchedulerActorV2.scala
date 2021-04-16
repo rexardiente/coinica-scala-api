@@ -90,7 +90,7 @@ class GQSchedulerActorV2 @Inject()(
         Await.ready(getEOSTableRows(Some("REQUEST_ON_BATTLE")), Duration.Inf)
         Thread.sleep(1000)
         // filter characters based on condition and battle all available characters
-        Await.ready(removeEliminatedAndWithdrawn(GQBattleScheduler.characters), Duration.Inf)
+        Await.ready(removeEliminatedAndWithdrawn(), Duration.Inf)
         Thread.sleep(1000)
         Await.ready(battleProcess(), Duration.Inf)
         Thread.sleep(1000)
@@ -286,19 +286,16 @@ class GQSchedulerActorV2 @Inject()(
   }
   // make sure no eliminated or withdrawn characters on the list
   // and shuflle remaining characters..
-  private def removeEliminatedAndWithdrawn(v: HashMap[String, GQCharacterData]): Future[Unit] = {
+  private def removeEliminatedAndWithdrawn(): Future[HashMap[String, GQCharacterData]] = {
     for {
       // remove no life characters and with max limit
-      removedNoLifeAndLimit <- Future.successful(v.filter(x => !x._2.isNew || x._2.life > 0 || x._2.count < x._2.limit))
+      removedNoLifeAndLimit <- Future.successful(GQBattleScheduler.characters.filter(x => !x._2.isNew || x._2.life >= 1))
+      _ <- Future.successful(GQBattleScheduler.characters.clear())
       // make sure no eliminated or withdrawn characters on the list
-      removeEliminatedOrWithdrawn <- Future.successful(removedNoLifeAndLimit.filterNot(x => x._2.status > 1))
-      // remove old tracked result
-      _ <- Future.successful {
-        GQBattleScheduler.characters.clear()
-        Thread.sleep(2000)
-      }
-      _ <- Future.successful(GQBattleScheduler.characters.addAll(removeEliminatedOrWithdrawn))
-    } yield ()
+      removeEliminatedOrWithdrawn <- Future.successful(removedNoLifeAndLimit.filterNot(x => x._2.status > 1 || x._2.count >= x._2.limit))
+      // remove old tracked result, to changed with new one..
+      result <- Future.successful(GQBattleScheduler.characters.addAll(removeEliminatedOrWithdrawn))
+    } yield (result)
   }
 
   private def battleProcess(): Future[Unit] = Future.successful {
@@ -309,11 +306,11 @@ class GQSchedulerActorV2 @Inject()(
         GQBattleScheduler.noEnemy.addOne(player._1, player._2.owner)
       }
       else {
-        val availableCharacters: HashMap[String, GQCharacterData] = GQBattleScheduler.characters
+        // val availableCharacters: HashMap[String, GQCharacterData] = GQBattleScheduler.characters
         val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
         val filteredDateForBattle: Instant = now.plusDays(-7).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
         // remove his other owned characters from the list
-        val removedOwned: HashMap[String, GQCharacterData] = availableCharacters.filter(_._2.owner != player._2.owner)
+        // val removedOwned: HashMap[String, GQCharacterData] = GQBattleScheduler.characters.filter(_._2.owner != player._2.owner)
         // check chracters spicific history to avoid battling again as posible..
         for {
           ownedCharacters <- Await.ready({
@@ -323,6 +320,7 @@ class GQSchedulerActorV2 @Inject()(
                                 filteredDateForBattle.getEpochSecond,
                                 now.toInstant(ZoneOffset.UTC).getEpochSecond)
           }, Duration.Inf)
+          removedOwned <- Future.successful(GQBattleScheduler.characters.filter(_._2.owner != player._2.owner))
           removed <- Await.ready(Future.successful {
             removedOwned
               .filterNot(ch => ownedCharacters.map(_.loserID).contains(ch._1))
