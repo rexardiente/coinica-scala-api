@@ -107,7 +107,7 @@ class GQSchedulerActorV2 @Inject()(
           defaultSchedule()
         }
         else {
-          val battleCounter = HashMap.empty[String, (UUID, GQBattleResult)]
+          val scBattleCounter = HashMap.empty[String, (UUID, GQBattleResult)]
 
           GQBattleScheduler.battleCounter.map { counter =>
             val winner = counter._2.characters.filter(_._2._2).head
@@ -118,19 +118,20 @@ class GQSchedulerActorV2 @Inject()(
               p2 <- accountRepo.getByID(loser._2._1)
               _ <- Await.ready({
                 eosioHTTPSupport.battleResult(counter._1.toString, (winner._1, p1.map(_.name).getOrElse("")), (loser._1, p2.map(_.name).getOrElse(""))).map {
-                  case Some(e) => battleCounter.addOne(e, counter)
+                  case Some(e) => scBattleCounter.addOne(e, counter)
                   case e => null
                 }
               }, Duration.Inf)
             } yield ()
           }
-          Thread.sleep(1000)
+          Thread.sleep(2000)
 
-          if (!battleCounter.isEmpty) {
-            for {
-              _ <- saveToGameHistory(battleCounter.toSeq)
-              _ <- insertOrUpdateSystemProcess(battleCounter.toSeq) // update system process
-            } yield (GQBattleScheduler.battleCounter.clear)
+          if (!scBattleCounter.isEmpty) {
+            Await.ready(saveToGameHistory(scBattleCounter.toSeq), Duration.Inf)
+            Await.ready(insertOrUpdateSystemProcess(scBattleCounter.toSeq), Duration.Inf)
+            // wait prev txs finished and removed SC Battle Counter
+            Thread.sleep(2000)
+            scBattleCounter.clear
             // fetch SC table rows and save into GQBattleScheduler.eliminatedOrWithdrawn
             Await.ready(getEOSTableRows(Some("REQUEST_REMOVE_NO_LIFE")), Duration.Inf)
             Thread.sleep(1000)
@@ -173,7 +174,7 @@ class GQSchedulerActorV2 @Inject()(
             } yield (), Duration.Inf)
             Thread.sleep(1000)
 
-            battleCounter.clear
+            GQBattleScheduler.battleCounter.clear
             GQBattleScheduler.toRemovedCharacters.clear
             GQBattleScheduler.isUpdatedCharacters.clear
             GQBattleScheduler.eliminatedOrWithdrawn.clear
@@ -330,7 +331,7 @@ class GQSchedulerActorV2 @Inject()(
               val enemy: (String, GQCharacterData) = removed.head
               val battle: GQBattleCalculation[GQCharacterData] = new GQBattleCalculation[GQCharacterData](player._2, enemy._2)
               // save result into battleCounter
-              if (battle.result.equals(None)) {
+              if (battle.result.equals(None) || battle.result.map(_.characters.size).getOrElse(0) < 2) {
                 GQBattleScheduler.noEnemy.addOne(player._1, player._2.owner)
                 GQBattleScheduler.noEnemy.addOne(enemy._1, enemy._2.owner)
               }
