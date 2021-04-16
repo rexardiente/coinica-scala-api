@@ -112,10 +112,15 @@ class WebSocketActor@Inject()(
                             seq.filter(x => x.life <= 0).map { data =>
                               userAccountService.getUserByID(data.owner).map {
                                 case Some(account) =>
-                                  characterRepo.remove(account.id, data.key).map { isDeleted =>
-                                    if (isDeleted > 0) characterRepo.insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-                                    else characterRepo.insert(data)
-                                  }
+                                  Await.ready(for {
+                                    isRemoved <- characterRepo.remove(account.id, data.key)
+                                    _ <- Future.successful {
+                                      if (isRemoved > 0)
+                                        characterRepo
+                                            .insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                                            .map(x => if(x > 0) () else characterRepo.insert(data))
+                                    }
+                                  } yield (Thread.sleep(1000)), Duration.Inf)
                                 case _ => ()
                               }
                             }
