@@ -14,42 +14,9 @@ import akka.util.Timeout
 import utils.Config
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
-import akka.common.objects.{
-        ChallengeScheduler,
-        DailyTaskScheduler,
-        CreateNewDailyTask,
-        RankingScheduler }
-import models.domain.{
-        Challenge,
-        OutEvent,
-        Game,
-        ChallengeTracker,
-        ChallengeHistory,
-        Task,
-        TaskHistory,
-        RankProfit,
-        RankPayout,
-        RankWagered,
-        RankMultiplier,
-        GQGameHistory,
-        THGameHistory,
-        UserAccount,
-        RankingHistory,
-        OverAllGameHistory,
-        VIPUser,
-        VIPBenefit }
-import models.repo.{
-        ChallengeRepo,
-        GameRepo,
-        ChallengeTrackerRepo,
-        ChallengeHistoryRepo,
-        TaskRepo,
-        TaskHistoryRepo,
-        DailyTaskRepo,
-        UserAccountRepo,
-        RankingHistoryRepo,
-        VIPUserRepo,
-        OverAllGameHistoryRepo }
+import akka.common.objects._
+import models.domain._
+import models.repo._
 import models.domain.enum._
 
 object SystemSchedulerActor {
@@ -204,7 +171,29 @@ class SystemSchedulerActor @Inject()(
                                                 Instant.ofEpochSecond(Instant.ofEpochSecond(v.created_at).getEpochSecond + ((60 * 60 * 24) - 1)))
               // insert and if failed do insert 1 more time..
               taskHistoryRepo.add(taskHistory).map(isAdded => if(isAdded > 0)() else trackedFailedInsertion.addOne(taskHistory) )
+              // TODO: update user VIP account point
             })
+          }
+          _ <- Future.successful {
+            tracked.map { case DailyTask(user, game_id, game_count) =>
+              for {
+                vipAcc <- vipUserRepo.findByID(user)
+                _ <- Future.successful {
+                  if (vipAcc != None) {
+                    val vip: VIPUser = vipAcc.get
+                    // points (fixed 1 VIP per day) * rank benefit
+                    vipUserRepo.getBenefitByID(vip.rank).map {
+                      case Some(v) =>
+                        // new earned points * redemption rate + prev VIP points
+                        val newPoints = vip.points + (v.redemption_rate * 1)
+                        // create new updated VIP User
+                        vipUserRepo.update(vip.copy(points = newPoints))
+                      case None => ()
+                    }
+                  }
+                }
+              } yield ()
+            }
           }
           _ <- Future.successful(dailyTaskRepo.clearTable)
         } yield ()
