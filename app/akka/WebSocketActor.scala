@@ -175,7 +175,7 @@ class WebSocketActor@Inject()(
                             userAccountService.getUserByName(user).map {
                               case Some(v) =>
                                 dynamicProcessor ! DailyTask(v.id, Config.TH_GAME_ID, 1)
-                                dynamicProcessor ! ChallengeTracker(v.id, betAmount, prize, 1, 1)
+                                dynamicProcessor ! ChallengeTracker(v.id, betAmount, prize, 1, if (prize == 0) 0 else 1)
                               case _ => ()
                             }
                           }
