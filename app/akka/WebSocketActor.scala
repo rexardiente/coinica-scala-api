@@ -115,10 +115,15 @@ class WebSocketActor@Inject()(
                                   Await.ready(for {
                                     isRemoved <- characterRepo.remove(account.id, data.key)
                                     _ <- Future.successful {
-                                      if (isRemoved > 0)
-                                        characterRepo
+                                      Thread.sleep(500)
+                                      // check if character exist already on history else add..
+                                      characterRepo.getCharacterHistoryByID(data.key).map {
+                                        case Some(v) => ()
+                                        case None =>
+                                          characterRepo
                                             .insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-                                            .map(x => if(x > 0) () else characterRepo.insert(data))
+                                            .map(x => if(x < 1) characterRepo.insert(data))
+                                      }
                                     }
                                   } yield (Thread.sleep(1000)), Duration.Inf)
                                 case _ => ()
