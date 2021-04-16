@@ -92,18 +92,18 @@ class GQSchedulerActorV2 @Inject()(
         // filter characters based on condition and battle all available characters
         Await.ready(removeEliminatedAndWithdrawn(GQBattleScheduler.characters), Duration.Inf)
         Thread.sleep(1000)
-        Await.ready(battleProcess(GQBattleScheduler.characters), Duration.Inf)
-        Thread.sleep(5000)
+        Await.ready(battleProcess(), Duration.Inf)
+        Thread.sleep(1000)
         // broadcast characters no available enemy..
         dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GQBattleScheduler.noEnemy.groupBy(_._2))
         Thread.sleep(1000)
         // cleanup memory by removing tracked data
-        GQBattleScheduler.noEnemy.clear
-        GQBattleScheduler.characters.clear
+        GQBattleScheduler.characters.clear()
+        GQBattleScheduler.noEnemy.clear()
 
         if (GQBattleScheduler.battleCounter.isEmpty) {
           dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
-          GQBattleScheduler.battleCounter.clear
+          GQBattleScheduler.battleCounter.clear()
           defaultSchedule()
         }
         else {
@@ -131,7 +131,7 @@ class GQSchedulerActorV2 @Inject()(
             Await.ready(insertOrUpdateSystemProcess(scBattleCounter.toSeq), Duration.Inf)
             // wait prev txs finished and removed SC Battle Counter
             Thread.sleep(2000)
-            scBattleCounter.clear
+            scBattleCounter.clear()
             // fetch SC table rows and save into GQBattleScheduler.eliminatedOrWithdrawn
             Await.ready(getEOSTableRows(Some("REQUEST_REMOVE_NO_LIFE")), Duration.Inf)
             Thread.sleep(1000)
@@ -174,10 +174,10 @@ class GQSchedulerActorV2 @Inject()(
             } yield (), Duration.Inf)
             Thread.sleep(1000)
 
-            GQBattleScheduler.battleCounter.clear
-            GQBattleScheduler.toRemovedCharacters.clear
-            GQBattleScheduler.isUpdatedCharacters.clear
-            GQBattleScheduler.eliminatedOrWithdrawn.clear
+            GQBattleScheduler.battleCounter.clear()
+            GQBattleScheduler.toRemovedCharacters.clear()
+            GQBattleScheduler.isUpdatedCharacters.clear()
+            GQBattleScheduler.eliminatedOrWithdrawn.clear()
             defaultSchedule()
           }
           else {
@@ -187,12 +187,12 @@ class GQSchedulerActorV2 @Inject()(
         }
       } catch {
         case _: Throwable => // reset all tracker into default..
-          GQBattleScheduler.noEnemy.clear
-          GQBattleScheduler.toRemovedCharacters.clear
-          GQBattleScheduler.characters.clear
-          GQBattleScheduler.battleCounter.clear
-          GQBattleScheduler.isUpdatedCharacters.clear
-          GQBattleScheduler.eliminatedOrWithdrawn.clear
+          GQBattleScheduler.noEnemy.clear()
+          GQBattleScheduler.toRemovedCharacters.clear()
+          GQBattleScheduler.characters.clear()
+          GQBattleScheduler.battleCounter.clear()
+          GQBattleScheduler.isUpdatedCharacters.clear()
+          GQBattleScheduler.eliminatedOrWithdrawn.clear()
           defaultSchedule()
       }
 
@@ -286,27 +286,30 @@ class GQSchedulerActorV2 @Inject()(
   }
   // make sure no eliminated or withdrawn characters on the list
   // and shuflle remaining characters..
-  private def removeEliminatedAndWithdrawn(v: HashMap[String, GQCharacterData]): Future[HashMap[String, GQCharacterData]] = {
-    GQBattleScheduler.characters.clear
-    Thread.sleep(1000)
+  private def removeEliminatedAndWithdrawn(v: HashMap[String, GQCharacterData]): Future[Unit] = {
     for {
       // remove no life characters and with max limit
       removedNoLifeAndLimit <- Future.successful(v.filter(x => !x._2.isNew || x._2.life > 0 || x._2.count < x._2.limit))
       // make sure no eliminated or withdrawn characters on the list
       removeEliminatedOrWithdrawn <- Future.successful(removedNoLifeAndLimit.filterNot(x => x._2.status > 1))
-    } yield (GQBattleScheduler.characters.addAll(removeEliminatedOrWithdrawn))
+      // remove old tracked result
+      _ <- Future.successful {
+        GQBattleScheduler.characters.clear()
+        Thread.sleep(2000)
+      }
+      _ <- Future.successful(GQBattleScheduler.characters.addAll(removeEliminatedOrWithdrawn))
+    } yield ()
   }
 
-  private def battleProcess(characters: HashMap[String, GQCharacterData]): Future[Unit] = Future.successful {
-    // val characters: HashMap[String, GQCharacterData] = params
+  private def battleProcess(): Future[Unit] = Future.successful {
     do {
-      val player: (String, GQCharacterData) = characters.head
-      if (characters.size == 1) {
-        characters.remove(player._1)
+      val player: (String, GQCharacterData) = GQBattleScheduler.characters.head
+      if (GQBattleScheduler.characters.size == 1) {
+        GQBattleScheduler.characters.remove(player._1)
         GQBattleScheduler.noEnemy.addOne(player._1, player._2.owner)
       }
       else {
-        val availableCharacters: HashMap[String, GQCharacterData] = characters
+        val availableCharacters: HashMap[String, GQCharacterData] = GQBattleScheduler.characters
         val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
         val filteredDateForBattle: Instant = now.plusDays(-7).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
         // remove his other owned characters from the list
@@ -337,17 +340,17 @@ class GQSchedulerActorV2 @Inject()(
               }
               else battle.result.map(x => GQBattleScheduler.battleCounter.addOne(x.id, x))
 
-              characters.remove(player._1)
-              characters.remove(enemy._1)
+              GQBattleScheduler.characters.remove(player._1)
+              GQBattleScheduler.characters.remove(enemy._1)
             }
             else {
-              characters.remove(player._1)
+              GQBattleScheduler.characters.remove(player._1)
               GQBattleScheduler.noEnemy.addOne(player._1, player._2.owner)
             }
           }
         } yield ()
       }
-    } while (!characters.isEmpty);
+    } while (!GQBattleScheduler.characters.isEmpty);
   }
 
   // recursive request no matter how many times till finished
