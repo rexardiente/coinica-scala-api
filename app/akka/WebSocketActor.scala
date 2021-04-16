@@ -98,11 +98,10 @@ class WebSocketActor@Inject()(
                   // if server got a WS message for newly created character
                   // try to update character DB
                   case cc: GQCharacterCreated =>
-                    // set has existing request to update characters DB
-                    WebSocketActor.hasPrevUpdateCharacter = true
-                    Thread.sleep(300)
-
-                    if (WebSocketActor.hasPrevUpdateCharacter) {
+                    if (!WebSocketActor.hasPrevUpdateCharacter) {
+                      // set has existing request to update characters DB
+                      WebSocketActor.hasPrevUpdateCharacter = true
+                      Thread.sleep(300)
                       Await.ready(getEOSTableRows(Some("REQUEST_UPDATE_CHARACTERS_DB")), Duration.Inf)
                       Thread.sleep(1000)
                       if (!WebSocketActor.isUpdatedCharacters.isEmpty) {
