@@ -11,11 +11,12 @@ import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.libs.json._
+import play.api.Configuration
+import play.api.http.HttpErrorHandler
 import models.domain._
 import models.repo._
 import models.repo.eosio._
 import models.service._
-import utils.lib.EOSIOSupport
 import akka.WebSocketActor
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -23,7 +24,6 @@ import akka.WebSocketActor
  */
 @Singleton
 class HomeController @Inject()(
-      loginRepo: LoginRepo,
       userAccRepo: UserAccountRepo,
       vipUserRepo: VIPUserRepo,
       userAccountService: UserAccountService,
@@ -46,6 +46,8 @@ class HomeController @Inject()(
       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
       mat: akka.stream.Materializer,
       implicit val system: akka.actor.ActorSystem,
+      assets: Assets,
+      errorHandler: HttpErrorHandler,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
 
@@ -93,9 +95,14 @@ class HomeController @Inject()(
     }
   }
 
-  def index() = Action.async { implicit req =>
-    Future.successful(Ok(JsString("OK")))
-  }
+  def index(): Action[AnyContent] = assets.at("index.html")
+
+  def assetOrDefault(resource: String): Action[AnyContent] =
+    try {
+      if (resource.contains(".")) assets.at(resource) else index
+    } catch {
+      case e: Throwable => Action.async(r => errorHandler.onClientError(r, NOT_FOUND, "Not found"))
+    }
 
   def userAccount(user: String) = Action.async { implicit req =>
     userAccRepo.getUserAccount(user).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))

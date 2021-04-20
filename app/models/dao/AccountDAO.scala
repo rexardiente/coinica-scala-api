@@ -5,26 +5,24 @@ import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.Login
-import scala.collection.mutable
+import models.domain.Account
 
 @Singleton
-final class LoginDAO @Inject()(
+final class AccountDAO @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider,
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
-
-  protected class LoginTable(tag: Tag) extends Table[Login](tag, "LOGIN") {
+  protected class AccountTable(tag: Tag) extends Table[Account](tag, "ACCOUNT") {
     def id = column[UUID] ("ID", O.PrimaryKey)
     def username = column[String] ("USERNAME")
-    def password = column[String] ("PASSWORD")
-    def logincreated = column[Long] ("LOGINCREATED")
+    def password = column[Option[String]] ("PASSWORD")
+    def createdAt = column[Long] ("CREATED_AT")
 
-   def * = ( id,username, password, logincreated) <> ((Login.apply _).tupled, Login.unapply)
+   def * = ( id,username, password, createdAt) <> ((Account.apply _).tupled, Account.unapply)
   }
 
-  object Query extends TableQuery(new LoginTable(_)) {
+  object Query extends TableQuery(new AccountTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
 
