@@ -47,16 +47,13 @@ class HomeController @Inject()(
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
       mat: akka.stream.Materializer,
-      implicit val system: akka.actor.ActorSystem,
       assets: Assets,
       errorHandler: HttpErrorHandler,
+      implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
 
   /*  CUSTOM FORM VALIDATION */
-  private def referralForm = Form(tuple(
-    "code" -> nonEmptyText,
-    "applied_by" -> uuid))
   private def challengeForm = Form(tuple(
     "name" -> uuid,
     "description" -> nonEmptyText,
@@ -143,12 +140,15 @@ class HomeController @Inject()(
                 // check if token is not yet expired..
                 if (account.tokenLimit.map(_ <= Instant.now.getEpochSecond).getOrElse(true)) {
                   // new generated token
-                  val updatedAcc: UserAccount = UserAction.generateToken(account)
+                  val newUserToken: UserAccount = UserAction.generateToken(account)
                   userAccountService
-                    .updateUserAccount(updatedAcc.copy(lastSignIn = Instant.now))
-                    .map(x => if (x > 0) Ok(Json.obj("token" -> updatedAcc.token)) else InternalServerError)
+                    .updateUserAccount(newUserToken.copy(lastSignIn = Instant.now))
+                    .map { x =>
+                      if (x > 0) Ok(Json.obj("token" -> newUserToken.token, "limit" -> newUserToken.tokenLimit))
+                      else InternalServerError
+                    }
                 }
-                else Future(Conflict(Json.obj("exists" -> account.token)))
+                else Future(Conflict(Json.obj("exists" -> account.token, "limit" -> account.tokenLimit)))
                 // else Future(Conflict(Json.obj("error" -> "already signed")))
               }
               else Future(InternalServerError)
@@ -200,20 +200,6 @@ class HomeController @Inject()(
 
   def getReferralHistory(code: String) = Action.async { implicit req =>
     referralHistoryService.getByCode(code).map(x => Ok(Json.toJson(x)))
-  }
-
-  def applyReferralCode() = Action.async { implicit req =>
-    referralForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (code, appliedBy)  =>
-        try {
-          referralHistoryService
-            .applyReferralCode(appliedBy, code)
-            .map(r => if(r < 1) InternalServerError else Created )
-        } catch {
-          case _: Throwable => Future(InternalServerError)
-        }
-      })
   }
 
   def addChallenge = Action.async { implicit req =>

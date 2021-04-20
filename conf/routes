@@ -8,9 +8,11 @@ GET     /                           						controllers.HomeController.index()
 #GET     /                                        controllers.HomeController.index
 # Login API
 
-+nocsrf POST   	/donut/api/v1/sign-up            	controllers.HomeController.signUp()
-+nocsrf POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn()
-GET   	/donut/api/v1/token/renew         controllers.SecureActionController.renewSessionToken()
++nocsrf
+POST   	/donut/api/v1/sign-up            	controllers.HomeController.signUp()
++nocsrf
+POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn()
+GET   	/donut/api/v1/token/renew        	controllers.SecureActionController.renewSessionToken()
 
 # Challenge API
 #POST    /donut/api/v1/challenge/add                   controllers.HomeController.addChallenge
@@ -30,7 +32,7 @@ GET     /donut/api/v1/ranking/daily               	controllers.HomeController.ge
 GET     /donut/api/v1/ranking/monthly               controllers.HomeController.getRankingHistory()
 
 # Referral API
-POST   	/donut/api/v1/referral/apply              controllers.HomeController.applyReferralCode
+POST   	/donut/api/v1/referral/apply              controllers.SecureActionController.applyReferralCode
 GET    	/donut/api/v1/referral/history/:code      controllers.HomeController.getReferralHistory(code: String)
 
 # Task API

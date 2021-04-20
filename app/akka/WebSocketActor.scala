@@ -217,7 +217,7 @@ class WebSocketActor@Inject()(
                   WebSocketActor.subscribers.addOne(id -> out)
                   out ! OutEvent(JsString(id), JsString(msg))
                   // check if user connects doenst exists else do nothing..
-                  self ! Connect(id)
+                  // self ! Connect(id)
               }
 
           case _ =>
@@ -235,7 +235,7 @@ class WebSocketActor@Inject()(
       case "point" =>
     }
     //TODO: save new users into DB users and create VIP profile
-    case Connect(user) =>
+    // case Connect(user) =>
       // for {
       //   isExist <- userAccountService.isExist(user)
       //   hasVIP <- vipUserRepo.getBenefitByID(VIP.BRONZE)
