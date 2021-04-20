@@ -146,3 +146,6 @@ LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.now(), ZoneId.syst
 
     [react](https://blog.usejournal.com/react-with-play-framework-2-6-x-a6e15c0b7bd)
     [angular](https://torre.me.uk/2019/03/06/scala-play-rest-and-angular/)
+
+#### Play Filter token
+    https://stackoverflow.com/questions/26675615/token-based-authentication-in-play-filter-passing-objects-along

@@ -19,6 +19,7 @@ import models.repo.eosio._
 import models.service._
 import models.domain.enum._
 import akka.WebSocketActor
+import auth.helpers.UserAction
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -133,18 +134,28 @@ class HomeController @Inject()(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password)  =>
         try {
-          isValidLogin(username, password).map {
-            case true =>
-              Accepted
-              // .withSession(request.session + ("EGS_ACCOUNT_TOKEN" -> UserAccountSession.generateToken(username)))
-            // Redirect(routes.HomeController.index()).withSession(request.session + ("USER_API_SESSION" -> token))
-            // we should redirect to login page
-            case false =>
-              Unauthorized(views.html.defaultpages.unauthorized()).withNewSession
-          }
-        } catch {
-          case _: Throwable => Future(InternalServerError)
+          for {
+            isAccountExists <- userAccountService.getAccountByUserNamePassword(username, password)
+            result <- {
+              // check if has existing token (UPDATE) else insert new and return to user..
+              if (isAccountExists != None) {
+                val account: UserAccount = isAccountExists.get
+                // check if token is not yet expired..
+                if (account.tokenLimit.map(_ <= Instant.now.getEpochSecond).getOrElse(true)) {
+                  // new generated token
+                  val updatedAcc: UserAccount = UserAction.generateToken(account)
+                  userAccountService
+                    .updateUserAccount(updatedAcc.copy(lastSignIn = Instant.now))
+                    .map(x => if (x > 0) Ok(Json.obj("token" -> updatedAcc.token)) else InternalServerError)
+                }
+                else Future(Conflict(Json.obj("exists" -> account.token)))
+                // else Future(Conflict(Json.obj("error" -> "already signed")))
+              }
+              else Future(InternalServerError)
+            }
+          } yield (result)
         }
+        catch { case _: Throwable => Future(InternalServerError) }
       })
   }
 

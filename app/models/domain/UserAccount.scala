@@ -84,5 +84,7 @@ case class UserAccount(id: UUID,
 											token: Option[String], // TODO
 											tokenLimit: Option[Long], // TODO
 											lastSignIn: Instant, // TODO
-											created_at: Instant = Instant.now())
+											created_at: Instant = Instant.now()) {
+	def toJson(): JsValue = Json.toJson(this)
+}
 
