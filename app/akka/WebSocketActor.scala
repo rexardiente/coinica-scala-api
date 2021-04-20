@@ -110,7 +110,7 @@ class WebSocketActor@Inject()(
                         for {
                           _ <- Future.sequence {
                             seq.filter(x => x.life <= 0).map { data =>
-                              userAccountService.getUserByID(data.owner).map {
+                              userAccountService.getAccountByID(data.owner).map {
                                 case Some(account) =>
                                   Await.ready(for {
                                     isRemoved <- characterRepo.remove(account.id, data.key)
@@ -172,7 +172,7 @@ class WebSocketActor@Inject()(
                             out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> false))
                             dynamicBroadcast ! Array(gameHistory)
 
-                            userAccountService.getUserByName(user).map {
+                            userAccountService.getAccountByName(user).map {
                               case Some(v) =>
                                 dynamicProcessor ! DailyTask(v.id, Config.TH_GAME_ID, 1)
                                 dynamicProcessor ! ChallengeTracker(v.id, betAmount, prize, 1, if (prize == 0) 0 else 1)
@@ -234,21 +234,21 @@ class WebSocketActor@Inject()(
       case "payout" =>
       case "point" =>
     }
-    // save new users into DB users and create VIP profile
+    //TODO: save new users into DB users and create VIP profile
     case Connect(user) =>
-      for {
-        isExist <- userAccountService.isExist(user)
-        hasVIP <- vipUserRepo.getBenefitByID(VIP.BRONZE)
-        _ <- Future.successful {
-          if (!isExist && hasVIP != None) {
-            val vip: VIPBenefit = hasVIP.get
-            val acc: UserAccount = UserAccount(user, vip.referral_rate)
-            userAccountService
-              .newUserAcc(acc)
-              .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, vip.id, vip.id, 0, 0, 0, acc.created_at)))
-          }
-        }
-      } yield ()
+      // for {
+      //   isExist <- userAccountService.isExist(user)
+      //   hasVIP <- vipUserRepo.getBenefitByID(VIP.BRONZE)
+      //   _ <- Future.successful {
+      //     if (!isExist && hasVIP != None) {
+      //       val vip: VIPBenefit = hasVIP.get
+      //       val acc: UserAccount = UserAccount(user, vip.referral_rate)
+      //       userAccountService
+      //         .newUserAcc(acc)
+      //         .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, vip.id, vip.id, 0, 0, 0, acc.created_at)))
+      //     }
+      //   }
+      // } yield ()
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))
   }
@@ -280,7 +280,7 @@ class WebSocketActor@Inject()(
   private def processEOSTableResponse(sender: Option[String], rows: Seq[GQTable]): Future[Seq[Any]] = Future.sequence {
     rows.map { row =>
       // find account info and return ID..
-      userAccountService.getUserByName(row.username).map {
+      userAccountService.getAccountByName(row.username).map {
         case Some(account) =>
           // val username: String = row.username
           val data: GQGame = row.data

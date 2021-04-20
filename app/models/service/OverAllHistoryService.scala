@@ -57,7 +57,7 @@ class OverAllHistoryService @Inject()(
                 game.get.name.replaceAll(" ", "").toLowerCase,
                 lastSevenDays.getEpochSecond,
                 now.toInstant(ZoneOffset.UTC).getEpochSecond)
-            .map(_.filter(_.info.user == user.get.name))
+            .map(_.filter(_.info.user == user.get.username))
             .map(_.sortBy(- _.createdAt).take(10))
         }
         else Future(Seq.empty)

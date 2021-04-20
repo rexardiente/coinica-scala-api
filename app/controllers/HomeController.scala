@@ -17,6 +17,7 @@ import models.domain._
 import models.repo._
 import models.repo.eosio._
 import models.service._
+import models.domain.enum._
 import akka.WebSocketActor
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -24,7 +25,7 @@ import akka.WebSocketActor
  */
 @Singleton
 class HomeController @Inject()(
-      userAccRepo: UserAccountRepo,
+      // userAccRepo: UserAccountRepo,
       vipUserRepo: VIPUserRepo,
       userAccountService: UserAccountService,
       gameRepo: GameRepo,
@@ -81,6 +82,72 @@ class HomeController @Inject()(
     "name" -> nonEmptyText,
     "description" -> optional(text)))
 
+  private def signInForm = Form(tuple(
+    "username" -> nonEmptyText,
+    "password" -> nonEmptyText))
+  // referred_by = user code..
+  private def signUpForm = Form(tuple(
+    "username" -> nonEmptyText,
+    "password" -> nonEmptyText,
+    "referred_by" -> optional(text)))
+  // http://127.0.0.1:9000/donut/api/v1/signin?username=rexardiente&password=password
+  private def isValidLogin(username: String, password: String): Future[Boolean] = Future(true)
+    // accountRepo.isExist(username, password)
+
+  def signUp = Action.async { implicit request =>
+    signUpForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (username, password, code)  =>
+        // validate username and referral code..
+        // after validation encode password into Base256
+        for {
+          account <- userAccountService.getAccountByName(username)
+          hasCode <- userAccountService.getAccountByCode(code.getOrElse(null))
+          result <- {
+            if (account == None) {
+              if (hasCode.map(_.referral_code) == code) {
+                val user: UserAccount = UserAccount(username, password)
+                // generate User Account and VIP Account
+                for {
+                  addAccount <- userAccountService.newUserAcc(user)
+                  addVip <- userAccountService.newVIPAcc(VIPUser(user.id, VIP.BRONZE, VIP.BRONZE, 0, 0, 0, user.created_at))
+                  // apply code if has value
+                  _ <- Future.successful {
+                    Thread.sleep(500) // add small delay
+                    if (hasCode.map(_.referral_code) != None) {
+                      referralHistoryService.applyReferralCode(user.id, code.getOrElse(null))
+                    }
+                  }
+                } yield (Created)
+              }
+              else Future(InternalServerError)
+            }
+            else Future(InternalServerError)
+          }
+        } yield (result)
+      })
+  }
+  // TODO: store password in hash256 format...
+  def signIn = Action.async { implicit request =>
+    signInForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (username, password)  =>
+        try {
+          isValidLogin(username, password).map {
+            case true =>
+              Accepted
+              // .withSession(request.session + ("EGS_ACCOUNT_TOKEN" -> UserAccountSession.generateToken(username)))
+            // Redirect(routes.HomeController.index()).withSession(request.session + ("USER_API_SESSION" -> token))
+            // we should redirect to login page
+            case false =>
+              Unauthorized(views.html.defaultpages.unauthorized()).withNewSession
+          }
+        } catch {
+          case _: Throwable => Future(InternalServerError)
+        }
+      })
+  }
+
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
       WebSocketActor.props(out,
@@ -105,15 +172,15 @@ class HomeController @Inject()(
     }
 
   def userAccount(user: String) = Action.async { implicit req =>
-    userAccRepo.getUserAccount(user).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+    userAccountService.getAccountByName(user).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
   }
 
-  def getUserAccountByID(id: UUID) = Action.async { implicit req =>
-    userAccRepo.getByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+  def getAccountByID(id: UUID) = Action.async { implicit req =>
+    userAccountService.getAccountByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
   }
 
-  def getUserAccountByCode(code: String) = Action.async { implicit req =>
-    userAccRepo.getAccountByReferralCode(code).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+  def getAccountByCode(code: String) = Action.async { implicit req =>
+    userAccountService.getAccountByCode(code).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
   }
 
   def vipUser(id: UUID) = Action.async { implicit req =>
@@ -129,7 +196,6 @@ class HomeController @Inject()(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (code, appliedBy)  =>
         try {
-          println(code, appliedBy)
           referralHistoryService
             .applyReferralCode(appliedBy, code)
             .map(r => if(r < 1) InternalServerError else Created )

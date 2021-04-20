@@ -42,17 +42,17 @@ class ReferralHistoryService @Inject()(
     for {
       isCodeOwnedBySelf <- userAccountRepo.isCodeOwnedBy(appliedBy, code)
       getAccByReferralCode <- userAccountRepo.getAccountByReferralCode(code)
-      hasNoReferral <- userAccountRepo.hasNoReferral(appliedBy)
+      hasNoReferralClaim <- userAccountRepo.hasNoReferralClaim(appliedBy)
       // check if account referred by this account..
       isAlreadyReferred <- referralRepoHistory.isReferred(appliedBy, code)
       result <- {
         // code doesn't belong to itself and no existing claimed referral code
-        if (!isCodeOwnedBySelf && hasNoReferral != None && getAccByReferralCode != None && !isAlreadyReferred ) {
+        if (!isCodeOwnedBySelf && hasNoReferralClaim != None && getAccByReferralCode != None && !isAlreadyReferred ) {
           try {
             // update each accounts referral statuses..
             // get account referrer
             val referrer: UserAccount = getAccByReferralCode.get
-            val referred: UserAccount = hasNoReferral.get
+            val referred: UserAccount = hasNoReferralClaim.get
             // if referrer has no yet been claimed, and to claime one then
             // must not allowed to claimed from those he referred
             referralRepoHistory.isReferred(referrer.id, referred.referral_code).map { isAccReferrer =>

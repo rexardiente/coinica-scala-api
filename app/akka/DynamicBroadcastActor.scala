@@ -53,7 +53,7 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
           case (id: UUID, characters) =>
             userRepo.getByID(id).map {
               case Some(v) =>
-                WebSocketActor.subscribers(v.name) !
+                WebSocketActor.subscribers(v.username) !
                 OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(x => JsString(x._1)).toSeq)))
               case None => ()
             }

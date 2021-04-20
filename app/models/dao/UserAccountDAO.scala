@@ -13,28 +13,36 @@ final class UserAccountDAO @Inject()(
   import profile.api._
 
   protected class UserAccountTable(tag: Tag) extends Table[UserAccount](tag, "USER_ACCOUNT") {
-    def name = column[String] ("NAME", O.PrimaryKey)
-    def id = column[UUID] ("ID")
+    def id = column[UUID] ("ID", O.PrimaryKey)
+    def username = column[String] ("USERNAME")
+    def password = column[String] ("PASSWORD")
     def referredBy = column[Option[String]] ("REFERRED_BY")
     def referralCode = column[String] ("REFERRAL_CODE")
     def referralAmount = column[Double] ("REFERRAL_AMOUNT")
     def referralRate = column[Double] ("REFERRAL_RATE")
     def winRate = column[Double] ("WIN_RATE")
+    def token = column[Option[String]] ("SESSION_TOKEN")
+    def tokenLimit = column[Option[Long]] ("SESSION_TOKEN_LIMIT")
+    def lastSignIn = column[Instant] ("LAST_SIGN_IN")
     def createdAt = column[Instant] ("CREATED_AT")
 
     def * = (id,
-            name,
+            username,
+            password,
             referredBy,
             referralCode,
             referralAmount,
             referralRate,
             winRate,
+            token,
+            tokenLimit,
+            lastSignIn,
             createdAt) <> (UserAccount.tupled, UserAccount.unapply)
   }
 
   object Query extends TableQuery(new UserAccountTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
-    def apply(name: String) = this.withFilter(_.name === name)
+    def apply(username: String) = this.withFilter(_.username === username)
   }
 }
 

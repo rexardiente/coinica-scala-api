@@ -13,14 +13,14 @@ class UserAccountRepo @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
-  def add(name: UserAccount): Future[Int] =
-    db.run(dao.Query += name)
+  def add(user: UserAccount): Future[Int] =
+    db.run(dao.Query += user)
 
   def delete(id: UUID): Future[Int] =
     db.run(dao.Query(id).delete)
 
-  def update(name: UserAccount): Future[Int] =
-    db.run(dao.Query.filter(_.id === name.id).update(name))
+  def update(user: UserAccount): Future[Int] =
+    db.run(dao.Query.filter(_.id === user.id).update(user))
 
   def all(): Future[Seq[UserAccount]] =
     db.run(dao.Query.result)
@@ -40,20 +40,17 @@ class UserAccountRepo @Inject()(
   def getAccountByReferralCode(code: String): Future[Option[UserAccount]] =
     db.run(dao.Query.filter(_.referralCode === code).result.headOption)
 
-  def getByName(name: String): Future[Option[UserAccount]] =
-    db.run(dao.Query.filter(x => x.name === name).result.headOption)
+  def getByName(username: String): Future[Option[UserAccount]] =
+    db.run(dao.Query.filter(x => x.username === username).result.headOption)
   // if user has no referral get result else no result
-  def hasNoReferral(id: UUID): Future[Option[UserAccount]] =
+  def hasNoReferralClaim(id: UUID): Future[Option[UserAccount]] =
     db.run(dao.Query.filter(x => x.id === id && x.referredBy.isEmpty.?).result.headOption)
 
-  def exist(name: String): Future[Boolean] =
-    db.run(dao.Query(name).exists.result)
+  def exist(username: String): Future[Boolean] =
+    db.run(dao.Query(username).exists.result)
 
-  def find(id: UUID, name: String): Future[Option[UserAccount]] =
-    db.run(dao.Query.filter(r => r.id === id && r.name === name)
+  def find(id: UUID, username: String): Future[Option[UserAccount]] =
+    db.run(dao.Query.filter(r => r.id === id && r.username === username)
       .result
       .headOption)
-
-  def getUserAccount(name: String): Future[Option[UserAccount]] =
-    db.run(dao.Query(name).result.headOption)
 }

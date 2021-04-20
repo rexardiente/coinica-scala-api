@@ -7,11 +7,11 @@ GET     /ws                                  	controllers.HomeController.socket
 GET     /                           						controllers.HomeController.index()
 #GET     /                                        controllers.HomeController.index
 # Login API
-#POST    /donut/api/v1/account/add                controllers.SecureActionController.addAccount(username: String)
-#POST    /donut/api/v1/signin                		 controllers.SecureActionController.signIn
-GET    	/donut/api/v1/private             controllers.SecureActionController.privateAction
-GET    	/donut/api/v1/public             	controllers.SecureActionController.publicAction
-GET    	/donut/api/v1/signin             	controllers.SecureActionController.signIn(username, password)
+
++nocsrf
+POST   	/donut/api/v1/sign-up            	controllers.HomeController.signUp()
++nocsrf
+POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn()
 
 # Challenge API
 #POST    /donut/api/v1/challenge/add                   controllers.HomeController.addChallenge
@@ -89,9 +89,9 @@ GET   /donut/api/v1/game/all/history/:game/:user controllers.HomeController.game
 GET   /donut/api/v1/news controllers.HomeController.news
 
 # User Account
-GET   /donut/api/v1/account/user/:user controllers.HomeController.userAccount(user)
-GET   /donut/api/v1/account/code/:code controllers.HomeController.getUserAccountByCode(code: String)
-GET   /donut/api/v1/account/id/:id controllers.HomeController.getUserAccountByID(id: UUID)
+GET   /donut/api/v1/account/user/:user 					controllers.HomeController.userAccount(user)
+GET   /donut/api/v1/account/code/:code 					controllers.HomeController.getAccountByCode(code: String)
+GET   /donut/api/v1/account/id/:id 							controllers.HomeController.getAccountByID(id: UUID)
 # VIP Account
 GET   /donut/api/v1/vip 				controllers.HomeController.vipUser(id: UUID)
 
