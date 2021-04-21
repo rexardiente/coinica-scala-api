@@ -48,7 +48,8 @@ class HomeController @Inject()(
       mat: akka.stream.Materializer,
       assets: Assets,
       errorHandler: HttpErrorHandler,
-      userAction: auth.helpers.SecureUserAction,
+      userAction: utils.auth.SecureUserAction,
+      encryptKey: utils.auth.EncryptKey,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
@@ -88,31 +89,49 @@ class HomeController @Inject()(
     "username" -> nonEmptyText,
     "password" -> nonEmptyText,
     "referred_by" -> optional(text)))
-  // http://127.0.0.1:9000/donut/api/v1/signin?username=rexardiente&password=password
-  private def isValidLogin(username: String, password: String): Future[Boolean] = Future(true)
-    // accountRepo.isExist(username, password)
+
+  def socket = WebSocket.accept[Event, Event] { implicit req =>
+    play.api.libs.streams.ActorFlow.actorRef { out =>
+      WebSocketActor.props(out,
+                          userAccountService,
+                          gQCharacterDataRepo,
+                          gQCharacterGameHistoryRepo,
+                          overAllGameHistoryRepo,
+                          vipUserRepo,
+                          eosioHTTPSupport,
+                          dynamicBroadcast,
+                          dynamicProcessor)
+    }
+  }
+  def index(): Action[AnyContent] = assets.at("index.html")
+  def assetOrDefault(resource: String): Action[AnyContent] =
+    try {
+      if (resource.contains(".")) assets.at(resource) else index
+    } catch {
+      case e: Throwable => Action.async(r => errorHandler.onClientError(r, NOT_FOUND, "Not found"))
+    }
 
   def signUp = Action.async { implicit request =>
     signUpForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password, code)  =>
         // validate username and referral code..
-        // after validation encode password into Base256
         for {
-          account <- userAccountService.getAccountByName(username)
-          hasCode <- userAccountService.getAccountByCode(code.getOrElse(null))
-          result <- {
-            if (account == None) {
-              if (hasCode.map(_.referral_code) == code) {
-                val user: UserAccount = UserAccount(username, password)
+          isAccountAlreadyExists <- userAccountService.getAccountByName(username)
+          hasReferralCode <- userAccountService.getAccountByCode(code.getOrElse(null))
+          processed <- {
+            if (isAccountAlreadyExists == None) {
+              if (hasReferralCode.map(_.referralCode) == code) {
+                // encrypt account password into SHA256 algorithm...
+                val user: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
                 // generate User Account and VIP Account
                 for {
                   addAccount <- userAccountService.newUserAcc(user)
-                  addVip <- userAccountService.newVIPAcc(VIPUser(user.id, VIP.BRONZE, VIP.BRONZE, 0, 0, 0, user.created_at))
+                  addVip <- userAccountService.newVIPAcc(VIPUser(user.id, VIP.BRONZE, VIP.BRONZE, 0, 0, 0, user.createdAt))
                   // apply code if has value
                   _ <- Future.successful {
                     Thread.sleep(500) // add small delay
-                    if (hasCode.map(_.referral_code) != None) {
+                    if (hasReferralCode.map(_.referralCode) != None) {
                       referralHistoryService.applyReferralCode(user.id, code.getOrElse(null))
                     }
                   }
@@ -120,9 +139,9 @@ class HomeController @Inject()(
               }
               else Future(InternalServerError)
             }
-            else Future(InternalServerError)
+            else Future(Conflict)
           }
-        } yield (result)
+        } yield (processed)
       })
   }
 
@@ -131,7 +150,7 @@ class HomeController @Inject()(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password)  =>
         userAccountService
-          .getAccountByUserNamePassword(username, password)
+          .getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
           .map {
             case Some(account) =>
               userAccountService
@@ -148,8 +167,8 @@ class HomeController @Inject()(
       { case (username, password)  =>
         try {
           for {
-            isAccountExists <- userAccountService.getAccountByUserNamePassword(username, password)
-            result <- {
+            isAccountExists <- userAccountService.getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
+            processed <- {
               // check if has existing token (UPDATE) else insert new and return to user..
               if (isAccountExists != None) {
                 val account: UserAccount = isAccountExists.get
@@ -165,36 +184,13 @@ class HomeController @Inject()(
                 }
                 else Future(Conflict)
               }
-              else Future(InternalServerError)
+              else Future(Unauthorized(views.html.defaultpages.unauthorized()))
             }
-          } yield (result)
+          } yield (processed)
         }
         catch { case _: Throwable => Future(InternalServerError) }
       })
   }
-
-  def socket = WebSocket.accept[Event, Event] { implicit req =>
-    play.api.libs.streams.ActorFlow.actorRef { out =>
-      WebSocketActor.props(out,
-                          userAccountService,
-                          gQCharacterDataRepo,
-                          gQCharacterGameHistoryRepo,
-                          overAllGameHistoryRepo,
-                          vipUserRepo,
-                          eosioHTTPSupport,
-                          dynamicBroadcast,
-                          dynamicProcessor)
-    }
-  }
-
-  def index(): Action[AnyContent] = assets.at("index.html")
-  def assetOrDefault(resource: String): Action[AnyContent] =
-    try {
-      if (resource.contains(".")) assets.at(resource) else index
-    } catch {
-      case e: Throwable => Action.async(r => errorHandler.onClientError(r, NOT_FOUND, "Not found"))
-    }
-
   def addChallenge = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
@@ -211,7 +207,6 @@ class HomeController @Inject()(
         }
       })
   }
-
   // TODO: Need enhancements
   def updateChallenge(id: UUID) = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
@@ -320,14 +315,14 @@ class HomeController @Inject()(
       { case (game, imgURL, path, genre, description)  =>
         for {
           isExist <- genreRepo.exist(genre)
-          result  <- {
+          processed  <- {
             if (isExist)
               gameRepo
                 .add(Game(UUID.randomUUID, game, path, imgURL, genre, description))
                 .map(r => if(r < 1) InternalServerError else Created )
             else Future.successful(InternalServerError)
           }
-        } yield(result)
+        } yield(processed)
       })
   }
 
@@ -341,14 +336,14 @@ class HomeController @Inject()(
       { case (game, imgURL, path, genre, description) =>
         for {
           isExist <- genreRepo.exist(genre)
-           result <- {
+           processed <- {
               if (isExist)
                 gameRepo
                   .update(Game(id, game, imgURL, path, genre, description))
                   .map(r => if(r < 1) InternalServerError else Ok)
               else Future.successful(InternalServerError)
            }
-        } yield(result)
+        } yield(processed)
 
       })
   }

@@ -13,7 +13,7 @@ import play.api.libs.json._
 import models.domain._
 import models.repo._
 import models.service._
-import auth.helpers.SecureUserAction
+import utils.auth.SecureUserAction
 
 @Singleton
 class SecureActionController @Inject()(
@@ -25,9 +25,23 @@ class SecureActionController @Inject()(
                           taskService: TaskService,
                           cc: ControllerComponents,
                           SecureUserAction: SecureUserAction) extends AbstractController(cc) {
-  private def referralForm = Form(tuple(
+  private val referralForm = Form(tuple(
     "code" -> nonEmptyText,
     "applied_by" -> uuid))
+  private val emailForm = Form(single("email" -> email))
+  def addOrUpdateEmailAccount() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        emailForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid Email Address")),
+        { case (email)  =>
+          accountService
+            .addOrUpdateEmailAccount(account.id, email)
+            .map(x => if (x > 0) Created else Conflict)
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
 
   // http://127.0.0.1:9000/donut/api/v1/token/renew
   def renewSessionToken() = SecureUserAction.async { implicit request =>
@@ -64,7 +78,7 @@ class SecureActionController @Inject()(
     request
       .account
       .map { account =>
-        if (account.referral_code == code)
+        if (account.referralCode == code)
           referralHistory.getByCode(code).map(x => Ok(Json.toJson(x)))
         else
           Future(Unauthorized(views.html.defaultpages.unauthorized()))
@@ -108,7 +122,7 @@ class SecureActionController @Inject()(
     request
       .account
       .map { account =>
-        if (account.referral_code == code)
+        if (account.referralCode == code)
           accountService.getAccountByCode(code).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
         else
           Future(Unauthorized(views.html.defaultpages.unauthorized()))

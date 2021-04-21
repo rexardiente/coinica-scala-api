@@ -55,7 +55,7 @@ class ReferralHistoryService @Inject()(
             val referred: UserAccount = hasNoReferralClaim.get
             // if referrer has no yet been claimed, and to claime one then
             // must not allowed to claimed from those he referred
-            referralRepoHistory.isReferred(referrer.id, referred.referral_code).map { isAccReferrer =>
+            referralRepoHistory.isReferred(referrer.id, referred.referralCode).map { isAccReferrer =>
               if (!isAccReferrer) {
                 for {
                   _ <- {
@@ -89,8 +89,8 @@ class ReferralHistoryService @Inject()(
                           val getVIPAccount: VIPUser = vipAccount.get
                           val getVIPBenefit: VIPBenefit = vipBenefit.get
 
-                          userAccountRepo.update(referred.copy(referral = getVIPBenefit.referral_rate, referred_by = Some(code)))
-                          // userAccountRepo.update(referred.copy(referral = (VIPBenefitAmount.BRONZE.id / 2), referred_by = Some(code)))
+                          userAccountRepo.update(referred.copy(referral = getVIPBenefit.referral_rate, referredBy = Some(code)))
+                          // userAccountRepo.update(referred.copy(referral = (VIPBenefitAmount.BRONZE.id / 2), referredBy = Some(code)))
                         }
                       }
                     } yield ()

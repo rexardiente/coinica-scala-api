@@ -32,6 +32,26 @@ class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo
   def newUserAcc(acc: UserAccount): Future[Int] =
   	userAccountRepo.add(acc)
 
+  def addOrUpdateEmailAccount(id: UUID, email: String): Future[Int] = {
+    for {
+      isExists <- userAccountRepo.isEmailExist(email)
+      // get acccount based on first validations, proceed adding or updating email
+      account <- getAccountByID(id)
+      process <- {
+        // check if email not associated with any accounts and account exists
+        if (!isExists && account != None) {
+          try {
+            val updatedAccount: UserAccount = account.get.copy(email = Some(email))
+            updateUserAccount(updatedAccount)
+          } catch {
+            case _: Throwable => Future(0)
+          }
+        }
+        else Future(0)
+      }
+    } yield (process)
+  }
+
   def newVIPAcc(vip: VIPUser): Future[Int] =
   	vipUserRepo.add(vip)
 }

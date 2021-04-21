@@ -29,6 +29,9 @@ class UserAccountRepo @Inject()(
   def exist(id: UUID): Future[Boolean] =
     db.run(dao.Query(id).exists.result)
 
+  def isEmailExist(email: String): Future[Boolean] =
+    db.run(dao.Query.filter(_.email === email).exists.result)
+
   def getByID(id: UUID): Future[Option[UserAccount]] =
     db.run(dao.Query(id).result.headOption)
 

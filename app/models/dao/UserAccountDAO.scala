@@ -24,6 +24,7 @@ final class UserAccountDAO @Inject()(
     def winRate = column[Double] ("WIN_RATE")
     def token = column[Option[String]] ("SESSION_TOKEN")
     def tokenLimit = column[Option[Long]] ("SESSION_TOKEN_LIMIT")
+    def isConfirmed = column[Boolean] ("IS_CONFIRMED")
     def lastSignIn = column[Instant] ("LAST_SIGN_IN")
     def createdAt = column[Instant] ("CREATED_AT")
 
@@ -38,6 +39,7 @@ final class UserAccountDAO @Inject()(
             winRate,
             token,
             tokenLimit,
+            isConfirmed,
             lastSignIn,
             createdAt) <> (UserAccount.tupled, UserAccount.unapply)
   }

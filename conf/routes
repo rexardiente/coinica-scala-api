@@ -92,6 +92,7 @@ GET   /donut/api/v1/news controllers.HomeController.news
 GET   /donut/api/v1/account/user/:user 					controllers.SecureActionController.getAccountByName(user)
 GET   /donut/api/v1/account/code/:code 					controllers.SecureActionController.getAccountByCode(code: String)
 GET   /donut/api/v1/account/id/:id 							controllers.SecureActionController.getAccountByID(id: UUID)
+POST  /donut/api/v1/account/email/update 				controllers.SecureActionController.addOrUpdateEmailAccount()
 # VIP Account
 GET   /donut/api/v1/vip 				controllers.SecureActionController.vipUser(id: UUID)
 

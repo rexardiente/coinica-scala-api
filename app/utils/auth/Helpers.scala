@@ -1,4 +1,4 @@
-package auth.helpers
+package utils.auth
 
 import javax.inject.{ Inject, Singleton }
 import java.time.{ LocalDateTime, Instant }
@@ -24,6 +24,7 @@ class SecureUserAction @Inject()(
       .getBySessionToken(request.headers.get("EGS_TOKEN_SESSION").getOrElse(null))
       .map(new SecureUserRequest(_, request))
   }
+
   def generateToken(account: UserAccount): UserAccount = {
     val token: String = s"==token${UUID.randomUUID().toString}"
     val sessionTime: Long = Instant.now.getEpochSecond + (60 * 5)
@@ -31,6 +32,7 @@ class SecureUserAction @Inject()(
     account.copy(token = Some(token), tokenLimit = Some(sessionTime))
   }
 }
+
 // case class UserAccountSession(token: String, username: String, expiration: LocalDateTime)
 // object SecureUserAction {
   // generate or replace new token

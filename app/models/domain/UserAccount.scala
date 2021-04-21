@@ -3,8 +3,9 @@ package models.domain
 import java.time.Instant
 import java.util.UUID
 import play.api.libs.json._
+import utils.auth.EncryptKey
 
-object UserAccount {
+object UserAccount extends utils.CommonImplicits {
 	val tupled = (apply: (UUID,
 												String,
 												String,
@@ -16,64 +17,68 @@ object UserAccount {
 												Double,
 												Option[String],
 												Option[Long],
+												Boolean,
 												Instant,
 												Instant) => UserAccount).tupled
 	def apply(id: UUID,
 						username: String,
 						password: String,
 						email: Option[String],
-						referred_by: Option[String],
-						referral_code: String,
+						referredBy: Option[String],
+						referralCode: String,
 						referral: Double,
-						referral_rate: Double,
-						win_rate: Double, // TODO
+						referralRate: Double,
+						winRate: Double,
 						token: Option[String],
 						tokenLimit: Option[Long],
+						isValidated: Boolean,
 						lastSignIn: Instant,
-						created_at: Instant): UserAccount =
+						createdAt: Instant): UserAccount =
 		new UserAccount(id,
 										username,
 										password,
 										email,
-										referred_by,
-										referral_code,
+										referredBy,
+										referralCode,
 										referral,
-										referral_rate,
-										win_rate,
+										referralRate,
+										winRate,
 										token,
 										tokenLimit,
+										isValidated,
 										lastSignIn,
-										created_at)
+										createdAt)
 	// def apply(username: String): UserAccount = new UserAccount(UUID.randomUUID, username, None, UUID.randomUUID.toString.replaceAll("-", ""))
 	def apply(username: String, password: String): UserAccount = new UserAccount(
-																														UUID.randomUUID,
-																														username,
-																														password,
-																														None,
-																														None,
-																														UUID.randomUUID.toString.replaceAll("-", ""),
-																														0,
-																														models.domain.enum.VIP.BRONZE.id,
-																														0,
-																														None,
-																														None,
-																														Instant.now,
-																														Instant.now)
-	def apply(username: String, password: String, referred_by: Option[String]): UserAccount = new UserAccount(
-																														UUID.randomUUID,
-																														username,
-																														password,
-																														None,
-																														referred_by,
-																														UUID.randomUUID.toString.replaceAll("-", ""),
-																														0,
-																														models.domain.enum.VIP.BRONZE.id,
-																														0,
-																														None,
-																														None,
-																														Instant.now,
-																														Instant.now)
-	implicit def implUserAccount = Json.format[UserAccount]
+						UUID.randomUUID,
+						username,
+						password,
+						None,
+						None,
+						UUID.randomUUID.toString.replaceAll("-", ""),
+						0,
+						models.domain.enum.VIP.BRONZE.id,
+						0,
+						None,
+						None,
+						false,
+						Instant.now,
+						Instant.now)
+	def apply(username: String, password: String, referredBy: Option[String]): UserAccount = new UserAccount(
+						UUID.randomUUID,
+						username,
+						password,
+						None,
+						referredBy,
+						UUID.randomUUID.toString.replaceAll("-", ""),
+						0,
+						models.domain.enum.VIP.BRONZE.id,
+						0,
+						None,
+						None,
+						false,
+						Instant.now,
+						Instant.now)
 }
 // TODO: Win rate and referral system
 // 2.0 as defult referral rate
@@ -82,15 +87,16 @@ case class UserAccount(id: UUID,
 											username: String,
 											password: String,
 											email: Option[String],
-											referred_by: Option[String],
-											referral_code: String,
+											referredBy: Option[String],
+											referralCode: String,
 											referral: Double = 0,
-											referral_rate: Double = 0,
-											win_rate: Double = 0,
-											token: Option[String], // TODO
-											tokenLimit: Option[Long], // TODO
-											lastSignIn: Instant, // TODO
-											created_at: Instant = Instant.now()) {
+											referralRate: Double = 0,
+											winRate: Double = 0,
+											token: Option[String],
+											tokenLimit: Option[Long],
+											isValidated: Boolean,
+											lastSignIn: Instant,
+											createdAt: Instant = Instant.now()) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 
