@@ -1,32 +1,38 @@
+![](http://3.34.146.80:5000/static/media/referral.3c489497.png)
 # EOS GAME STORE SERVER API
-  Backend Server for [EGS WEB](https://github.com/DonutFactory/eos-web).
+  Backend Server for [EGS WEB](https://github.com/DonutFactory/eos-web) and resposible for the ff.
+- [x] HTTP and WS Security
+- [x] Account Management
+- [x] Games and Accounds Tx History
+- [x] w/ EOS Accounts Tx Event Listener
+- [ ] Referral and VIP Accounts
+- [ ] Daily and Monthly Tasks
+- [ ] Daily Challenge
+- [ ] Google Authentication
 
-### Functionalities
-* Security
-* Account Management
-* Games and Accounds Tx History
-* w/ EOS Accounts Tx Event Listener
+##### Note: development branch before merging into the master branch.
+### PostgreSQL DB command
 
-#### Note: development branch before merging into the master branch.
-## PostgreSQL DB command
-
-### Creating user
+#### Creating user
 > createuser eos-game-store-api
 
-### Creating Database
+#### Creating Database
 > createdb eos-game-store-api
 
-### PSQL login user
+#### PSQL login user
 
 > psql eos-game-store-api
 
-### Giving the user a password
+#### Giving the user a password
 
 > Alter user "eos-game-store-api" with encrypted password 'eos-game-store-api';
 
-### Granting privileges on database
+#### Granting privileges on database
 
 > Grant all privileges on database "eos-game-store-api" to "eos-game-store-api";
+
+### ![SBT](https://www.scala-sbt.org/assets/sbt-logo.svg) The Interactive Build Tool
+  For Scala and Java - sbt is built for Scala and Java projects. It is the build tool of choice for 93.6% of the Scala developers (2019). One of the examples of Scala-specific feature is the ability to cross build your project against multiple Scala versions.
 
 #### SBT Play Docker
 - sbt stage
@@ -40,7 +46,7 @@ sbt runProd -Dplay.server.http.idleTimeout=180s
 ### Reminder:
 > WebSocket protocol does not implement Same Origin Policy, and so does not protect against Cross-Site WebSocket Hijacking. To secure a websocket against hijacking, the Origin header in the request must be checked against the server’s origin, and manual authentication (including CSRF tokens) should be implemented. If a WebSocket request does not pass the security checks, then acceptOrResult should reject the request by returning a Forbidden result.
 
-### WS Request Types
+### WEB SOCKET REQUEST
 #### WS subscribe
 ```javascript
 {
