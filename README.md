@@ -1,6 +1,13 @@
-### EOS GAME STORE - API
+# EOS GAME STORE SERVER API
+  Backend Server for [EGS WEB](https://github.com/DonutFactory/eos-web).
 
-# Note: development branch before merging into the master branch.
+### Functionalities
+* Security
+* Account Management
+* Games and Accounds Tx History
+* w/ EOS Accounts Tx Event Listener
+
+#### Note: development branch before merging into the master branch.
 ## PostgreSQL DB command
 
 ### Creating user
@@ -79,7 +86,7 @@ sbt runProd -Dplay.server.http.idleTimeout=180s
 ####  EOS Net Transactions
 ```javascript
 {
-  "id": "user1",
+  "id": "username",
   "input": {
     "EOS_NET_TRANSACTION": "EOS_NET_TRANSACTION"
   }
@@ -88,7 +95,7 @@ sbt runProd -Dplay.server.http.idleTimeout=180s
 ####  TH game result
 ```javascript
 {
-  "id": "user1",
+  "id": "username",
   "input": {
     "tx_hash": "transaction hash",
     "game_id": "game id",
