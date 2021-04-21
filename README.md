@@ -1,83 +1,92 @@
 ### EOS GAME STORE - API
 
-# PostgreSQL DB command
+# Note: development branch before merging into the master branch.
+## PostgreSQL DB command
 
-## Creating user
-
+### Creating user
 > createuser eos-game-store-api
 
-## Creating Database
-
+### Creating Database
 > createdb eos-game-store-api
 
-## PSQL login user
+### PSQL login user
 
 > psql eos-game-store-api
 
-## Giving the user a password
+### Giving the user a password
 
 > Alter user "eos-game-store-api" with encrypted password 'eos-game-store-api';
 
-## Granting privileges on database
+### Granting privileges on database
 
 > Grant all privileges on database "eos-game-store-api" to "eos-game-store-api";
 
-# Note: development branch before merging into the master branch.
-
-
-## SBT Play Docker
+#### SBT Play Docker
 - sbt stage
 - sbt docker:stage
 - sbt docker:publishLocal
 - docker run -p 9000:9000 eos-game-store-api:1.0-SNAPSHOT
 
-Note: the WebSocket protocol does not implement Same Origin Policy, and so does not protect against Cross-Site WebSocket Hijacking. To secure a websocket against hijacking, the Origin header in the request must be checked against the server’s origin, and manual authentication (including CSRF tokens) should be implemented. If a WebSocket request does not pass the security checks, then acceptOrResult should reject the request by returning a Forbidden result.
+#### Set HTTP Idle Timeout
+sbt runProd -Dplay.server.http.idleTimeout=180s
 
-// subscribe WS
+### Reminder:
+> WebSocket protocol does not implement Same Origin Policy, and so does not protect against Cross-Site WebSocket Hijacking. To secure a websocket against hijacking, the Origin header in the request must be checked against the server’s origin, and manual authentication (including CSRF tokens) should be implemented. If a WebSocket request does not pass the security checks, then acceptOrResult should reject the request by returning a Forbidden result.
+
+### WS Request Types
+#### WS subscribe
+```javascript
 {
-	"id": "user1",
+	"id": "username",
 	"message": "subscribe"
 }
-
-// update character DB
+```
+#### update character DB
+```javascript
 {
-  "id": "user1",
+  "id": "username",
   "input": {
   	"character_created": true
   }
 }
-
-// reset WS connection
+```
+#### reset WS connection
+```javascript
 {
-	"message": "connection_reset"
+  "message": "connection_reset"
 }
-
-// VIP Requests
+```
+#### VIP Requests
+```javascript
 {
-  "id": "user2",
+  "id": "username",
   "input": {
-  	"user": "user1",
+  	"user": "username",
   	"command": "vip",
   	"request": "" //  info, current_rank, payout, point, next_rank
   }
 }
-
-// Next Battle
+```
+#### Ghost Quest Next Battle
+```javascript
 {
-  "id": "user1",
+  "id": "username",
   "input": {
     "GQ_NEXT_BATTLE": "get"
   }
 }
-
-<!-- oes net transaction -->
+```
+####  EOS Net Transactions
+```javascript
 {
   "id": "user1",
   "input": {
     "EOS_NET_TRANSACTION": "EOS_NET_TRANSACTION"
   }
 }
-<!-- TH game result -->
+```
+####  TH game result
+```javascript
 {
   "id": "user1",
   "input": {
@@ -97,17 +106,14 @@ Note: the WebSocket protocol does not implement Same Origin Policy, and so does 
     }
   }
 }
+```
 
-sbt runProd -Dplay.server.http.idleTimeout=180s
-
-
-
-GQ Smart Contract
+#### GQ Smart Contract
   - move characters history to private chain
   - battle_action
     - Update character details
 
-Server API
+#### Server API
   - Scheduler
     - Battle on Standby Characters
       - Battle result will be save on memory(Sever API)
@@ -133,19 +139,10 @@ Server API
     - remove character if still exists in smartcontract
     - save to Characters History DB
 
+#### [Action Result](https://alvinalexander.com/scala/play-framework-controller-action-results-list-types-ok/) Types
+#### Scala Play with Node Project
+- [React](https://blog.usejournal.com/react-with-play-framework-2-6-x-a6e15c0b7bd)
+- [Angular](https://torre.me.uk/2019/03/06/scala-play-rest-and-angular/)
 
-
-
-Convert LocalDateTime to Instant using LocalDateTime.toInstant() method.
-Instant instant = localDateTime.toInstant(ZoneOffset.UTC); 2. Convert Instant to LocalDateTime using LocalDateTime.ofInstant() method.
-LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
-
-#### Scala Play Result Types
-    [Types](https://alvinalexander.com/scala/play-framework-controller-action-results-list-types-ok/)
-#### Scala Play with React
-
-    [react](https://blog.usejournal.com/react-with-play-framework-2-6-x-a6e15c0b7bd)
-    [angular](https://torre.me.uk/2019/03/06/scala-play-rest-and-angular/)
-
-#### Play Filter token
-    https://stackoverflow.com/questions/26675615/token-based-authentication-in-play-filter-passing-objects-along
+#### Play Filter Token
+- [Sample Token Based Authentication](https://stackoverflow.com/questions/26675615/token-based-authentication-in-play-filter-passing-objects-along)
