@@ -13,59 +13,287 @@ import play.api.libs.json._
 import models.domain._
 import models.repo._
 import models.service._
-import auth.helpers._
+import auth.helpers.SecureUserAction
 
 @Singleton
 class SecureActionController @Inject()(
                           accountService: UserAccountService,
-                          userAction: UserAction,
+                          vipRepo: VIPUserRepo,
                           referralHistory:  ReferralHistoryService,
+                          allGameHistoryService: OverAllHistoryService,
+                          ghostQuestService: GQGameService,
+                          taskService: TaskService,
                           cc: ControllerComponents,
-                        ) extends AbstractController(cc) {
+                          SecureUserAction: SecureUserAction) extends AbstractController(cc) {
   private def referralForm = Form(tuple(
     "code" -> nonEmptyText,
     "applied_by" -> uuid))
 
   // http://127.0.0.1:9000/donut/api/v1/token/renew
-  def renewSessionToken() = userAction.async { implicit request =>
+  def renewSessionToken() = SecureUserAction.async { implicit request =>
     request
-      .user
-      .map { user =>
-        val newUserToken: UserAccount = UserAction.generateToken(user)
+      .account
+      .map { account =>
+        val newUserToken: UserAccount = SecureUserAction.generateToken(account)
         accountService
           .updateUserAccount(newUserToken.copy(lastSignIn = Instant.now))
           .map { x =>
             if (x > 0) Ok(Json.obj("token" -> newUserToken.token, "limit" -> newUserToken.tokenLimit))
             else InternalServerError
           }
-      }
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def applyReferralCode() = userAction.async { implicit request =>
+  def applyReferralCode() = SecureUserAction.async { implicit request =>
     request
-      .user
-      .map { user =>
+      .account
+      .map { account =>
         referralForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Form Validation Error.")),
         { case (code, appliedBy)  =>
           try {
             referralHistory
               .applyReferralCode(appliedBy, code)
-              .map(r => if(r < 1) InternalServerError else Created )
+              .map(r => if(r < 1) Forbidden else Created )
           } catch {
             case _: Throwable => Future(InternalServerError)
           }
         })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getReferralHistory(code: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.referral_code == code)
+          referralHistory.getByCode(code).map(x => Ok(Json.toJson(x)))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getTodayTaskUpdates(gameID: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        taskService.getTodayTaskUpdates(account.id, gameID).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getMonthlyTaskUpdates(gameID: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        taskService.getTodayTaskUpdates(account.id, gameID).map(x => Ok(Json.toJson(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getAccountByName(username: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.username == username)
+          accountService.getAccountByName(username).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getAccountByID(id: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == id)
+          accountService.getAccountByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getAccountByCode(code: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.referral_code == code)
+          accountService.getAccountByCode(code).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def vipUser(id: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == id)
+          vipRepo.findByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  // Ghost Quest Game
+  // def getAllCharacters() = SecureUserAction.async { implicit request =>
+  //   request
+  //     .account
+  //     .map(_ => gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x))))
+  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  // }
+  def getAllCharactersByUser(id: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.username == id)
+          ghostQuestService.getAllCharactersDataAndHistoryLogsByUser(id).map(Ok(_))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
+  def getCharactersByUser(id: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == id)
+          ghostQuestService.getAliveCharacters(id).map(Ok(_))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getCharacterByID(id: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.getCharacterDataByID(id).map(Ok(_)))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getCharacterByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == userID)
+          ghostQuestService.getCharacterByUserAndID(userID, id).map(Ok(_))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getCharacterHistoryByUser(id: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == id)
+          ghostQuestService.getAllEliminatedCharacters(id).map(Ok(_))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getCharacterHistoryByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == userID)
+          ghostQuestService.getCharacterHistoryByUserAndID(userID, id).map(Ok(_))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getAllGQGameHistory() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.getAllGameHistory().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getGQGameHistoryByUser(id: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == id)
+          ghostQuestService.getGQGameHistoryByUserID(id).map(x => Ok(Json.toJson(x)))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getGQGameHistoryByUserAndCharacterID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == userID)
+          ghostQuestService.getGameHistoryByUsernameAndCharacterID(userID, id).map(x => Ok(Json.toJson(x)))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getGQGameHistoryByGameID(id: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.filteredGameHistoryByID(id).map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def highEarnCharactersAllTime() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.highEarnCharactersAllTime().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def highEarnCharactersDaily() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.highEarnCharactersDaily().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def highEarnCharactersWeekly() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.highEarnCharactersWeekly().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+
+  def winStreakPerDay() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.winStreakPerDay().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def winStreakPerWeekly() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.winStreakPerWeekly().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def winStreakLifeTime() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.winStreakLifeTime().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def overAllHistory(limit: Int) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => allGameHistoryService.all(limit).map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def overAllHistoryByGameID(game: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => allGameHistoryService.gameHistoryByGameID(game).map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def gameHistoryByGameIDAndUser(game: UUID, userID: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        if (account.id == userID)
+          allGameHistoryService.gameHistoryByGameIDAndUser(userID, game).map(x => Ok(Json.toJson(x)))
+        else
+          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+
 
 
   // temporary add Account... http://127.0.0.1:9000/donut/api/v1/account/add?username=rexardiente
   // Todo: If account logout or closed the browser,
   // WS will triggered check if account has password
   // else remove account into DB
-  // def addAccount(user: String) = Action.async { implicit request =>
+  // def addAccount(user: String) = SecureUserAction.async { implicit request =>
   //   for {
   //     isExist <- accountRepo.findByUserName(user)
   //     response <- {

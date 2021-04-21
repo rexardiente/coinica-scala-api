@@ -16,6 +16,7 @@ final class UserAccountDAO @Inject()(
     def id = column[UUID] ("ID", O.PrimaryKey)
     def username = column[String] ("USERNAME")
     def password = column[String] ("PASSWORD")
+    def email = column[Option[String]] ("EMAIL_ADDRESS")
     def referredBy = column[Option[String]] ("REFERRED_BY")
     def referralCode = column[String] ("REFERRAL_CODE")
     def referralAmount = column[Double] ("REFERRAL_AMOUNT")
@@ -29,6 +30,7 @@ final class UserAccountDAO @Inject()(
     def * = (id,
             username,
             password,
+            email,
             referredBy,
             referralCode,
             referralAmount,

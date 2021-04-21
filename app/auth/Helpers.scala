@@ -10,14 +10,28 @@ import models.repo.UserAccountRepo
 import play.api.mvc._
 
 @Singleton
-class UserRequest[A](val user: Option[UserAccount], request: Request[A]) extends WrappedRequest[A](request)
-// case class UserAccountSession(token: String, username: String, expiration: LocalDateTime)
-object UserAction {
-	// generate or replace new token
-  def generateToken(user: UserAccount): UserAccount = {
-  	val token = s"==token${UUID.randomUUID().toString}"
-  	user.copy(token = Some(token), tokenLimit = Some(Instant.now.getEpochSecond + (60 * 10)))
+class SecureUserRequest[A](val account: Option[UserAccount], request: Request[A]) extends WrappedRequest[A](request)
+@Singleton
+class SecureUserAction @Inject()(
+														val parser: BodyParsers.Default,
+														accRepo: UserAccountRepo
+													)(implicit val executionContext: ExecutionContext)
+											  	extends ActionBuilder[SecureUserRequest, AnyContent]
+											    with ActionTransformer[Request, SecureUserRequest] {
+  // get by session token but make sure token is not expired else return false.
+  def transform[A](request: Request[A]) = {
+    accRepo
+      .getBySessionToken(request.headers.get("EGS_ACCOUNT_TOKEN").getOrElse(null))
+      .map(new SecureUserRequest(_, request))
   }
+  def generateToken(account: UserAccount): UserAccount = {
+    val token = s"==token${UUID.randomUUID().toString}"
+    account.copy(token = Some(token), tokenLimit = Some(Instant.now.getEpochSecond + (60 * 10)))
+  }
+}
+// case class UserAccountSession(token: String, username: String, expiration: LocalDateTime)
+// object SecureUserAction {
+  // generate or replace new token
   // Map token -> UserAccountSession
   // private val sessions = mutable.Map.empty[String, UserAccountSession]
   // def getSession(token: String): Option[UserAccountSession] = {
@@ -29,22 +43,4 @@ object UserAction {
   //   sessions.put(token, UserAccountSession(token, username, LocalDateTime.now().plusMinutes(5)))
   //   token
   // }
-}
-
-@Singleton
-class UserAction @Inject()(
-														val parser: BodyParsers.Default,
-														accRepo: UserAccountRepo
-													)(implicit val executionContext: ExecutionContext)
-											  	extends ActionBuilder[UserRequest, AnyContent]
-											    with ActionTransformer[Request, UserRequest] {
-
-  def transform[A](request: Request[A]) = {
-    val sessionTokenOpt = request.headers.get("EGS_ACCOUNT_TOKEN")
-		for {
-			// get by session token but make sure token is not expired else return false.
-			session <- accRepo.getBySessionToken(sessionTokenOpt.getOrElse(null))
-			process <- Future.successful(new UserRequest(session, request))
-		} yield (process)
-  }
-}
+// }

@@ -21,6 +21,7 @@ class OverAllHistoryService @Inject()(
   //     hasNext <- Future(size - (offset + limit) > 0)
   //   } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   // }
+  def all(limit: Int): Future[Seq[OverAllGameHistory]] = overallGameHistory.all(limit)
   // get latest 10 result for history..
   def gameHistoryByGameID(id: UUID): Future[Seq[OverAllGameHistory]] = {
     for {

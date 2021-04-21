@@ -19,7 +19,6 @@ import models.repo.eosio._
 import models.service._
 import models.domain.enum._
 import akka.WebSocketActor
-import auth.helpers.UserAction
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -49,6 +48,7 @@ class HomeController @Inject()(
       mat: akka.stream.Materializer,
       assets: Assets,
       errorHandler: HttpErrorHandler,
+      userAction: auth.helpers.SecureUserAction,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
@@ -140,7 +140,7 @@ class HomeController @Inject()(
                 // check if token is not yet expired..
                 if (account.tokenLimit.map(_ <= Instant.now.getEpochSecond).getOrElse(true)) {
                   // new generated token
-                  val newUserToken: UserAccount = UserAction.generateToken(account)
+                  val newUserToken: UserAccount = userAction.generateToken(account)
                   userAccountService
                     .updateUserAccount(newUserToken.copy(lastSignIn = Instant.now))
                     .map { x =>
@@ -174,33 +174,12 @@ class HomeController @Inject()(
   }
 
   def index(): Action[AnyContent] = assets.at("index.html")
-
   def assetOrDefault(resource: String): Action[AnyContent] =
     try {
       if (resource.contains(".")) assets.at(resource) else index
     } catch {
       case e: Throwable => Action.async(r => errorHandler.onClientError(r, NOT_FOUND, "Not found"))
     }
-
-  def userAccount(user: String) = Action.async { implicit req =>
-    userAccountService.getAccountByName(user).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
-  }
-
-  def getAccountByID(id: UUID) = Action.async { implicit req =>
-    userAccountService.getAccountByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
-  }
-
-  def getAccountByCode(code: String) = Action.async { implicit req =>
-    userAccountService.getAccountByCode(code).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
-  }
-
-  def vipUser(id: UUID) = Action.async { implicit req =>
-    vipUserRepo.findByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
-  }
-
-  def getReferralHistory(code: String) = Action.async { implicit req =>
-    referralHistoryService.getByCode(code).map(x => Ok(Json.toJson(x)))
-  }
 
   def addChallenge = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(
@@ -252,13 +231,6 @@ class HomeController @Inject()(
     challengeService.getDailyRanksChallenge.map(x => Ok(Json.toJson(x)))
   }
 
-  def getTodayTaskUpdates(user: UUID, gameID: UUID) = Action.async { implicit req =>
-    taskService.getTodayTaskUpdates(user, gameID).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
-  }
-
-  def getMonthlyTaskUpdates(user: UUID, gameID: UUID) = Action.async { implicit req =>
-    taskService.getTodayTaskUpdates(user, gameID).map(x => Ok(Json.toJson(x)))
-  }
   // def getWeeklyTaskUpdates(user: String, gameID: UUID)
   // def addTask = Action.async { implicit req =>
   //   taskForm.bindFromRequest.fold(
@@ -416,86 +388,7 @@ class HomeController @Inject()(
     eosNetTransaction.getByTxTraceID(id).map(Ok(_))
   }
 
-  def getAllCharacters() = Action.async { implicit req =>
-    gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x)))
-  }
-
-  def getAllCharactersByUser(user: UUID) = Action.async { implicit req =>
-    gqGameService.getAllCharactersDataAndHistoryLogsByUser(user).map(Ok(_))
-  }
-
-  def getCharactersByUser(user: UUID) = Action.async { implicit req =>
-    gqGameService.getAliveCharacters(user).map(Ok(_))
-  }
-
-  def getCharacterByID(id: String) = Action.async { implicit req =>
-    gqGameService.getCharacterDataByID(id).map(Ok(_))
-  }
-
-  def getCharacterByUserAndID(user: UUID, id: String) = Action.async { implicit req =>
-    gqGameService.getCharacterByUserAndID(user, id).map(Ok(_))
-  }
-
-  def getCharacterHistoryByUser(user: UUID) = Action.async { implicit req =>
-    gqGameService.getAllEliminatedCharacters(user).map(Ok(_))
-  }
-
-  def getCharacterHistoryByUserAndID(user: UUID, id: String) = Action.async { implicit req =>
-    gqGameService.getCharacterHistoryByUserAndID(user, id).map(Ok(_))
-  }
-
-  def getAllGQGameHistory() = Action.async { implicit req =>
-    gQCharacterGameHistoryRepo.all().map(x => Ok(Json.toJson(x)))
-  }
-
-  def getGQGameHistoryByUser(user: UUID) = Action.async { implicit req =>
-    gQCharacterGameHistoryRepo.getByUser(user).map(x => Ok(Json.toJson(x)))
-  }
-
-  def getGQGameHistoryByUserAndCharacterID(user: UUID, id: String) = Action.async { implicit req =>
-    gQCharacterGameHistoryRepo.getByUsernameAndCharacterID(user, id).map(x => Ok(Json.toJson(x)))
-  }
-  def getGQGameHistoryByGameID(id: String) = Action.async { implicit req =>
-    gQCharacterGameHistoryRepo.filteredByID(id).map(x => Ok(Json.toJson(x)))
-  }
-
-  def highEarnCharactersAllTime() = Action.async { implicit req =>
-    gqGameService.highEarnCharactersAllTime().map(x => Ok(Json.toJson(x)))
-  }
-
-  def highEarnCharactersDaily() = Action.async { implicit req =>
-    gqGameService.highEarnCharactersDaily().map(x => Ok(Json.toJson(x)))
-  }
-
-  def highEarnCharactersWeekly() = Action.async { implicit req =>
-    gqGameService.highEarnCharactersWeekly().map(x => Ok(Json.toJson(x)))
-  }
-
-  def winStreakPerDay() = Action.async { implicit req =>
-    gqGameService.winStreakPerDay().map(x => Ok(Json.toJson(x)))
-  }
-
-  def winStreakPerWeekly() = Action.async { implicit req =>
-    gqGameService.winStreakPerWeekly().map(x => Ok(Json.toJson(x)))
-  }
-
-  def winStreakLifeTime() = Action.async { implicit req =>
-    gqGameService.winStreakLifeTime().map(x => Ok(Json.toJson(x)))
-  }
-
   def news() = Action.async { implicit req =>
     newsRepo.all().map(x => Ok(Json.toJson(x)))
-  }
-
-  def overAllHistory(limit: Int) = Action.async { implicit req =>
-    overAllGameHistoryRepo.all(limit).map(x => Ok(Json.toJson(x)))
-  }
-
-  def overAllHistoryByGameID(game: UUID) = Action.async { implicit req =>
-    overAllHistoryService.gameHistoryByGameID(game).map(x => Ok(Json.toJson(x)))
-  }
-
-  def gameHistoryByGameIDAndUser(game: UUID, user: UUID) = Action.async { implicit req =>
-    overAllHistoryService.gameHistoryByGameIDAndUser(user, game).map(x => Ok(Json.toJson(x)))
   }
 }

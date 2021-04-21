@@ -273,7 +273,7 @@ class GQSchedulerActorV2 @Inject()(
           // broadcast game result to connected users
           // use live data to feed on history update..
           Await.ready(for {
-            _ <- gQGameHistoryRepo.insert(character)
+            _ <- gQGameHistoryRepo.insertGameHistory(character)
             _ <- gameTxHistory.add(winner)
             _ <- gameTxHistory.add(loser)
           } yield (), Duration.Inf)
@@ -314,7 +314,7 @@ class GQSchedulerActorV2 @Inject()(
         // check chracters spicific history to avoid battling again as posible..
         for {
           ownedCharacters <- Await.ready({
-            gQGameHistoryRepo.getByUsernameCharacterIDAndDate(
+            gQGameHistoryRepo.getGameHistoryByUsernameCharacterIDAndDate(
                                 player._2.owner,
                                 player._1,
                                 filteredDateForBattle.getEpochSecond,
