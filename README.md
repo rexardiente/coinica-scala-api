@@ -1,5 +1,4 @@
-![](http://3.34.146.80:5000/static/media/referral.3c489497.png)
-# EOS GAME STORE SERVER API
+# ![](http://3.34.146.80:5000/static/media/referral.3c489497.png) EOS GAME STORE SERVER API
   Backend Server for [EGS WEB](https://github.com/DonutFactory/eos-web) and resposible for the ff.
 - [x] HTTP and WS Security
 - [x] Account Management
