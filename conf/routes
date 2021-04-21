@@ -8,7 +8,7 @@ GET     /                           						controllers.HomeController.index()
 #GET     /                                        controllers.HomeController.index
 # Login API
 
-POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn()
+POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn(verify: Option[Long])
 POST   	/donut/api/v1/sign-out           	controllers.HomeController.signOut()
 POST   	/donut/api/v1/sign-up            	controllers.HomeController.signUp()
 GET   	/donut/api/v1/token/renew        	controllers.SecureActionController.renewSessionToken()
@@ -95,6 +95,10 @@ GET   /donut/api/v1/account/id/:id 							controllers.SecureActionController.get
 POST  /donut/api/v1/account/email/update 				controllers.SecureActionController.addOrUpdateEmailAccount()
 # VIP Account
 GET   /donut/api/v1/vip 				controllers.SecureActionController.vipUser(id: UUID)
+
+# Email Confirmation
+GET   /donut/api/v1/user/email/confirm 					controllers.HomeController.emailVerification(code: String)
+#GET   /donut/api/v1/user/email/confirm 					controllers.HomeController.verifyEmail(code: String)
 
 # Serve static assets under public directory
 GET 		/*file 											controllers.HomeController.assetOrDefault(file)

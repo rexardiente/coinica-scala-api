@@ -161,28 +161,51 @@ class HomeController @Inject()(
       })
   }
   // TODO: store password in hash256 format...
-  def signIn = Action.async { implicit request =>
+  def signIn(verify: Option[Long]) = Action.async { implicit request =>
     signForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password)  =>
         try {
           for {
-            isAccountExists <- userAccountService.getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
+            // check if sigin is from verifications no need Encryption
+            // else Encryptkey for security validation
+            isAccountExists <- {
+              if (verify != None) userAccountService.getAccountByUserNamePassword(username, password)
+              else userAccountService.getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
+            }
             processed <- {
               // check if has existing token (UPDATE) else insert new and return to user..
               if (isAccountExists != None) {
                 val account: UserAccount = isAccountExists.get
-                // check if token is not yet expired..else generated new token
-                if (account.tokenLimit.map(_ <= Instant.now.getEpochSecond).getOrElse(true)) {
-                  val newUserToken: UserAccount = userAction.generateToken(account)
-                  userAccountService
-                    .updateUserAccount(newUserToken.copy(lastSignIn = Instant.now))
-                    .map { x =>
-                      if (x > 0) Ok(Json.obj("token" -> newUserToken.token))
-                      else InternalServerError
+                val tempAccount: UserAccount = userAction.generateToken(account)
+                val currentTime: Long = Instant.now.getEpochSecond
+                // if verify make sure that existing token wont be overrided on this request..
+                if (verify != None) {
+                  // if expiration is greater than current time then its valid
+                  if (verify.getOrElse(0L) >= currentTime) {
+                    if (account.tokenLimit.map(_ <= currentTime).getOrElse(true)) {
+                      userAccountService
+                        .updateUserAccount(tempAccount.copy(lastSignIn = Instant.now))
+                        .map { x =>
+                          if (x > 0) Ok(Json.obj("token" -> tempAccount.token))
+                          else InternalServerError
+                        }
                     }
+                    else Future(Ok(Json.obj("token" -> account.token)))
+                  }
+                  else Future(Forbidden)
+                } else {
+                  // check if token is not yet expired..else generated new token
+                  if (account.tokenLimit.map(_ <= currentTime).getOrElse(true)) {
+                    userAccountService
+                      .updateUserAccount(tempAccount.copy(lastSignIn = Instant.now))
+                      .map { x =>
+                        if (x > 0) Ok(Json.obj("token" -> tempAccount.token))
+                        else InternalServerError
+                      }
+                  }
+                  else Future(Forbidden)
                 }
-                else Future(Conflict)
               }
               else Future(Unauthorized(views.html.defaultpages.unauthorized()))
             }
@@ -190,6 +213,26 @@ class HomeController @Inject()(
         }
         catch { case _: Throwable => Future(InternalServerError) }
       })
+  }
+  private def processVerificationCode[T >: String](code: T): (T, T, T, T) = {
+    try {
+      val codeOpt: List[String] = code.toString.split("_").toList
+      val (password, expiration): (String, String) = codeOpt(0).splitAt(64)
+      val email: String = codeOpt(1) // check if valid email format..
+      val username: String = codeOpt(2)
+
+      (username, password, email, expiration)
+    } catch {
+      case _: Throwable => throw new IllegalArgumentException("arg 1 was wrong...")
+    }
+  }
+  def emailVerification(code: String) = Action.async { implicit request =>
+    try {
+      processVerificationCode(code) match {
+        case (u, p, e, x) => Future(Ok(views.html.emailVerification(u, p)(e, x)))
+        case _ => Future(NotFound)
+    }}
+    catch { case e: Throwable => Future(NotFound) }
   }
   def addChallenge = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(

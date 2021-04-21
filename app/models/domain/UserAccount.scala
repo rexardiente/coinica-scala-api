@@ -31,7 +31,7 @@ object UserAccount extends utils.CommonImplicits {
 						winRate: Double,
 						token: Option[String],
 						tokenLimit: Option[Long],
-						isValidated: Boolean,
+						isVerified: Boolean,
 						lastSignIn: Instant,
 						createdAt: Instant): UserAccount =
 		new UserAccount(id,
@@ -45,7 +45,7 @@ object UserAccount extends utils.CommonImplicits {
 										winRate,
 										token,
 										tokenLimit,
-										isValidated,
+										isVerified,
 										lastSignIn,
 										createdAt)
 	// def apply(username: String): UserAccount = new UserAccount(UUID.randomUUID, username, None, UUID.randomUUID.toString.replaceAll("-", ""))
@@ -94,7 +94,7 @@ case class UserAccount(id: UUID,
 											winRate: Double = 0,
 											token: Option[String],
 											tokenLimit: Option[Long],
-											isValidated: Boolean,
+											isVerified: Boolean,
 											lastSignIn: Instant,
 											createdAt: Instant = Instant.now()) {
 	def toJson(): JsValue = Json.toJson(this)

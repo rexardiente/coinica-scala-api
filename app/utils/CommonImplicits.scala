@@ -624,7 +624,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 						(json \ "win_rate").as[Double],
 						(json \ "token").asOpt[String],
 						(json \ "token_limit").asOpt[Long],
-						(json \ "is_validated").as[Boolean],
+						(json \ "is_verified").as[Boolean],
 						(json \ "last_sign_in").as[Instant],
 						(json \ "created_at").as[Instant]))
 				} catch {
@@ -647,7 +647,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		"win_rate" -> tx.winRate,
 		"token" -> tx.token,
 		"token_limit" -> tx.tokenLimit,
-		"is_validated" -> tx.isValidated,
+		"is_verified" -> tx.isVerified,
 		"last_sign_in" -> tx.lastSignIn,
 		"created_at" -> tx.createdAt)
 	}

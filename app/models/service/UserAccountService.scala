@@ -41,7 +41,7 @@ class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo
         // check if email not associated with any accounts and account exists
         if (!isExists && account != None) {
           try {
-            val updatedAccount: UserAccount = account.get.copy(email = Some(email))
+            val updatedAccount: UserAccount = account.get.copy(email = Some(email), isVerified = true)
             updateUserAccount(updatedAccount)
           } catch {
             case _: Throwable => Future(0)

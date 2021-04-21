@@ -1,0 +1,49 @@
+@import play.api.data._
+@import play.api.data.Forms._
+@import play.api.data.validation.Constraints._
+
+@*
+ * This template is called from the `index` template. This template
+ * handles the rendering of the page header and body tags. It takes
+ * two arguments, a `String` for the title of the page and an `Html`
+ * object to insert into the body of the page.
+ *@
+@(u: String, p: String)(email: String, expiration: String)
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        @* Here's where we render the page title `String`. *@
+        <title>User Email Confirmation</title>
+        <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("stylesheets/main.css")">
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.versioned("images/favicon.png")">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script type="text/javascript">
+          @* var MyUserObject = {};
+          * MyUserObject["title"] = "@title";
+          *// console.log(MyUserObject.title)
+          *@
+          var data = {'username':"@u",'password':"@p" };
+          window.onload = function() { verifySignIn(data); };
+
+          const verifySignIn = (data) => {
+            $.ajax({
+              type :  "POST",
+              dataType: 'json',
+              data: JSON.stringify(data),
+              contentType: "application/json; charset=utf-8",
+              url  :  "@routes.HomeController.signIn(Some(expiration.toLong))",
+              success: function(res) {
+                console.log(res);
+              }
+           });
+          };
+        </script>
+    </head>
+    <body>
+        @* And here's where we render the `Html` object containing
+         * the page content. *@
+
+      <script src="@routes.Assets.versioned("javascripts/main.js")" type="text/javascript"></script>
+    </body>
+</html>

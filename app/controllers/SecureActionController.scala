@@ -10,6 +10,7 @@ import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.libs.json._
+import play.api.data.validation.Constraints.emailAddress
 import models.domain._
 import models.repo._
 import models.service._
@@ -28,7 +29,8 @@ class SecureActionController @Inject()(
   private val referralForm = Form(tuple(
     "code" -> nonEmptyText,
     "applied_by" -> uuid))
-  private val emailForm = Form(single("email" -> email))
+  private val emailForm = Form(single("email" -> email.verifying( emailAddress )))
+
   def addOrUpdateEmailAccount() = SecureUserAction.async { implicit request =>
     request
       .account
@@ -38,7 +40,7 @@ class SecureActionController @Inject()(
         { case (email)  =>
           accountService
             .addOrUpdateEmailAccount(account.id, email)
-            .map(x => if (x > 0) Created else Conflict)
+            .map(x => if (x > 0) Redirect(routes.HomeController.index) else Conflict)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
