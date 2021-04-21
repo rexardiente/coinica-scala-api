@@ -8,8 +8,9 @@ GET     /                           						controllers.HomeController.index()
 #GET     /                                        controllers.HomeController.index
 # Login API
 
-POST   	/donut/api/v1/sign-up            	controllers.HomeController.signUp()
 POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn()
+POST   	/donut/api/v1/sign-out           	controllers.HomeController.signOut()
+POST   	/donut/api/v1/sign-up            	controllers.HomeController.signUp()
 GET   	/donut/api/v1/token/renew        	controllers.SecureActionController.renewSessionToken()
 
 # Challenge API

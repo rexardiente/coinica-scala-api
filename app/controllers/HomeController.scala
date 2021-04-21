@@ -80,7 +80,7 @@ class HomeController @Inject()(
     "name" -> nonEmptyText,
     "description" -> optional(text)))
 
-  private def signInForm = Form(tuple(
+  private def signForm = Form(tuple(
     "username" -> nonEmptyText,
     "password" -> nonEmptyText))
   // referred_by = user code..
@@ -125,9 +125,25 @@ class HomeController @Inject()(
         } yield (result)
       })
   }
+
+  def signOut() = Action.async { implicit request =>
+    signForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (username, password)  =>
+        userAccountService
+          .getAccountByUserNamePassword(username, password)
+          .map {
+            case Some(account) =>
+              userAccountService
+                .updateUserAccount(account.copy(token=None, tokenLimit=None))
+                .map(x => if (x > 0) Accepted else InternalServerError)
+            case _ => Future(Unauthorized(views.html.defaultpages.unauthorized()))
+          }.flatten
+      })
+  }
   // TODO: store password in hash256 format...
   def signIn = Action.async { implicit request =>
-    signInForm.bindFromRequest.fold(
+    signForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password)  =>
         try {
@@ -143,12 +159,11 @@ class HomeController @Inject()(
                   userAccountService
                     .updateUserAccount(newUserToken.copy(lastSignIn = Instant.now))
                     .map { x =>
-                      if (x > 0) Ok(Json.obj("token" -> newUserToken.token, "limit" -> newUserToken.tokenLimit))
+                      if (x > 0) Ok(Json.obj("token" -> newUserToken.token))
                       else InternalServerError
                     }
                 }
-                else Future(Conflict(Json.obj("exists" -> account.token, "limit" -> account.tokenLimit)))
-                // else Future(Conflict(Json.obj("error" -> "already signed")))
+                else Future(Conflict)
               }
               else Future(InternalServerError)
             }
