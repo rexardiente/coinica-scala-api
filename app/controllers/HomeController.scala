@@ -137,9 +137,8 @@ class HomeController @Inject()(
               // check if has existing token (UPDATE) else insert new and return to user..
               if (isAccountExists != None) {
                 val account: UserAccount = isAccountExists.get
-                // check if token is not yet expired..
+                // check if token is not yet expired..else generated new token
                 if (account.tokenLimit.map(_ <= Instant.now.getEpochSecond).getOrElse(true)) {
-                  // new generated token
                   val newUserToken: UserAccount = userAction.generateToken(account)
                   userAccountService
                     .updateUserAccount(newUserToken.copy(lastSignIn = Instant.now))

@@ -286,25 +286,4 @@ class SecureActionController @Inject()(
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
-
-
-  // temporary add Account... http://127.0.0.1:9000/donut/api/v1/account/add?username=rexardiente
-  // Todo: If account logout or closed the browser,
-  // WS will triggered check if account has password
-  // else remove account into DB
-  // def addAccount(user: String) = SecureUserAction.async { implicit request =>
-  //   for {
-  //     isExist <- accountRepo.findByUserName(user)
-  //     response <- {
-  //       if (isExist == None) {
-  //         println(isExist)
-  //         accountRepo
-  //           .add(new Account(UUID.randomUUID, user, None, Instant.now().getEpochSecond))
-  //           .map(x => if(x > 0) Created else InternalServerError)
-  //       }
-  //       else Future(InternalServerError)
-  //     }
-  //   } yield (response)
-  // }
 }

@@ -21,12 +21,14 @@ class SecureUserAction @Inject()(
   // get by session token but make sure token is not expired else return false.
   def transform[A](request: Request[A]) = {
     accRepo
-      .getBySessionToken(request.headers.get("EGS_ACCOUNT_TOKEN").getOrElse(null))
+      .getBySessionToken(request.headers.get("EGS_TOKEN_SESSION").getOrElse(null))
       .map(new SecureUserRequest(_, request))
   }
   def generateToken(account: UserAccount): UserAccount = {
-    val token = s"==token${UUID.randomUUID().toString}"
-    account.copy(token = Some(token), tokenLimit = Some(Instant.now.getEpochSecond + (60 * 10)))
+    val token: String = s"==token${UUID.randomUUID().toString}"
+    val sessionTime: Long = Instant.now.getEpochSecond + (60 * 5)
+    // limit/expire session after 5 minutes of creation, else send renew session..
+    account.copy(token = Some(token), tokenLimit = Some(sessionTime))
   }
 }
 // case class UserAccountSession(token: String, username: String, expiration: LocalDateTime)
