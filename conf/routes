@@ -92,13 +92,13 @@ GET   /donut/api/v1/news controllers.HomeController.news
 GET   /donut/api/v1/account/user/:user 					controllers.SecureActionController.getAccountByName(user)
 GET   /donut/api/v1/account/code/:code 					controllers.SecureActionController.getAccountByCode(code: String)
 GET   /donut/api/v1/account/id/:id 							controllers.SecureActionController.getAccountByID(id: UUID)
-POST  /donut/api/v1/account/email/update 				controllers.SecureActionController.addOrUpdateEmailAccount()
 # VIP Account
 GET   /donut/api/v1/vip 				controllers.SecureActionController.vipUser(id: UUID)
 
 # Email Confirmation
 GET   /donut/api/v1/user/email/confirm 					controllers.HomeController.emailVerification(code: String)
-#GET   /donut/api/v1/user/email/confirm 					controllers.HomeController.verifyEmail(code: String)
+POST  /donut/api/v1/user/email/update 					controllers.SecureActionController.updateEmailAccount()
+POST  /donut/api/v1/user/email/add 							controllers.SecureActionController.addEmailAccount()
 
 # Serve static assets under public directory
 GET 		/*file 											controllers.HomeController.assetOrDefault(file)

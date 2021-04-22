@@ -24,6 +24,8 @@ javaOptions in Universal ++= Seq(
 libraryDependencies ++= Seq(
 	guice,
 	ws,
+	"com.typesafe.play" %% "play-mailer" % "8.0.1",
+	"com.typesafe.play" %% "play-mailer-guice" % "8.0.1",
 	"com.typesafe.slick" %% "slick" % "3.3.2",
 	"com.typesafe.play" %% "play-slick" % "5.0.0",
 	"com.typesafe.play" %% "play-slick-evolutions" % "5.0.0",

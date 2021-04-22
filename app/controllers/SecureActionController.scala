@@ -4,12 +4,14 @@ import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import java.time.{ Instant, LocalDateTime }
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ Await, Future }
+import scala.concurrent.duration._
 import play.api._
 import play.api.mvc._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.libs.json._
+import play.api.libs.mailer.MailerService
 import play.api.data.validation.Constraints.emailAddress
 import models.domain._
 import models.repo._
@@ -24,6 +26,7 @@ class SecureActionController @Inject()(
                           allGameHistoryService: OverAllHistoryService,
                           ghostQuestService: GQGameService,
                           taskService: TaskService,
+                          mailerService: MailerService,
                           cc: ControllerComponents,
                           SecureUserAction: SecureUserAction) extends AbstractController(cc) {
   private val referralForm = Form(tuple(
@@ -31,7 +34,7 @@ class SecureActionController @Inject()(
     "applied_by" -> uuid))
   private val emailForm = Form(single("email" -> email.verifying( emailAddress )))
 
-  def addOrUpdateEmailAccount() = SecureUserAction.async { implicit request =>
+  def updateEmailAccount() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -41,6 +44,26 @@ class SecureActionController @Inject()(
           accountService
             .addOrUpdateEmailAccount(account.id, email)
             .map(x => if (x > 0) Redirect(routes.HomeController.index) else Conflict)
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+
+  def addEmailAccount() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        emailForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid Email Address")),
+        { case (email)  =>
+          if (Some(email) == account.email) Future(Conflict)
+          else {
+            try {
+              Await.ready(mailerService.sendEmail(account, email), Duration.Inf)
+              Future(Created)
+            } catch {
+              case _: Throwable => Future(InternalServerError)
+            }
+          }
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }

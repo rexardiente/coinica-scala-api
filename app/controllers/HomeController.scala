@@ -185,24 +185,17 @@ class HomeController @Inject()(
                   if (verify.getOrElse(0L) >= currentTime) {
                     if (account.tokenLimit.map(_ <= currentTime).getOrElse(true)) {
                       userAccountService
-                        .updateUserAccount(tempAccount.copy(lastSignIn = Instant.now))
-                        .map { x =>
-                          if (x > 0) Ok(Json.obj("token" -> tempAccount.token))
-                          else InternalServerError
-                        }
+                        .updateUserAccount(tempAccount)
+                        .map(x => if (x > 0) Ok(Json.obj("token" -> tempAccount.token)) else InternalServerError)
                     }
                     else Future(Ok(Json.obj("token" -> account.token)))
                   }
                   else Future(Forbidden)
                 } else {
-                  // check if token is not yet expired..else generated new token
                   if (account.tokenLimit.map(_ <= currentTime).getOrElse(true)) {
                     userAccountService
                       .updateUserAccount(tempAccount.copy(lastSignIn = Instant.now))
-                      .map { x =>
-                        if (x > 0) Ok(Json.obj("token" -> tempAccount.token))
-                        else InternalServerError
-                      }
+                      .map(x => if (x > 0) Ok(Json.obj("token" -> tempAccount.token)) else InternalServerError)
                   }
                   else Future(Forbidden)
                 }
@@ -220,11 +213,9 @@ class HomeController @Inject()(
       val (password, expiration): (String, String) = codeOpt(0).splitAt(64)
       val email: String = codeOpt(1) // check if valid email format..
       val username: String = codeOpt(2)
-
       (username, password, email, expiration)
-    } catch {
-      case _: Throwable => throw new IllegalArgumentException("arg 1 was wrong...")
     }
+    catch { case _: Throwable => throw new IllegalArgumentException("Invalid Code") }
   }
   def emailVerification(code: String) = Action.async { implicit request =>
     try {
@@ -238,16 +229,9 @@ class HomeController @Inject()(
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description, startAt, expiredAt)  =>
-        try {
-          challengeRepo
-            .add(Challenge(name,
-                          description,
-                          startAt,
-                          expiredAt.getOrElse(startAt + 86400)))
-            .map(r => if(r < 1) InternalServerError else Created )
-        } catch {
-          case _: Throwable => Future(InternalServerError)
-        }
+        challengeRepo
+          .add(Challenge(name, description, startAt, expiredAt.getOrElse(startAt + 86400)))
+          .map(r => if(r > 0) Created else InternalServerError)
       })
   }
   // TODO: Need enhancements
@@ -255,24 +239,16 @@ class HomeController @Inject()(
     challengeForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (name, description, startAt, expiredAt)  =>
-        try {
-          challengeRepo
-            .update(Challenge(id,
-                              name,
-                              description,
-                              startAt,
-                              expiredAt.getOrElse(Instant.now.getEpochSecond)))
-            .map(r => if(r < 1) NotFound else Ok)
-        } catch {
-          case _: Throwable => Future(InternalServerError)
-        }
+        challengeRepo
+          .update(Challenge(id, name, description, startAt, expiredAt.getOrElse(Instant.now.getEpochSecond)))
+          .map(r => if(r > 0) Ok else NotFound)
       })
   }
 
   def removeChallenge(id: UUID) = Action.async { implicit req =>
     challengeRepo
       .delete(id)
-      .map(r => if(r < 1) NotFound else Ok)
+      .map(r => if(r > 0) Ok else NotFound)
   }
 
   def getChallenge(date: Option[Instant]) = Action.async { implicit req =>
@@ -290,7 +266,7 @@ class HomeController @Inject()(
   //     { case (gameID, info, isValid, datecreated)  =>
   //       taskRepo
   //         .add(Task(UUID.randomUUID, gameID, info, isValid, datecreated))
-  //         .map(r => if(r < 1) InternalServerError else Created )
+  //         .map(r => if(r > 0) Created else InternalServerError)
   //     })
   // }
   // def updateTask(id: UUID) = Action.async { implicit req =>
@@ -299,13 +275,13 @@ class HomeController @Inject()(
   //     { case (gameID, info, isValid, datecreated) =>
   //       taskRepo
   //         .update(Task(id, gameID, info, isValid, datecreated))
-  //         .map(r => if(r < 1) NotFound else Ok)
+  //         .map(r => if(r > 0) Ok else NotFound)
   //     })
   // }
   // def removeTask(id: UUID) = Action.async { implicit req =>
   //   taskRepo
   //     .delete(id)
-  //     .map(r => if(r < 1) NotFound else Ok)
+  //     .map(r => if(r > 0) Ok else NotFound)
   // }
   // def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
   //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
@@ -319,7 +295,7 @@ class HomeController @Inject()(
   //     { case (name, bets,profit,multiplieramount,rankingcreated)  =>
   //       rankingRepo
   //         .add(Ranking(UUID.randomUUID, name, bets,profit,multiplieramount,rankingcreated))
-  //         .map(r => if(r < 1) InternalServerError else Created )
+  //         .map(r => if(r > 0) Created else InternalServerError)
   //     })
   // }
   // def updateRanking(id: UUID) = Action.async { implicit req =>
@@ -328,13 +304,13 @@ class HomeController @Inject()(
   //     { case (name, bets,profit,multiplieramount,rankingcreated) =>
   //       rankingRepo
   //         .update(Ranking(id, name, bets,profit,multiplieramount,rankingcreated))
-  //         .map(r => if(r < 1) NotFound else Ok)
+  //         .map(r => if(r > 0) Ok else NotFound)
   //     })
   // }
   // def removeRanking(id: UUID) = Action.async { implicit req =>
   //   rankingRepo
   //     .delete(id)
-  //     .map(r => if(r < 1) NotFound else Ok)
+  //     .map(r => if(r > 0) Ok else NotFound)
   // }
 
   // def getRankingByDate(date: Option[Instant]) = Action.async { implicit req =>
@@ -362,8 +338,8 @@ class HomeController @Inject()(
             if (isExist)
               gameRepo
                 .add(Game(UUID.randomUUID, game, path, imgURL, genre, description))
-                .map(r => if(r < 1) InternalServerError else Created )
-            else Future.successful(InternalServerError)
+                .map(r => if(r > 0) Created else InternalServerError)
+            else Future(NotFound)
           }
         } yield(processed)
       })
@@ -383,8 +359,8 @@ class HomeController @Inject()(
               if (isExist)
                 gameRepo
                   .update(Game(id, game, imgURL, path, genre, description))
-                  .map(r => if(r < 1) InternalServerError else Ok)
-              else Future.successful(InternalServerError)
+                  .map(r => if(r > 0) Ok else InternalServerError)
+              else Future(NotFound)
            }
         } yield(processed)
 
@@ -394,7 +370,7 @@ class HomeController @Inject()(
   def removeGame(id: UUID) = Action.async { implicit req =>
     gameRepo
       .delete(id)
-      .map(r => if(r < 1) NotFound else Ok)
+      .map(r => if(r > 0) Ok else NotFound)
   }
 
   /* GENRE API */
@@ -412,7 +388,7 @@ class HomeController @Inject()(
       { case (name, description)  =>
         genreRepo
           .add(Genre(UUID.randomUUID, name, description))
-          .map(r => if(r < 1) InternalServerError else Created )
+          .map(r => if(r > 0) Created else InternalServerError)
       })
   }
 
@@ -422,14 +398,14 @@ class HomeController @Inject()(
       { case (name, description) =>
         genreRepo
           .update(Genre(id, name, description))
-          .map(r => if(r < 1) InternalServerError else Ok)
+          .map(r => if(r > 0) Ok else InternalServerError)
       })
   }
 
   def removeGenre(id: UUID) = Action.async { implicit req =>
     genreRepo
       .delete(id)
-      .map(r => if(r < 1) NotFound else Ok)
+      .map(r => if(r > 0) Ok else NotFound)
   }
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>

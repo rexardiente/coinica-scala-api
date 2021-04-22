@@ -39,7 +39,7 @@
           data: JSON.stringify({'email': "@email"}),
           contentType: "application/json; charset=utf-8",
           headers: { 'EGS_TOKEN_SESSION': session, 'Content-Type':'application/json' },
-          url: "@routes.SecureActionController.addOrUpdateEmailAccount()",
+          url: "@routes.SecureActionController.updateEmailAccount()",
           success: function(res) {
             window.location="@routes.HomeController.index()";
           },

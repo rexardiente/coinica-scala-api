@@ -33,4 +33,8 @@ object Config {
 
 	val NODE_SERVER_URI: String = config.getString("eosio.eosjs.node.server.uri")
 	val EOS_TO_USD_CONVERSION: Double = config.getDouble("platform.EOS_TO_USD_CONVERSION")
+
+	// Email Configs
+	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
+	val MAIL_EXPIRATION: Int = config.getInt("play.mailer.expiration")
 }
