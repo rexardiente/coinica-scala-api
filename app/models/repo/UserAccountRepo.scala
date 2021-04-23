@@ -43,6 +43,8 @@ class UserAccountRepo @Inject()(
 
   def getAccountByReferralCode(code: String): Future[Option[UserAccount]] =
     db.run(dao.Query.filter(_.referralCode === code).result.headOption)
+  def getAccountByEmailAddress(email: String): Future[Option[UserAccount]] =
+    db.run(dao.Query.filter(_.email === email).result.headOption)
 
   def getByName(username: String): Future[Option[UserAccount]] =
     db.run(dao.Query.filter(x => x.username === username).result.headOption)

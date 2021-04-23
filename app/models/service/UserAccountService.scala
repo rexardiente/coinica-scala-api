@@ -26,6 +26,9 @@ class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo
   def getAccountByCode(code: String): Future[Option[UserAccount]] =
   	userAccountRepo.getAccountByReferralCode(code)
 
+  def getAccountByEmailAddress(email: String): Future[Option[UserAccount]] =
+    userAccountRepo.getAccountByEmailAddress(email)
+
   def getAccountByUserNamePassword(user: String, pass: String): Future[Option[UserAccount]] =
   	userAccountRepo.getAccountByUserNamePassword(user, pass)
 
@@ -35,9 +38,12 @@ class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo
   def exists(username: String, password: String): Future[Boolean] =
     userAccountRepo.exist(username, password)
 
+  def isEmailExist(email: String): Future[Boolean] =
+    userAccountRepo.isEmailExist(email)
+
   def addOrUpdateEmailAccount(id: UUID, email: String): Future[Int] = {
     for {
-      isExists <- userAccountRepo.isEmailExist(email)
+      isExists <- isEmailExist(email)
       // get acccount based on first validations, proceed adding or updating email
       account <- getAccountByID(id)
       process <- {

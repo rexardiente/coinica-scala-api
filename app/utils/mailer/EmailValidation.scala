@@ -26,7 +26,7 @@ class EmailValidation @Inject()(accountService: UserAccountService)(implicit val
     try {
       val raw: List[String] = code.toString.split("_").toList
       val (password, expiration): (String, String) = raw(0).splitAt(64)
-      val username: String = raw(2)
+      val username: String = raw(1)
 
       isAccountExists(username, password).map { isExists =>
         if (isExists) (username, password, expiration)

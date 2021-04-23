@@ -57,40 +57,41 @@ class HomeController @Inject()(
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
 
   /*  CUSTOM FORM VALIDATION */
-  private def challengeForm = Form(tuple(
+  private val challengeForm = Form(tuple(
     "name" -> uuid,
     "description" -> nonEmptyText,
     "start_at" -> longNumber,
     "expire_at" -> optional(longNumber)))
-  private def rankingForm = Form(tuple(
+  private val rankingForm = Form(tuple(
     "name" -> nonEmptyText,
     "bets" -> number,
     "profit" -> number,
     "multiplieramount" -> number,
     "rankingcreated" -> longNumber))
-  private def gameForm = Form(tuple(
+  private val gameForm = Form(tuple(
     "game" -> nonEmptyText,
     "imgURL" -> nonEmptyText,
     "path" -> nonEmptyText,
     "genre" -> uuid,
     "description" -> optional(text)))
-  private def taskForm = Form(tuple(
+  private val taskForm = Form(tuple(
     "gameid" -> uuid,
     "info" -> nonEmptyText,
     "isValid" -> boolean,
     "datecreated" -> longNumber))
-  private def genreForm = Form(tuple(
+  private val genreForm = Form(tuple(
     "name" -> nonEmptyText,
     "description" -> optional(text)))
 
-  private def signForm = Form(tuple(
+  private val signForm = Form(tuple(
     "username" -> nonEmptyText,
     "password" -> nonEmptyText))
   // referred_by = user code..
-  private def signUpForm = Form(tuple(
+  private val signUpForm = Form(tuple(
     "username" -> nonEmptyText,
     "password" -> nonEmptyText,
     "referred_by" -> optional(text)))
+  private val emailForm = Form(single("email" -> email.verifying( play.api.data.validation.Constraints.emailAddress )))
 
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
@@ -213,6 +214,35 @@ class HomeController @Inject()(
     try {
       validateEmail.emailFromCode(code) map {
         case (u, p, e, x) => Ok(views.html.emailVerificationTemplate(u, p)(e, x))
+        case _ => NotFound
+    }}
+    catch { case e: Throwable => Future(NotFound) }
+  }
+  // Check if email is valid email and if email exist then send confirmation link..
+  def resetPassword(email: String) = Action.async { implicit request =>
+    emailForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (email)  =>
+        userAccountService
+          .getAccountByEmailAddress(email)
+          .map {
+            case Some(acc) =>
+              Ok
+            case _ => NotFound
+          }
+          // .map {
+          //   case Some(account) =>
+          //     userAccountService
+          //       .updateUserAccount(account.copy(token=None, tokenLimit=None))
+          //       .map(x => if (x > 0) Accepted else InternalServerError)
+          //   case _ => Future(Unauthorized(views.html.defaultpages.unauthorized()))
+          // }.flatten
+      })
+  }
+  def resetPasswordVerification(code: String) = Action.async { implicit request =>
+    try {
+      validateEmail.passwordFromCode(code) map {
+        case (u, p, e) => Ok(views.html.resetPasswordTemplate(u, p, e))
         case _ => NotFound
     }}
     catch { case e: Throwable => Future(NotFound) }
