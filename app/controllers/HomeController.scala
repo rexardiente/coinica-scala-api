@@ -220,7 +220,7 @@ class HomeController @Inject()(
   def emailVerification(code: String) = Action.async { implicit request =>
     try {
       processVerificationCode(code) match {
-        case (u, p, e, x) => Future(Ok(views.html.emailVerification(u, p)(e, x)))
+        case (u, p, e, x) => Future(Ok(views.html.emailVerificationTemplate(u, p)(e, x)))
         case _ => Future(NotFound)
     }}
     catch { case e: Throwable => Future(NotFound) }
