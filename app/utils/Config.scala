@@ -37,4 +37,5 @@ object Config {
 	// Email Configs
 	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
 	val MAIL_EXPIRATION: Int = config.getInt("play.mailer.expiration")
+	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
 }

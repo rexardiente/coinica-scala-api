@@ -13,7 +13,7 @@ import play.api.data.Forms._
 import play.api.libs.json._
 import play.api.Configuration
 import play.api.http.HttpErrorHandler
-import play.api.libs.mailer.EmailValidation
+import play.api.libs.mailer.{ EmailValidation, MailerService }
 import models.domain._
 import models.repo._
 import models.repo.eosio._
@@ -52,6 +52,7 @@ class HomeController @Inject()(
       userAction: utils.auth.SecureUserAction,
       encryptKey: utils.auth.EncryptKey,
       validateEmail: EmailValidation,
+      mailerService: MailerService,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
@@ -219,24 +220,18 @@ class HomeController @Inject()(
     catch { case e: Throwable => Future(NotFound) }
   }
   // Check if email is valid email and if email exist then send confirmation link..
-  def resetPassword(email: String) = Action.async { implicit request =>
+  def resetPassword() = Action.async { implicit request =>
     emailForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (email)  =>
-        userAccountService
-          .getAccountByEmailAddress(email)
-          .map {
-            case Some(acc) =>
-              Ok
-            case _ => NotFound
+        for {
+          account <- userAccountService.getAccountByEmailAddress(email)
+          processed <- {
+            if (account != None) // send email confirmation link
+              mailerService.sendResetPasswordEmail(account.get, email).map(_ => Created)
+            else Future(NotFound)
           }
-          // .map {
-          //   case Some(account) =>
-          //     userAccountService
-          //       .updateUserAccount(account.copy(token=None, tokenLimit=None))
-          //       .map(x => if (x > 0) Accepted else InternalServerError)
-          //   case _ => Future(Unauthorized(views.html.defaultpages.unauthorized()))
-          // }.flatten
+        } yield (processed)
       })
   }
   def resetPasswordVerification(code: String) = Action.async { implicit request =>

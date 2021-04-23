@@ -58,7 +58,7 @@ class SecureActionController @Inject()(
           if (Some(email) == account.email) Future(Conflict)
           else {
             try {
-              Await.ready(mailerService.sendEmail(account, email), Duration.Inf)
+              Await.ready(mailerService.sendUpdateEmailAddress(account, email), Duration.Inf)
               Future(Created)
             } catch {
               case _: Throwable => Future(InternalServerError)

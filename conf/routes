@@ -101,7 +101,7 @@ POST  /donut/api/v1/user/email/update 					controllers.SecureActionController.up
 POST  /donut/api/v1/user/email/add 							controllers.SecureActionController.addEmailAccount()
 # Reset Password Email Confirmation
 #GET   /donut/api/v1/user/reset/password/confirm controllers.HomeController.resetPasswordVerification(code: String)
-GET   /donut/api/v1/user/password/reset/send 			controllers.HomeController.resetPassword(email: String)
+POST  /donut/api/v1/user/password/reset/send 			controllers.HomeController.resetPassword()
 GET   /donut/api/v1/user/password/reset/confirm 	controllers.HomeController.resetPasswordVerification(code: String)
 
 # Serve static assets under public directory

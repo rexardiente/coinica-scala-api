@@ -4,13 +4,16 @@ import javax.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 import models.domain.UserAccount
 import models.service.UserAccountService
+import utils.Config
 
 @Singleton
 class EmailValidation @Inject()(accountService: UserAccountService)(implicit val ec: ExecutionContext) {
 	def emailFromCode[T >: String](code: T): Future[(T, T, T, T)] = {
     try {
       val raw: List[String] = code.toString.split("_").toList
-      val (password, expiration): (String, String) = raw(0).splitAt(64)
+      // remove random starting random String from the code..
+      val (invalidCode, validCode) = raw(0).splitAt(Config.MAIL_RANDOM_CODE_LIMIT)
+      val (password, expiration): (String, String) = validCode.splitAt(64)
       val email: String = raw(1) // email
       val username: String = raw(2)
 
@@ -25,7 +28,8 @@ class EmailValidation @Inject()(accountService: UserAccountService)(implicit val
   def passwordFromCode[T >: String](code: T): Future[(T, T, T)] = {
     try {
       val raw: List[String] = code.toString.split("_").toList
-      val (password, expiration): (String, String) = raw(0).splitAt(64)
+      val (invalidCode, validCode) = raw(0).splitAt(Config.MAIL_RANDOM_CODE_LIMIT)
+      val (password, expiration): (String, String) = validCode.splitAt(64)
       val username: String = raw(1)
 
       isAccountExists(username, password).map { isExists =>
