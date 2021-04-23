@@ -1,18 +1,16 @@
 package play.api.libs.mailer
 
-import java.io.FilterOutputStream
-import java.io.PrintStream
-
 import javax.mail.internet.InternetAddress
 import javax.mail.Session
+import java.io.FilterOutputStream
+import java.io.PrintStream
+import scala.jdk.CollectionConverters._
+import scala.util.control.NonFatal
 import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.EmailAttachment
 import org.apache.commons.mail.HtmlEmail
 import org.apache.commons.mail.MultiPartEmail
 import org.slf4j.LoggerFactory
-
-import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
 
 abstract class CommonsMailer(conf: SMTPConfiguration) extends MailerClient {
 

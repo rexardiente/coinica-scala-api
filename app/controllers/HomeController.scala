@@ -13,6 +13,7 @@ import play.api.data.Forms._
 import play.api.libs.json._
 import play.api.Configuration
 import play.api.http.HttpErrorHandler
+import play.api.libs.mailer.EmailValidation
 import models.domain._
 import models.repo._
 import models.repo.eosio._
@@ -50,6 +51,7 @@ class HomeController @Inject()(
       errorHandler: HttpErrorHandler,
       userAction: utils.auth.SecureUserAction,
       encryptKey: utils.auth.EncryptKey,
+      validateEmail: EmailValidation,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
@@ -207,21 +209,11 @@ class HomeController @Inject()(
         catch { case _: Throwable => Future(InternalServerError) }
       })
   }
-  private def processVerificationCode[T >: String](code: T): (T, T, T, T) = {
-    try {
-      val codeOpt: List[String] = code.toString.split("_").toList
-      val (password, expiration): (String, String) = codeOpt(0).splitAt(64)
-      val email: String = codeOpt(1) // check if valid email format..
-      val username: String = codeOpt(2)
-      (username, password, email, expiration)
-    }
-    catch { case _: Throwable => throw new IllegalArgumentException("Invalid Code") }
-  }
   def emailVerification(code: String) = Action.async { implicit request =>
     try {
-      processVerificationCode(code) match {
-        case (u, p, e, x) => Future(Ok(views.html.emailVerificationTemplate(u, p)(e, x)))
-        case _ => Future(NotFound)
+      validateEmail.emailFromCode(code) map {
+        case (u, p, e, x) => Ok(views.html.emailVerificationTemplate(u, p)(e, x))
+        case _ => NotFound
     }}
     catch { case e: Throwable => Future(NotFound) }
   }

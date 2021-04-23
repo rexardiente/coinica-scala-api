@@ -14,9 +14,9 @@ class SecureUserRequest[A](val account: Option[UserAccount], request: Request[A]
 @Singleton
 class SecureUserAction @Inject()(
 														val parser: BodyParsers.Default,
-														accRepo: UserAccountRepo
-													)(implicit val executionContext: ExecutionContext)
-											  	extends ActionBuilder[SecureUserRequest, AnyContent]
+														accRepo: UserAccountRepo,
+                            implicit val executionContext: ExecutionContext)
+													extends ActionBuilder[SecureUserRequest, AnyContent]
 											    with ActionTransformer[Request, SecureUserRequest] {
   // get by session token but make sure token is not expired else return false.
   def transform[A](request: Request[A]) = {

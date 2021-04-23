@@ -32,6 +32,9 @@ class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo
   def newUserAcc(acc: UserAccount): Future[Int] =
   	userAccountRepo.add(acc)
 
+  def exists(username: String, password: String): Future[Boolean] =
+    userAccountRepo.exist(username, password)
+
   def addOrUpdateEmailAccount(id: UUID, email: String): Future[Int] = {
     for {
       isExists <- userAccountRepo.isEmailExist(email)
