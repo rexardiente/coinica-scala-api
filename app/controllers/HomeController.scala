@@ -148,22 +148,21 @@ class HomeController @Inject()(
         } yield (processed)
       })
   }
-
-  def signOut() = Action.async { implicit request =>
-    signForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (username, password)  =>
-        userAccountService
-          .getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
-          .map {
-            case Some(account) =>
-              userAccountService
-                .updateUserAccount(account.copy(token=None, tokenLimit=None))
-                .map(x => if (x > 0) Accepted else InternalServerError)
-            case _ => Future(Unauthorized(views.html.defaultpages.unauthorized()))
-          }.flatten
-      })
-  }
+  // def signOut() = Action.async { implicit request =>
+  //   signForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (username, password)  =>
+  //       userAccountService
+  //         .getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
+  //         .map {
+  //           case Some(account) =>
+  //             userAccountService
+  //               .updateUserAccount(account.copy(token=None, tokenLimit=None))
+  //               .map(x => if (x > 0) Accepted else InternalServerError)
+  //           case _ => Future(Unauthorized(views.html.defaultpages.unauthorized()))
+  //         }.flatten
+  //     })
+  // }
   // TODO: store password in hash256 format...
   def signIn(verify: Option[Long]) = Action.async { implicit request =>
     signForm.bindFromRequest.fold(

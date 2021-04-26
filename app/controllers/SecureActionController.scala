@@ -34,6 +34,16 @@ class SecureActionController @Inject()(
     "applied_by" -> uuid))
   private val emailForm = Form(single("email" -> email.verifying( emailAddress )))
 
+  def signOut() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        accountService
+          .updateUserAccount(account.copy(token=None, tokenLimit=None))
+          .map(x => if (x > 0) Accepted else InternalServerError)
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+
   def updateEmailAccount() = SecureUserAction.async { implicit request =>
     request
       .account
