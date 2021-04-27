@@ -15,14 +15,13 @@ class MailerService @Inject()(mailerClient: MailerClient) {
   def sendUpdateEmailAddress(account: UserAccount, newEmail: String): Future[String] = Future.successful {
   	// default constructors
   	val mailerAddress: String = Config.MAILER_ADDRESS
-  	val mailExpiration: Int = Config.MAIL_EXPIRATION
   	// compose code for email link
   	val username: String = account.username
     val password: String = account.password
     // Set expiration time to CONFIG TIME LIMIT * 60 sec
-    val expiration: Long = Instant.now.getEpochSecond + (60 * mailExpiration)
+    // val expiration: Long = Instant.now.getEpochSecond + (60 * mailExpiration)
     val randomString: String  = Random.alphanumeric.dropWhile(_.isDigit).take(Config.MAIL_RANDOM_CODE_LIMIT).mkString
-    val code: String = s"${randomString}${password}${expiration}_${newEmail}_${username}"
+    val code: String = s"${password}${randomString}_${newEmail}_${username}"
     val codeURL: String = s"http://127.0.0.1:9000/donut/api/v1/user/email/confirm?code=${code}"
     // compose body of the email in template and render as String
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639
@@ -47,14 +46,13 @@ class MailerService @Inject()(mailerClient: MailerClient) {
   def sendResetPasswordEmail(account: UserAccount, address: String): Future[String] = Future.successful {
     // default constructors
     val mailerAddress: String = Config.MAILER_ADDRESS
-    val mailExpiration: Int = Config.MAIL_EXPIRATION
     // compose code for email link
     val username: String = account.username
     val password: String = account.password
     // Set expiration time to CONFIG TIME LIMIT * 60 sec
-    val expiration: Long = Instant.now.getEpochSecond + (60 * mailExpiration)
+    // val expiration: Long = Instant.now.getEpochSecond + (60 * mailExpiration)
     val randomString: String  = Random.alphanumeric.dropWhile(_.isDigit).take(Config.MAIL_RANDOM_CODE_LIMIT).mkString
-    val code: String = s"${randomString}${password}${expiration}_${username}"
+    val code: String = s"${password}${randomString}_${username}"
     val codeURL: String = s"http://127.0.0.1:9000/donut/api/v1/user/password/reset/confirm?code=${code}"
     // compose body of the email in template and render as String
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639

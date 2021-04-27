@@ -15,8 +15,6 @@ object UserAccount extends utils.CommonImplicits {
 												Double,
 												Double,
 												Double,
-												Option[String],
-												Option[Long],
 												Boolean,
 												Instant,
 												Instant) => UserAccount).tupled
@@ -29,8 +27,6 @@ object UserAccount extends utils.CommonImplicits {
 						referral: Double,
 						referralRate: Double,
 						winRate: Double,
-						token: Option[String],
-						tokenLimit: Option[Long],
 						isVerified: Boolean,
 						lastSignIn: Instant,
 						createdAt: Instant): UserAccount =
@@ -43,8 +39,6 @@ object UserAccount extends utils.CommonImplicits {
 										referral,
 										referralRate,
 										winRate,
-										token,
-										tokenLimit,
 										isVerified,
 										lastSignIn,
 										createdAt)
@@ -59,8 +53,6 @@ object UserAccount extends utils.CommonImplicits {
 						0,
 						models.domain.enum.VIP.BRONZE.id,
 						0,
-						None,
-						None,
 						false,
 						Instant.now,
 						Instant.now)
@@ -74,8 +66,6 @@ object UserAccount extends utils.CommonImplicits {
 						0,
 						models.domain.enum.VIP.BRONZE.id,
 						0,
-						None,
-						None,
 						false,
 						Instant.now,
 						Instant.now)
@@ -92,11 +82,27 @@ case class UserAccount(id: UUID,
 											referral: Double = 0,
 											referralRate: Double = 0,
 											winRate: Double = 0,
-											token: Option[String],
-											tokenLimit: Option[Long],
 											isVerified: Boolean,
 											lastSignIn: Instant,
 											createdAt: Instant = Instant.now()) {
 	def toJson(): JsValue = Json.toJson(this)
 }
+
+object UserTokens extends utils.CommonImplicits {
+	val tupled = (apply: (UUID, Option[String], Option[Long], Option[Long], Option[Long]) => UserTokens).tupled
+	def apply(id: UUID): UserTokens = new UserTokens(id, None, None, None, None)
+}
+case class UserTokens(id: UUID,
+											token: Option[String],
+											login: Option[Long],
+											email: Option[Long],
+											password: Option[Long]) {
+	def toJson(): JsValue = Json.toJson(this)
+}
+
+
+
+
+
+
 

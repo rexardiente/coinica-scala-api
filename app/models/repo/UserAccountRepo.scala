@@ -64,19 +64,4 @@ class UserAccountRepo @Inject()(
     db.run(dao.Query.filter(r => r.id === id && r.username === username)
       .result
       .headOption)
-
-  def hasSession(username: String): Future[Boolean] =
-    db.run(dao.Query.filter(x => x.username === username && x.token.isEmpty.?).exists.result)
-  def hasValidSession(username: String, token: String, currentTime: Long): Future[Boolean] =
-    db.run(dao.Query.filter(x =>
-        x.username === username &&
-        x.token === token &&
-        x.tokenLimit >= currentTime
-      ).exists.result)
-  // and make sure token is valid by checking if not expired..
-  def getBySessionToken(token: String): Future[Option[UserAccount]] =
-    db.run(dao.Query.filter(x => x.token === token && x.tokenLimit >= Instant.now.getEpochSecond).result.headOption)
-  def getByNameAndSessionToken(username: String, token: String): Future[Option[UserAccount]] =
-    db.run(dao.Query.filter(x => x.username === username && x.token === token).result.headOption)
-
 }

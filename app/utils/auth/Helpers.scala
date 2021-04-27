@@ -5,31 +5,31 @@ import java.time.{ LocalDateTime, Instant }
 import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.mutable
-import models.domain.UserAccount
-import models.repo.UserAccountRepo
 import play.api.mvc._
+import models.domain.{ UserAccount, UserTokens }
+import models.service.UserAccountService
+import utils.Config
 
 @Singleton
 class SecureUserRequest[A](val account: Option[UserAccount], request: Request[A]) extends WrappedRequest[A](request)
 @Singleton
 class SecureUserAction @Inject()(
 														val parser: BodyParsers.Default,
-														accRepo: UserAccountRepo,
+														accService: UserAccountService,
                             implicit val executionContext: ExecutionContext)
 													extends ActionBuilder[SecureUserRequest, AnyContent]
 											    with ActionTransformer[Request, SecureUserRequest] {
   // get by session token but make sure token is not expired else return false.
   def transform[A](request: Request[A]) = {
-    accRepo
-      .getBySessionToken(request.headers.get("EGS_TOKEN_SESSION").getOrElse(null))
+    accService
+      .getUserAccountBySessionToken(request.headers.get("EGS_TOKEN_SESSION").getOrElse(null))
       .map(new SecureUserRequest(_, request))
   }
 
-  def generateToken(account: UserAccount): UserAccount = {
+  def generateLoginToken(user: UserTokens): UserTokens = {
     val token: String = s"==token${UUID.randomUUID().toString}"
-    val sessionTime: Long = Instant.now.getEpochSecond + (60 * 5)
     // limit/expire session after 5 minutes of creation, else send renew session..
-    account.copy(token = Some(token), tokenLimit = Some(sessionTime))
+    user.copy(token=Some(token), login=Some(Config.MAIL_EXPIRATION))
   }
 }
 

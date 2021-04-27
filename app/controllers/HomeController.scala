@@ -20,6 +20,7 @@ import models.repo.eosio._
 import models.service._
 import models.domain.enum._
 import akka.WebSocketActor
+import utils.Config
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -28,7 +29,7 @@ import akka.WebSocketActor
 class HomeController @Inject()(
       // userAccRepo: UserAccountRepo,
       vipUserRepo: VIPUserRepo,
-      userAccountService: UserAccountService,
+      accountService: UserAccountService,
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       challengeRepo: ChallengeRepo,
@@ -92,12 +93,19 @@ class HomeController @Inject()(
     "username" -> nonEmptyText,
     "password" -> nonEmptyText,
     "referred_by" -> optional(text)))
-  private val emailForm = Form(single("email" -> email.verifying( play.api.data.validation.Constraints.emailAddress )))
+  private val emailForm = Form(single(
+    "email" -> email.verifying(play.api.data.validation.Constraints.emailAddress)))
+  private val resetPasswordForm = Form(tuple(
+    "username" -> nonEmptyText,
+    "new_password" -> nonEmptyText,
+    "confirm_password" -> nonEmptyText
+  ).verifying("Password and Confirm password does not match", info => info._2 == info._3))
+
 
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
       WebSocketActor.props(out,
-                          userAccountService,
+                          accountService,
                           gQCharacterDataRepo,
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
@@ -115,28 +123,60 @@ class HomeController @Inject()(
       case e: Throwable => Action.async(r => errorHandler.onClientError(r, NOT_FOUND, "Not found"))
     }
 
+  def submitNewPassword() = Action.async { implicit request =>
+    resetPasswordForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (username, password, confirm)  =>
+        for {
+          // get account by username
+          accountOpt <- accountService.getAccountByName(username)
+          // update account password if exists
+          processed <- {
+            accountOpt
+              .map { acc =>
+                for {
+                  // remove reset email token
+                  removed <- accountService.removePasswordTokenByID(acc.id)
+                  result <- {
+                    if (removed > 0) {
+                      val newAccount = acc.copy(password = encryptKey.toSHA256(password))
+                      accountService
+                        .updateUserAccount(newAccount)
+                        .map(x => if (x > 0) Redirect(routes.HomeController.index()) else InternalServerError)
+                    }
+                    else  Future(InternalServerError)
+                  }
+                } yield (result)
+              }
+              .getOrElse(Future(InternalServerError))
+          }
+        } yield (processed)
+      })
+  }
+
   def signUp = Action.async { implicit request =>
     signUpForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password, code)  =>
         // validate username and referral code..
         for {
-          isAccountAlreadyExists <- userAccountService.getAccountByName(username)
-          hasReferralCode <- userAccountService.getAccountByCode(code.getOrElse(null))
+          isAccountAlreadyExists <- accountService.getAccountByName(username)
+          hasReferralCode <- accountService.getAccountByCode(code.getOrElse(null))
           processed <- {
             if (isAccountAlreadyExists == None) {
               if (hasReferralCode.map(_.referralCode) == code) {
                 // encrypt account password into SHA256 algorithm...
-                val user: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
+                val userAccount: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
                 // generate User Account and VIP Account
                 for {
-                  addAccount <- userAccountService.newUserAcc(user)
-                  addVip <- userAccountService.newVIPAcc(VIPUser(user.id, VIP.BRONZE, VIP.BRONZE, 0, 0, 0, user.createdAt))
+                  addAccount <- accountService.newUserAcc(userAccount)
+                  addAccountToken <- accountService.addUpdateUserToken(UserTokens(userAccount.id))
+                  addVip <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
                   // apply code if has value
                   _ <- Future.successful {
                     Thread.sleep(500) // add small delay
                     if (hasReferralCode.map(_.referralCode) != None) {
-                      referralHistoryService.applyReferralCode(user.id, code.getOrElse(null))
+                      referralHistoryService.applyReferralCode(userAccount.id, code.getOrElse(null))
                     }
                   }
                 } yield (Created)
@@ -152,11 +192,11 @@ class HomeController @Inject()(
   //   signForm.bindFromRequest.fold(
   //     formErr => Future.successful(BadRequest("Form Validation Error.")),
   //     { case (username, password)  =>
-  //       userAccountService
+  //       accountService
   //         .getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
   //         .map {
   //           case Some(account) =>
-  //             userAccountService
+  //             accountService
   //               .updateUserAccount(account.copy(token=None, tokenLimit=None))
   //               .map(x => if (x > 0) Accepted else InternalServerError)
   //           case _ => Future(Unauthorized(views.html.defaultpages.unauthorized()))
@@ -164,7 +204,7 @@ class HomeController @Inject()(
   //     })
   // }
   // TODO: store password in hash256 format...
-  def signIn(verify: Option[Long]) = Action.async { implicit request =>
+  def signIn(verify: Boolean) = Action.async { implicit request =>
     signForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password)  =>
@@ -173,35 +213,32 @@ class HomeController @Inject()(
             // check if sigin is from verifications no need Encryption
             // else Encryptkey for security validation
             isAccountExists <- {
-              if (verify != None) userAccountService.getAccountByUserNamePassword(username, password)
-              else userAccountService.getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
+              if (verify) accountService.getAccountByUserNamePassword(username, password)
+              else accountService.getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
             }
             processed <- {
               // check if has existing token (UPDATE) else insert new and return to user..
-              if (isAccountExists != None) {
-                val account: UserAccount = isAccountExists.get
-                val tempAccount: UserAccount = userAction.generateToken(account)
-                val currentTime: Long = Instant.now.getEpochSecond
-                // if verify make sure that existing token wont be overrided on this request..
-                if (verify != None) {
-                  // if expiration is greater than current time then its valid
-                  if (verify.getOrElse(0L) >= currentTime) {
-                    if (account.tokenLimit.map(_ <= currentTime).getOrElse(true)) {
-                      userAccountService
-                        .updateUserAccount(tempAccount)
-                        .map(x => if (x > 0) Ok(Json.obj("token" -> tempAccount.token)) else InternalServerError)
-                    }
-                    else Future(Ok(Json.obj("token" -> account.token)))
+              if (isAccountExists != None)  {
+                for {
+                  // get account if has existing token..
+                  userToken <- accountService.getUserTokenByID(isAccountExists.get.id)
+                  // if verify make sure that existing token wont be overrided on this request..
+                  hasSession <- {
+                    userToken
+                      .map { user =>
+                        val tempAccount: UserTokens = userAction.generateLoginToken(user)
+                        val currentTime: Long = Instant.now.getEpochSecond
+                        // check if has existing valid token else create new
+                        if (user.login.map(_ >= currentTime).getOrElse(false))
+                          Future(Ok(Json.obj("token" -> user.token)))
+                        else
+                          accountService
+                            .updateUserToken(tempAccount)
+                            .map(x => if (x > 0) Ok(Json.obj("token" -> tempAccount.token)) else InternalServerError)
+                      }
+                      .getOrElse(Future(InternalServerError))
                   }
-                  else Future(Forbidden)
-                } else {
-                  if (account.tokenLimit.map(_ <= currentTime).getOrElse(true)) {
-                    userAccountService
-                      .updateUserAccount(tempAccount.copy(lastSignIn = Instant.now))
-                      .map(x => if (x > 0) Ok(Json.obj("token" -> tempAccount.token)) else InternalServerError)
-                  }
-                  else Future(Forbidden)
-                }
+                } yield (hasSession)
               }
               else Future(Unauthorized(views.html.defaultpages.unauthorized()))
             }
@@ -213,7 +250,7 @@ class HomeController @Inject()(
   def emailVerification(code: String) = Action.async { implicit request =>
     try {
       validateEmail.emailFromCode(code) map {
-        case (u, p, e, x) => Ok(views.html.emailVerificationTemplate(u, p)(e, x))
+        case (u, p, e) => Ok(views.html.emailVerificationTemplate(u, p, e))
         case _ => NotFound
     }}
     catch { case e: Throwable => Future(NotFound) }
@@ -224,19 +261,36 @@ class HomeController @Inject()(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (email)  =>
         for {
-          account <- userAccountService.getAccountByEmailAddress(email)
-          processed <- {
-            if (account != None) // send email confirmation link
-              mailerService.sendResetPasswordEmail(account.get, email).map(_ => Created)
+          account <- accountService.getAccountByEmailAddress(email)
+          result <- {
+            // update email request limit
+            if (account != None) {
+              try {
+                for {
+                  // get user account token
+                  userToken <- accountService.getUserTokenByID(account.get.id)
+                  // update its password token limit
+                  updated <- accountService
+                    .updateUserToken(userToken.map(_.copy(password = Some(Config.MAIL_EXPIRATION)))
+                    .getOrElse(null))
+                  // send email confirmation link
+                  result <- {
+                    if (updated > 0) mailerService.sendResetPasswordEmail(account.get, email).map(_ => Created)
+                    else Future(InternalServerError)
+                  }
+                } yield (result)
+              }
+              catch { case _: Throwable => Future(NotFound) }
+            }
             else Future(NotFound)
           }
-        } yield (processed)
+        } yield (result)
       })
   }
   def resetPasswordVerification(code: String) = Action.async { implicit request =>
     try {
       validateEmail.passwordFromCode(code) map {
-        case (u, p, e) => Ok(views.html.resetPasswordTemplate(u, p, e))
+        case (u, p) => Ok(views.html.resetPasswordTemplate(u))
         case _ => NotFound
     }}
     catch { case e: Throwable => Future(NotFound) }

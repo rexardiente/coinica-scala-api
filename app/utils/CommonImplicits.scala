@@ -622,8 +622,6 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 						(json \ "referral").as[Double],
 						(json \ "referral_rate").as[Double],
 						(json \ "win_rate").as[Double],
-						(json \ "token").asOpt[String],
-						(json \ "token_limit").asOpt[Long],
 						(json \ "is_verified").as[Boolean],
 						(json \ "last_sign_in").as[Instant],
 						(json \ "created_at").as[Instant]))
@@ -645,10 +643,9 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		"referral" -> tx.referral,
 		"referral_rate" -> tx.referralRate,
 		"win_rate" -> tx.winRate,
-		"token" -> tx.token,
-		"token_limit" -> tx.tokenLimit,
 		"is_verified" -> tx.isVerified,
 		"last_sign_in" -> tx.lastSignIn,
 		"created_at" -> tx.createdAt)
 	}
+	implicit def implUserTokens = Json.format[UserTokens]
 }

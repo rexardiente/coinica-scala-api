@@ -6,11 +6,11 @@ import java.time.{ Instant, LocalDate, ZoneId, ZoneOffset }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json._
-import models.domain.{ PaginatedResult, UserAccount, VIPUser }
-import models.repo.{ UserAccountRepo, VIPUserRepo }
+import models.domain.{ PaginatedResult, UserAccount, VIPUser, UserTokens }
+import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokensRepo }
 
 @Singleton
-class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo: VIPUserRepo) {
+class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo: VIPUserRepo, userTokensRepo: UserTokensRepo) {
   def isExist(name: String): Future[Boolean] =
   	userAccountRepo.exist(name)
 
@@ -63,4 +63,47 @@ class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo
 
   def newVIPAcc(vip: VIPUser): Future[Int] =
   	vipUserRepo.add(vip)
+
+  def getUserAccountBySessionToken(token: String): Future[Option[UserAccount]] = {
+    for {
+      // check if token exists on DB..
+       hasValidToken <- userTokensRepo.getLoginByToken(token)
+       // validate
+       processed <- {
+         if (hasValidToken != None) getAccountByID(hasValidToken.map(_.id).getOrElse(UUID.randomUUID))
+         else Future(None)
+       }
+    } yield (processed)
+  }
+  def updateUserToken(user: UserTokens): Future[Int] =
+    userTokensRepo.update(user)
+  def getUserTokenByID(id: UUID): Future[Option[UserTokens]] =
+    userTokensRepo.getByID(id)
+
+  def addUpdateUserToken(user: UserTokens): Future[Int] = {
+    for {
+      exists <- userTokensRepo.exists(user.id)
+      process <- {
+        if (exists) userTokensRepo.update(user)
+        else userTokensRepo.add(user)
+      }
+    } yield (process)
+  }
+  def removePasswordTokenByID(id: UUID): Future[Int] =
+    for {
+      token <- userTokensRepo.getByID(id)
+      process <- {
+        if (token != None) userTokensRepo.update(token.get.copy(password = None))
+        else Future(0)
+      }
+    } yield (process)
+  def removeEmailTokenByID(id: UUID): Future[Int] =
+    for {
+      token <- userTokensRepo.getByID(id)
+      process <- {
+        if (token != None) userTokensRepo.update(token.get.copy(email = None))
+        else Future(0)
+      }
+    } yield (process)
+
 }

@@ -1,4 +1,4 @@
-@(u: String, p: String)(email: String, expiration: String) @main("EGS - User Email Confirmation") {
+@(u: String, p: String, email: String) @main("EGS - User Email Confirmation") {
     <script type="text/javascript">
       window.onload = function() { verifyAccount() };
 
@@ -9,11 +9,11 @@
           data: JSON.stringify({'username':"@u",'password':"@p" }),
           headers: { 'Content-Type':'application/json' },
           // contentType: "application/json; charset=utf-8",
-          url: "@routes.HomeController.signIn(Some(expiration.toLong))",
+          url: "@routes.HomeController.signIn(true)",
           success: function(response) {
             setTimeout(function() { confirmEmail(response.token); }, 1000);
           },
-          error: function(err) { setTimeout(function() { window.close(); }, 2000); }
+          error: function(err) { setTimeout(function() { window.close(); }, 1000); }
        });
       };
 
@@ -28,7 +28,7 @@
           success: function(res) {
             window.location="@routes.HomeController.index()";
           },
-          error: function(err) { setTimeout(function() { window.close(); }, 2000); }
+          error: function(err) { setTimeout(function() { window.close(); }, 1000); }
        });
       };
     </script>

@@ -22,8 +22,6 @@ final class UserAccountDAO @Inject()(
     def referralAmount = column[Double] ("REFERRAL_AMOUNT")
     def referralRate = column[Double] ("REFERRAL_RATE")
     def winRate = column[Double] ("WIN_RATE")
-    def token = column[Option[String]] ("SESSION_TOKEN")
-    def tokenLimit = column[Option[Long]] ("SESSION_TOKEN_LIMIT")
     def isVerified = column[Boolean] ("IS_VERIFIED")
     def lastSignIn = column[Instant] ("LAST_SIGN_IN")
     def createdAt = column[Instant] ("CREATED_AT")
@@ -37,8 +35,6 @@ final class UserAccountDAO @Inject()(
             referralAmount,
             referralRate,
             winRate,
-            token,
-            tokenLimit,
             isVerified,
             lastSignIn,
             createdAt) <> (UserAccount.tupled, UserAccount.unapply)

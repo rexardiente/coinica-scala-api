@@ -2,10 +2,9 @@ package controllers
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.{ Instant, LocalDateTime }
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ Await, Future }
-import scala.concurrent.duration._
+import scala.concurrent.Future
 import play.api._
 import play.api.mvc._
 import play.api.data.Form
@@ -17,6 +16,7 @@ import models.domain._
 import models.repo._
 import models.service._
 import utils.auth.SecureUserAction
+import utils.Config
 
 @Singleton
 class SecureActionController @Inject()(
@@ -32,15 +32,23 @@ class SecureActionController @Inject()(
   private val referralForm = Form(tuple(
     "code" -> nonEmptyText,
     "applied_by" -> uuid))
-  private val emailForm = Form(single("email" -> email.verifying( emailAddress )))
+  private val emailForm = Form(single("email" -> email.verifying(emailAddress)))
 
   def signOut() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
-        accountService
-          .updateUserAccount(account.copy(token=None, tokenLimit=None))
-          .map(x => if (x > 0) Accepted else InternalServerError)
+        for {
+          userSession <- accountService.getUserTokenByID(account.id)
+          process <- {
+            userSession.map { session =>
+              accountService
+                .updateUserToken(session.copy(token=None, login=None))
+                .map(x => if (x > 0) Accepted else InternalServerError)
+            }
+            .getOrElse(Future(NotFound))
+          }
+        } yield (process)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
 
@@ -51,9 +59,17 @@ class SecureActionController @Inject()(
         emailForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid Email Address")),
         { case (email)  =>
-          accountService
-            .addOrUpdateEmailAccount(account.id, email)
-            .map(x => if (x > 0) Redirect(routes.HomeController.index) else Conflict)
+          for {
+            // remove reset email token
+            removed <- accountService.removeEmailTokenByID(account.id)
+            result <- {
+              if (removed > 0)
+                accountService
+                  .addOrUpdateEmailAccount(account.id, email)
+                  .map(x => if (x > 0) Redirect(routes.HomeController.index()) else Conflict)
+              else  Future(InternalServerError)
+            }
+          } yield (result)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -68,28 +84,40 @@ class SecureActionController @Inject()(
           if (Some(email) == account.email) Future(Conflict)
           else {
             try {
-              Await.ready(mailerService.sendUpdateEmailAddress(account, email), Duration.Inf)
-              Future(Created)
-            } catch {
-              case _: Throwable => Future(InternalServerError)
+              for {
+                userToken <- accountService.getUserTokenByID(account.id)
+                // update its email token limit
+                updated <- accountService
+                  .updateUserToken(userToken.map(_.copy(email = Some(Config.MAIL_EXPIRATION)))
+                  .getOrElse(null))
+                // send email confirmation link
+                result <- {
+                  if (updated > 0) mailerService.sendUpdateEmailAddress(account, email).map(_ => Created)
+                  else Future(InternalServerError)
+                }
+              } yield (result)
             }
+            catch { case _: Throwable => Future(InternalServerError) }
           }
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
-  // http://127.0.0.1:9000/donut/api/v1/token/renew
-  def renewSessionToken() = SecureUserAction.async { implicit request =>
+  def renewLoginSessionToken() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
-        val newUserToken: UserAccount = SecureUserAction.generateToken(account)
-        accountService
-          .updateUserAccount(newUserToken.copy(lastSignIn = Instant.now))
-          .map { x =>
-            if (x > 0) Ok(Json.obj("token" -> newUserToken.token, "limit" -> newUserToken.tokenLimit))
-            else InternalServerError
+        for {
+          userSession <- accountService.getUserTokenByID(account.id)
+          process <- {
+            userSession.map { session =>
+              val newUserToken: UserTokens = SecureUserAction.generateLoginToken(session)
+              accountService
+                .updateUserToken(newUserToken.copy(login = Some(Config.MAIL_EXPIRATION)))
+                .map(x => if (x > 0) Ok(Json.obj("token" -> newUserToken.token)) else InternalServerError)
+            }
+            .getOrElse(Future(NotFound))
           }
+        } yield (process)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def applyReferralCode() = SecureUserAction.async { implicit request =>

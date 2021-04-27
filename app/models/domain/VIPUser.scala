@@ -15,6 +15,9 @@ object VIPUser extends utils.CommonImplicits {
 						points: Double,
 						updated_at: Instant): VIPUser =
     new VIPUser(id, rank, next_rank, referral_count, payout, points, updated_at)
+  // VIPUser(user.id, , user.createdAt)
+  def apply(user: UUID, createdAt: Instant): VIPUser =
+  	new VIPUser(user, VIP.BRONZE, VIP.BRONZE, 0, 0, 0, createdAt)
 }
 case class VIPUser(id: UUID, // user_id
 									rank: VIP.value,

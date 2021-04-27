@@ -36,6 +36,7 @@ object Config {
 
 	// Email Configs
 	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
-	val MAIL_EXPIRATION: Int = config.getInt("play.mailer.expiration")
+	// Instant + (limit * (60:1 minute))
+	def MAIL_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("play.mailer.expiration") * 60))
 	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
 }

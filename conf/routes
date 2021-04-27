@@ -8,10 +8,10 @@ GET     /                           						controllers.HomeController.index()
 #GET     /                                        controllers.HomeController.index
 # Login API
 
-POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn(verify: Option[Long])
+POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn(verify: Boolean ?= false)
 POST   	/donut/api/v1/sign-up            	controllers.HomeController.signUp()
 GET   	/donut/api/v1/sign-out           	controllers.SecureActionController.signOut()
-GET   	/donut/api/v1/token/renew        	controllers.SecureActionController.renewSessionToken()
+GET   	/donut/api/v1/login/token/renew   controllers.SecureActionController.renewLoginSessionToken()
 
 # Challenge API
 #POST    /donut/api/v1/challenge/add                   controllers.HomeController.addChallenge
@@ -103,6 +103,7 @@ POST  /donut/api/v1/user/email/add 							controllers.SecureActionController.add
 #GET   /donut/api/v1/user/reset/password/confirm controllers.HomeController.resetPasswordVerification(code: String)
 POST  /donut/api/v1/user/password/reset/send 			controllers.HomeController.resetPassword()
 GET   /donut/api/v1/user/password/reset/confirm 	controllers.HomeController.resetPasswordVerification(code: String)
+POST  /donut/api/v1/user/password/reset/submit 		controllers.HomeController.submitNewPassword()
 
 # Serve static assets under public directory
 GET 		/*file 											controllers.HomeController.assetOrDefault(file)
