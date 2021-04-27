@@ -115,14 +115,10 @@ class HomeController @Inject()(
                           dynamicProcessor)
     }
   }
-  def index(): Action[AnyContent] = assets.at("index.html")
-  def assetOrDefault(resource: String): Action[AnyContent] =
-    try {
-      if (resource.contains(".")) assets.at(resource) else index
-    } catch {
-      case e: Throwable => Action.async(r => errorHandler.onClientError(r, NOT_FOUND, "Not found"))
-    }
 
+  def index() = Action.async { implicit request =>
+    Future.successful(Ok(JsString("ok")))
+  }
   def submitNewPassword() = Action.async { implicit request =>
     resetPasswordForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),

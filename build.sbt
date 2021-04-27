@@ -16,11 +16,7 @@ version in Docker := version.value
 dockerExposedPorts ++= Seq(9000, 9001)
 dockerAdditionalPermissions in Docker += (DockerChmodType.UserGroupPlusExecute, "/opt/docker/bin/eos-game-store-api")
 dockerChmodType in Docker := DockerChmodType.UserGroupWriteExecute
-javaOptions in Universal ++= Seq(
-  "-Dpidfile.path=/dev/null"
-  // "-Dplay.server.pidfile.path=/dev/null"
-)
-
+javaOptions in Universal ++= Seq("-Dpidfile.path=/dev/null")
 libraryDependencies ++= Seq(
 	guice,
 	ws,
@@ -37,15 +33,12 @@ libraryDependencies ++= Seq(
  //  "com.ejisan" %% "kuro-otp" % "0.0.1-SNAPSHOTS",
 	"org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )
-
 // Adds additional packages into conf/routes
 play.sbt.routes.RoutesKeys.routesImport ++= Seq(
 	"utils.Binders._",
 	"java.util.UUID"
 )
-
 // scalacOptions in Compile ++= Seq("-Xmax-classfile-name", "128")
-
 resolvers += "sonatype snapshots".at("https://oss.sonatype.org/content/repositories/snapshots/")
 // resolvers += "Ejisan Github" at "https://ejisan.github.io/repo/"
 Global / onChangedBuildSource := IgnoreSourceChanges
