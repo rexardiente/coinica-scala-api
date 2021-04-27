@@ -75,8 +75,8 @@ class GQSchedulerActorV2 @Inject()(
         if (!GQSchedulerActorV2.isIntialized) {
           GQSchedulerActorV2.isIntialized = true
 
-          // GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTimeSet)
-          // systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
+          GQBattleScheduler.nextBattle = Instant.now().getEpochSecond + (60 * GQSchedulerActorV2.defaultTimeSet)
+          systemBattleScheduler(GQSchedulerActorV2.scheduledTime)
           log.info("GQ Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
