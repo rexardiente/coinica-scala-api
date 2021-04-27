@@ -32,6 +32,7 @@ libraryDependencies ++= Seq(
 	"com.github.tminglei" %% "slick-pg" % "0.19.0",
 	"io.jafka" % "jeos" % "0.9.16",
 	"org.typelevel" %% "cats-core" % "2.1.1",
+	"org.webjars.bower" % "compass-mixins" % "0.12.7",
 	// "com.ejisan" %% "scalauthx" % "1.0-SNAPSHOT",
  //  "com.ejisan" %% "kuro-otp" % "0.0.1-SNAPSHOTS",
 	"org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test

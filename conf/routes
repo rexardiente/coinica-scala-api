@@ -5,7 +5,6 @@
 GET     /ws                                  	controllers.HomeController.socket
 
 GET     /                           						controllers.HomeController.index()
-#GET     /                                        controllers.HomeController.index
 # Login API
 
 POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn(verify: Boolean ?= false)
@@ -110,3 +109,4 @@ GET 		/*file 											controllers.HomeController.assetOrDefault(file)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET     /stylesheets/*file          @controllers.Assets.at(path="/public/stylesheets", file)
