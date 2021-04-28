@@ -13,29 +13,29 @@ import models.domain.enum._
 
 @Singleton
 class VIPUserRepo @Inject()(
-    vipDAO: models.dao.VIPUserDAO,
+    userAccDAO: models.dao.UserAccountDAO,
     benefitDAO: models.dao.VIPBenefitDAO,
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
   def add(vip: VIPUser): Future[Int] =
-    db.run(vipDAO.Query += vip)
+    db.run(userAccDAO.VIPUserQuery += vip)
 
   def delete(id: UUID): Future[Int] =
-    db.run(vipDAO.Query(id).delete)
+    db.run(userAccDAO.VIPUserQuery(id).delete)
 
   def update(vip: VIPUser): Future[Int] =
-    db.run(vipDAO.Query.filter(_.id === vip.id).update(vip))
+    db.run(userAccDAO.VIPUserQuery.filter(_.id === vip.id).update(vip))
 
   def all(): Future[Seq[VIPUser]] =
-    db.run(vipDAO.Query.result)
+    db.run(userAccDAO.VIPUserQuery.result)
 
   def exist(id: UUID): Future[Boolean] =
-    db.run(vipDAO.Query(id).exists.result)
+    db.run(userAccDAO.VIPUserQuery(id).exists.result)
 
   def findByID(id: UUID): Future[Option[VIPUser]] =
-    db.run(vipDAO.Query(id).result.headOption)
+    db.run(userAccDAO.VIPUserQuery(id).result.headOption)
 
   def benefits(): Future[Seq[VIPBenefit]] =
     db.run(benefitDAO.Query.result)

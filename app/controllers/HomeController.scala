@@ -166,7 +166,7 @@ class HomeController @Inject()(
                 // generate User Account and VIP Account
                 for {
                   addAccount <- accountService.newUserAcc(userAccount)
-                  addAccountToken <- accountService.addUpdateUserToken(UserTokens(userAccount.id))
+                  addAccountToken <- accountService.addUpdateUserToken(UserToken(userAccount.id))
                   addVip <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
                   // apply code if has value
                   _ <- Future.successful {
@@ -222,7 +222,7 @@ class HomeController @Inject()(
                   hasSession <- {
                     userToken
                       .map { user =>
-                        val tempAccount: UserTokens = userAction.generateLoginToken(user)
+                        val tempAccount: UserToken = userAction.generateLoginToken(user)
                         val currentTime: Long = Instant.now.getEpochSecond
                         // check if has existing valid token else create new
                         if (user.login.map(_ >= currentTime).getOrElse(false))

@@ -4,12 +4,13 @@ import java.util.UUID
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.UserAccount
+import models.domain.{ UserAccount, UserToken, VIPUser }
+import models.domain.enum._
 
 @Singleton
 final class UserAccountDAO @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider
-  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
+  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
   protected class UserAccountTable(tag: Tag) extends Table[UserAccount](tag, "USER_ACCOUNT") {
@@ -39,10 +40,39 @@ final class UserAccountDAO @Inject()(
             lastSignIn,
             createdAt) <> (UserAccount.tupled, UserAccount.unapply)
   }
+  protected class VIPUserTable(tag: Tag) extends Table[VIPUser](tag, "VIP_ACCOUNT") {
+    def id = column[UUID] ("ID", O.PrimaryKey)
+    def rank = column[VIP.value] ("RANK")
+    def nxtRank = column[VIP.value] ("NEXT_RANK")
+    def referralCount = column[Int] ("REFERRAL_COUNT")
+    def payout = column[Double] ("PAYOUT")
+    def points = column[Double] ("POINTS")
+    def createdAt = column[Instant] ("UPDATED_AT")
 
-  object Query extends TableQuery(new UserAccountTable(_)) {
+    def * = (id, rank, nxtRank, referralCount, payout, points, createdAt) <> (VIPUser.tupled, VIPUser.unapply)
+    def vipUserFk = foreignKey("USER_ACCOUNT", id, UserAccountQuery)(_.id)
+  }
+  protected class UserTokenTable(tag: Tag) extends Table[UserToken](tag, "USER_TOKEN") {
+    def id = column[UUID] ("ID", O.PrimaryKey)
+    def token = column[Option[String]] ("TOKEN")
+    def login = column[Option[Long]] ("LOGIN")
+    def email = column[Option[Long]] ("EMAIL")
+    def password = column[Option[Long]] ("PASSWORD")
+
+    def * = (id, token, login, email, password) <> (UserToken.tupled, UserToken.unapply)
+    def userTokenFk = foreignKey("USER_ACCOUNT", id, UserAccountQuery)(_.id)
+    // def userTokenFk = foreignKey("USER_ACCOUNT", id, UserAccountQuery)(_.id, onDelete = ForeignKeyAction.Cascade)
+  }
+
+  object UserAccountQuery extends TableQuery(new UserAccountTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
     def apply(username: String) = this.withFilter(_.username === username)
+  }
+  object VIPUserQuery extends TableQuery(new VIPUserTable(_)) {
+    def apply(id: UUID) = this.withFilter(_.id === id)
+  }
+  object UserTokenQuery extends TableQuery(new UserTokenTable(_)) {
+    def apply(id: UUID) = this.withFilter(_.id === id)
   }
 }
 

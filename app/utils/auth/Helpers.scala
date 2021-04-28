@@ -6,7 +6,7 @@ import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.mutable
 import play.api.mvc._
-import models.domain.{ UserAccount, UserTokens }
+import models.domain.{ UserAccount, UserToken }
 import models.service.UserAccountService
 import utils.Config
 
@@ -26,7 +26,7 @@ class SecureUserAction @Inject()(
       .map(new SecureUserRequest(_, request))
   }
 
-  def generateLoginToken(user: UserTokens): UserTokens = {
+  def generateLoginToken(user: UserToken): UserToken = {
     val token: String = s"==token${UUID.randomUUID().toString}"
     // limit/expire session after 5 minutes of creation, else send renew session..
     user.copy(token=Some(token), login=Some(Config.MAIL_EXPIRATION))

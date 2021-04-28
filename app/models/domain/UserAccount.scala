@@ -88,11 +88,11 @@ case class UserAccount(id: UUID,
 	def toJson(): JsValue = Json.toJson(this)
 }
 
-object UserTokens extends utils.CommonImplicits {
-	val tupled = (apply: (UUID, Option[String], Option[Long], Option[Long], Option[Long]) => UserTokens).tupled
-	def apply(id: UUID): UserTokens = new UserTokens(id, None, None, None, None)
+object UserToken extends utils.CommonImplicits {
+	val tupled = (apply: (UUID, Option[String], Option[Long], Option[Long], Option[Long]) => UserToken).tupled
+	def apply(id: UUID): UserToken = new UserToken(id, None, None, None, None)
 }
-case class UserTokens(id: UUID,
+case class UserToken(id: UUID,
 											token: Option[String],
 											login: Option[Long],
 											email: Option[Long],

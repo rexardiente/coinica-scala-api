@@ -110,7 +110,7 @@ class SecureActionController @Inject()(
           userSession <- accountService.getUserTokenByID(account.id)
           process <- {
             userSession.map { session =>
-              val newUserToken: UserTokens = SecureUserAction.generateLoginToken(session)
+              val newUserToken: UserToken = SecureUserAction.generateLoginToken(session)
               accountService
                 .updateUserToken(newUserToken.copy(login = Some(Config.MAIL_EXPIRATION)))
                 .map(x => if (x > 0) Ok(Json.obj("token" -> newUserToken.token)) else InternalServerError)
