@@ -21,6 +21,7 @@ class OverAllHistoryService @Inject()(
   //     hasNext <- Future(size - (offset + limit) > 0)
   //   } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   // }
+  def all(limit: Int): Future[Seq[OverAllGameHistory]] = overallGameHistory.all(limit)
   // get latest 10 result for history..
   def gameHistoryByGameID(id: UUID): Future[Seq[OverAllGameHistory]] = {
     for {
@@ -57,7 +58,7 @@ class OverAllHistoryService @Inject()(
                 game.get.name.replaceAll(" ", "").toLowerCase,
                 lastSevenDays.getEpochSecond,
                 now.toInstant(ZoneOffset.UTC).getEpochSecond)
-            .map(_.filter(_.info.user == user.get.name))
+            .map(_.filter(_.info.user == user.get.username))
             .map(_.sortBy(- _.createdAt).take(10))
         }
         else Future(Seq.empty)

@@ -607,4 +607,46 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
   implicit def enumVIPBenefitPointsFormat = enumFormat(VIPBenefitPoints)
 	implicit def implVIPUser = Json.format[VIPUser]
 	implicit def implVIPBenefit = Json.format[VIPBenefit]
+
+	implicit val implicitUserAccountReads: Reads[UserAccount] = new Reads[UserAccount] {
+		override def reads(js: JsValue): JsResult[UserAccount] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(UserAccount(
+						(json \ "id").as[UUID],
+						(json \ "username").as[String],
+						(json \ "password").as[String],
+						(json \ "email").asOpt[String],
+						(json \ "referred_by").asOpt[String],
+						(json \ "referral_code").as[String],
+						(json \ "referral").as[Double],
+						(json \ "referral_rate").as[Double],
+						(json \ "win_rate").as[Double],
+						(json \ "is_verified").as[Boolean],
+						(json \ "last_sign_in").as[Instant],
+						(json \ "created_at").as[Instant]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitUserAccountWrites = new Writes[UserAccount] {
+	  def writes(tx: UserAccount): JsValue = Json.obj(
+		"id" -> tx.id,
+		"username" -> tx.username,
+		"password" -> tx.password,
+		"email" -> tx.email,
+		"referred_by" -> tx.referredBy,
+		"referral_code" -> tx.referralCode,
+		"referral" -> tx.referral,
+		"referral_rate" -> tx.referralRate,
+		"win_rate" -> tx.winRate,
+		"is_verified" -> tx.isVerified,
+		"last_sign_in" -> tx.lastSignIn,
+		"created_at" -> tx.createdAt)
+	}
+	implicit def implUserToken = Json.format[UserToken]
+	implicit def implClientTokenEndpoint = Json.format[ClientTokenEndpoint]
 }

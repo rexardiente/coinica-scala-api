@@ -73,5 +73,5 @@ project/plugins/project/
 *.vscode
 *.metals
 public/
-ui/node_modules
-ui/build
+# ui/node_modules
+# ui/build
