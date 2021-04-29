@@ -2,52 +2,22 @@ package akka
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
-import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset, ZoneId }
+import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset, ZoneId, ZonedDateTime }
 import scala.util.{ Success, Failure, Random }
-import scala.concurrent.Future
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import Ordering.Double.IeeeOrdering
+import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
 import utils.Config
-import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
-import akka.common.objects.{
-        ChallengeScheduler,
-        ProcessOverAllChallenge,
-        DailyTaskScheduler,
-        CreateNewDailyTask,
-        RankingScheduler }
-import models.domain.{
-        Challenge,
-        OutEvent,
-        Game,
-        ChallengeTracker,
-        ChallengeHistory,
-        Task,
-        TaskHistory,
-        RankProfit,
-        RankPayout,
-        RankWagered,
-        RankMultiplier,
-        GQGameHistory,
-        THGameHistory,
-        UserAccount,
-        RankingHistory,
-        OverAllGameHistory }
-import models.repo.{
-        ChallengeRepo,
-        GameRepo,
-        ChallengeTrackerRepo,
-        ChallengeHistoryRepo,
-        TaskRepo,
-        TaskHistoryRepo,
-        DailyTaskRepo,
-        UserAccountRepo,
-        RankingHistoryRepo,
-        OverAllGameHistoryRepo }
+import akka.common.objects._
+import models.domain._
+import models.repo._
+import models.domain.enum._
 
 object SystemSchedulerActor {
   var currentChallengeGame: Option[UUID] = None
@@ -63,6 +33,7 @@ object SystemSchedulerActor {
             overAllGameHistory: OverAllGameHistoryRepo,
             userAccountRepo: UserAccountRepo,
             rankingHistoryRepo: RankingHistoryRepo,
+            vipUserRepo: VIPUserRepo,
             )(implicit system: ActorSystem) =
     Props(classOf[SystemSchedulerActor],
           gameRepo,
@@ -75,6 +46,7 @@ object SystemSchedulerActor {
           overAllGameHistory,
           userAccountRepo,
           rankingHistoryRepo,
+          vipUserRepo,
           system)
 }
 
@@ -90,6 +62,7 @@ class SystemSchedulerActor @Inject()(
                                       overAllGameHistory: OverAllGameHistoryRepo,
                                       userAccountRepo: UserAccountRepo,
                                       rankingHistoryRepo: RankingHistoryRepo,
+                                      vipUserRepo: VIPUserRepo,
                                       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
@@ -125,6 +98,11 @@ class SystemSchedulerActor @Inject()(
           })
           // set true if actor already initialized
           SystemSchedulerActor.isIntialized = true
+          // load default SC users/account to avoid adding into user accounts table
+          WebSocketActor.subscribers.addOne(Config.GQ_CODE, self)
+          WebSocketActor.subscribers.addOne(Config.TH_CODE, self)
+          WebSocketActor.subscribers.addOne(Config.MJHilo_CODE, self)
+
           log.info("System Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
@@ -134,44 +112,46 @@ class SystemSchedulerActor @Inject()(
   def receive: Receive = {
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
-      // val today = Instant.now().atZone(defaultTimeZone).toLocalDate()
-      // val midnight: LocalTime = LocalTime.MIDNIGHT
-      // val todayMidnight: LocalDateTime = LocalDateTime.of(today, midnight)
-      val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
-      // convert LocalDatetime to Instant
-      val createdAt: Long = startOfDay.atZone(defaultTimeZone).toInstant().getEpochSecond
-      val expiredAt: Long = createdAt + ((60 * 60 * 24) - 1)
-      // val todayEpoch: Long = todayInstant.getEpochSecond
-      // check if challenge already for today else do nothing..
-      challengeRepo.existByDate(createdAt).map { isCreated =>
-        if (!isCreated) {
-          for {
-            // remove currentChallengeGame and shuffle the result
-            availableGames <- gameRepo
-              .all()
-              .map(games => Random.shuffle(games.filterNot(_.id == SystemSchedulerActor.currentChallengeGame.getOrElse(None))))
-            // get head, and create new Challenge for the day
-            _ <- Future.successful {
-              try {
-                val game: Game = availableGames.head
-                val newChallenge = new Challenge(UUID.randomUUID,
-                                                game.id,
-                                                "Challenge content is different every day, use your ingenuity to get the first place.",
-                                                createdAt,
-                                                expiredAt)
+      val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
+      // update all earned points into users Account
+      Await.ready(processChallengeTrackerAndEarnedVIPPoints(yesterday), Duration.Inf)
+      Thread.sleep(2000)
+      // ProcessOverAllChallenge(yesterday.getEpochSecond)
+      // val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
+      // // convert LocalDatetime to Instant
+      // val createdAt: Long = startOfDay.atZone(defaultTimeZone).toInstant().getEpochSecond
+      // val expiredAt: Long = createdAt + ((60 * 60 * 24) - 1)
+      // // val todayEpoch: Long = todayInstant.getEpochSecond
+      // // check if challenge already for today else do nothing..
+      // challengeRepo.existByDate(createdAt).map { isCreated =>
+      //   if (!isCreated) {
+      //     for {
+      //       // remove currentChallengeGame and shuffle the result
+      //       availableGames <- gameRepo
+      //         .all()
+      //         .map(games => Random.shuffle(games.filterNot(_.id == SystemSchedulerActor.currentChallengeGame.getOrElse(None))))
+      //       // get head, and create new Challenge for the day
+      //       _ <- Future.successful {
+      //         try {
+      //           val game: Game = availableGames.head
+      //           val newChallenge = new Challenge(UUID.randomUUID,
+      //                                           game.id,
+      //                                           "Challenge content is different every day, use your ingenuity to get the first place.",
+      //                                           createdAt,
+      //                                           expiredAt)
 
-                SystemSchedulerActor.currentChallengeGame = Some(game.id)
-                challengeRepo.add(newChallenge)
-              } catch {
-                case e: Throwable => println("Error: No games available")
-              }
-            }
-            // after creating new challenge..
-            // calculate overe all challenge and save to Challengehistory for tracking top ranks
-          } yield (self ! ProcessOverAllChallenge(expiredAt))
-        }
-        // else self ! ProcessOverAllChallenge(expiredAt)
-      }
+      //           SystemSchedulerActor.currentChallengeGame = Some(game.id)
+      //           challengeRepo.add(newChallenge)
+      //         } catch {
+      //           case e: Throwable => println("Error: No games available")
+      //         }
+      //       }
+      //       // after creating new challenge..
+      //       // calculate overe all challenge and save to Challengehistory for tracking top ranks
+      //     } yield (self ! ProcessOverAllChallenge(expiredAt))
+      //   }
+      //   // else self ! ProcessOverAllChallenge(expiredAt)
+      // }
     case DailyTaskScheduler =>
       val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
       // process first all available task before creating new tasks
@@ -191,7 +171,29 @@ class SystemSchedulerActor @Inject()(
                                                 Instant.ofEpochSecond(Instant.ofEpochSecond(v.created_at).getEpochSecond + ((60 * 60 * 24) - 1)))
               // insert and if failed do insert 1 more time..
               taskHistoryRepo.add(taskHistory).map(isAdded => if(isAdded > 0)() else trackedFailedInsertion.addOne(taskHistory) )
+              // TODO: update user VIP account point
             })
+          }
+          _ <- Future.successful {
+            tracked.map { case DailyTask(user, game_id, game_count) =>
+              for {
+                vipAcc <- vipUserRepo.findByID(user)
+                _ <- Future.successful {
+                  if (vipAcc != None) {
+                    val vip: VIPUser = vipAcc.get
+                    // points (fixed 1 VIP per day) * rank benefit
+                    vipUserRepo.getBenefitByID(vip.rank).map {
+                      case Some(v) =>
+                        // new earned points * redemption rate + prev VIP points
+                        val newPoints = vip.points + (v.redemption_rate * 1)
+                        // create new updated VIP User
+                        vipUserRepo.update(vip.copy(points = newPoints))
+                      case None => ()
+                    }
+                  }
+                }
+              } yield ()
+            }
           }
           _ <- Future.successful(dailyTaskRepo.clearTable)
         } yield ()
@@ -223,154 +225,127 @@ class SystemSchedulerActor @Inject()(
         }
       }
 
-    case ProcessOverAllChallenge(expiredAt) =>
-      // always process when time is equals or greater to its current time..
-      // if (Instant.now.getEpochSecond >= expiredAt) {
-        for {
-          // get all challenge result
-          tracked <- challengeTrackerRepo.all()
-          // calculate and get highest wagered and take top 10 results
-          process <- Future.successful(tracked.sortBy(-_.wagered).take(10))
-        } yield (process) match {
-          // save result into Challenge history
-          case v: Seq[ChallengeTracker] =>
-            challengeHistoryRepo
-              .add(new ChallengeHistory(UUID.randomUUID, v, Instant.now.getEpochSecond))
-              .map(x => if (x > 0) challengeTrackerRepo.clearTable else println("Error: challengeTracker.clearTable"))
-        }
-      // }
-
     case RankingScheduler =>
       // get date range to fecth from overall history...
-      val start: Long = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant().getEpochSecond
-      val end: Long = start + (60 * 60 * 24) - 1
+      val start = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1)
+      val end = start.plusDays(1)
       // fetch overAllGameHistory by date ranges
       for {
-        gameHistory <- overAllGameHistory.getByDateRange(start, end)
+        gameHistory <- overAllGameHistory.getByDateRange(start.toInstant().getEpochSecond, (end.toInstant().getEpochSecond - 1))
         // grouped by user -> Map[String, Seq[OverAllGameHistory]]
         grouped <- Future.successful(gameHistory.groupBy(_.info.user))
-        profit <- {
-          // sum of its bets and amount payout
-          Future.sequence(grouped.map { case (user, histories) =>
-            // extract bets and amount to (pay or received)
-            val tempBets: Seq[(Double, Double)] = histories.map { history =>
-              // classify which game per txs and return (bet, amount)
-              history.info match {
-                case GQGameHistory(name, prediction, result, bet) =>
-                  if (result) (bet, 1) else (bet, -1)
-                case THGameHistory(name, prediction, result, bet, amount) =>
-                  if (prediction == result) (bet, amount) else (bet, -amount)
-                // GameType(_, _, _), PaymentType(_, _, _)
-                case e => (e.bet, 0)
-              }
-            }
-
-            val betsSum: Double = tempBets.map(_._1).sum
-            val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
-            (user, betsSum, (toPayOrReceivedSum - betsSum ))
-          }
-          .toSeq
-          .sortBy(-_._3)
-          .take(10)
-          .map { v =>
-            // get userid using name string..
-            userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null))
-          })
-          .map(_.filterNot(_ == null))
-        }
-        payout <- {
-          // sum of its bets and amount payout
-          Future.sequence(grouped.map { case (user, histories) =>
-            // extract bets and amount to (pay or received)
-            val tempBets: Seq[(Double, Double)] = histories.map { history =>
-              // classify which game per txs and return (bet, amount)
-              history.info match {
-                case GQGameHistory(name, prediction, result, bet) =>
-                  if (result) (bet, 1) else (bet, -1)
-                case THGameHistory(name, prediction, result, bet, amount) =>
-                  if (prediction == result) (bet, amount) else (bet, -amount)
-                // GameType(_, _, _), PaymentType(_, _, _)
-                case e => (e.bet, 0)
-              }
-            }
-
-            val betsSum: Double = tempBets.map(_._1).sum
-            val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
-            (user, betsSum, toPayOrReceivedSum)
-          }
-          .toSeq
-          .sortBy(-_._3)
-          .take(10)
-          .map { v =>
-            // get userid using name string..
-            userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null))
-          })
-          .map(_.filterNot(_ == null))
-        }
-        wagered <- {
-          // sum of its bets and amount payout
-          Future.sequence(grouped.map { case (user, histories) =>
-            // extract bets and amount to (pay or received)
-            val tempBets: Seq[(Double, Double)] = histories.map { history =>
-              // classify which game per txs and return (bet, amount, multiplier)
-              history.info match {
-                case GQGameHistory(name, prediction, result, bet) =>
-                  if (result) (bet, 1) else (bet, -1)
-                case THGameHistory(name, prediction, result, bet, amount) =>
-                  if (prediction == result) (bet, amount) else (bet, -amount)
-                // GameType(_, _, _), PaymentType(_, _, _)
-                case e => (e.bet, 0)
-              }
-            }
-            val betsSum: Double = tempBets.map(_._1).sum
-            val toPayOrReceivedSum: Double = tempBets.map(_._2).sum
-            (user, betsSum, betsSum)
-          }
-          .toSeq
-          .sortBy(-_._3)
-          .take(10)
-          .map { v =>
-            // get userid using name string..
-            userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null))
-          })
-          .map(_.filterNot(_ == null))
-        }
-        multiplier <- {
-          // sum of its bets and amount payout
-          Future.sequence(grouped.map { case (user, histories) =>
-            // extract bets and amount to (pay or received)
-            val tempBets: Seq[(Double, Double)] = histories.map { history =>
-              // classify which game per txs and return (bet, amount, multiplier)
+        // grouped history by user..
+        processedBets <- Future.successful {
+          grouped.map { case (user, histories) =>
+            val bets: Seq[(Double, Double)] = histories.map { history =>
               history.info match {
                 case GQGameHistory(name, prediction, result, bet) =>
                   if (result) (bet, 1) else (bet, 0)
                 case THGameHistory(name, prediction, result, bet, amount) =>
-                  if (prediction == result) (bet, 1) else (bet, 0)
-                // GameType(_, _, _), PaymentType(_, _, _)
+                  if (prediction == result) (bet, amount) else (bet, amount)
                 case e => (e.bet, 0)
               }
             }
-            val betsSum: Double = tempBets.map(_._1).sum
-            val multiplierSum: Double = tempBets.map(_._2).sum
-            (user, betsSum, multiplierSum)
+            (user, bets)
           }
           .toSeq
-          .sortBy(-_._3)
-          .take(10)
-          .map { v =>
-            // get userid using name string..
-            userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null))
-          })
-          .map(_.filterNot(_ == null))
+        }
+        profit <- Future.sequence {
+          processedBets
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum - bets.map(_._1).sum) }
+            .sortBy(-_._3)
+            .take(10)
+            .filter(_._3 > 0)
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null)))
+        }
+        // total bet amount - total win amount
+        payout <- Future.sequence {
+          processedBets
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum) }
+            .sortBy(-_._3)
+            .take(10)
+            .filter(_._3 > 0)
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null)))
+        }
+        // total bet amount * (EOS price -> USD)
+        wagered <- Future.sequence {
+          processedBets
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum * Config.EOS_TO_USD_CONVERSION) }
+            .sortBy(-_._3)
+            .take(10)
+            .filter(_._3 > 0)
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null)))
+        }
+        // total win size
+        multiplier <- Future.sequence {
+          processedBets
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).filter(_ > 0).size) }
+            .sortBy(-_._3)
+            .take(10)
+            .filter(_._3 > 0)
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null)))
         }
         // save ranking to history..
-        _ <- Future {
-          val rank = RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, start)
+        _ <- {
+          val rank = RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, start.toInstant().getEpochSecond)
           // insert into DB, if failed then re-insert
-          rankingHistoryRepo.add(rank).map(x => if(x > 0)() else rankingHistoryRepo.add(rank))
+          Await.ready(rankingHistoryRepo.add(rank), Duration.Inf)
         }
+        // update users VIP accounts with new points claimed..
+        _ <- Await.ready(processOverallHistoryPointsPerUser(processedBets), Duration.Inf)
       } yield ()
 
     case _ => ()
+  }
+
+  // process overall Game History in 24hrs
+  private def processOverallHistoryPointsPerUser(txs: Seq[(String, Seq[(Double, Double)])]): Future[Unit] =
+    Future.successful {
+      txs.map { case (user, bets) =>
+        try {
+          for {
+            userAcc <- userAccountRepo.getByName(user)
+            vipAcc <- vipUserRepo.findByID(userAcc.get.id)
+            result <- {
+              vipAcc.map { vip =>
+                val newTotalPayout = bets.map(_._2).sum + vip.payout
+                // create new updated VIP User payout
+                vipUserRepo.update(vip.copy(payout = newTotalPayout))
+              }
+              .getOrElse(Future(1))
+            }
+          } yield (result)
+        } catch {
+          case _ : Throwable => ()
+        }
+      }
+    }
+
+  private def processChallengeTrackerAndEarnedVIPPoints(time: Instant): Future[Unit] = {
+    for {
+      challenges <- challengeTrackerRepo.all()
+      // update all users vip account points earned..
+      _ <- Future.sequence {
+        challenges.map { case ChallengeTracker(user, bets, wagered, ratio, points) =>
+          for {
+            vipAcc <- vipUserRepo.findByID(user)
+            result <- {
+              val vip: VIPUser = vipAcc.get
+              // new earned points * redemption rate + prev VIP points
+              val newPoints = vip.points + points
+              // create new updated VIP User
+              vipUserRepo.update(vip.copy(points = newPoints))
+            }
+          } yield (result)
+        }
+      }
+      topHighestWagered <- Future.successful(challenges.sortBy(-_.wagered).take(10))
+      addToHistory <- {
+        // get all top 10 challenge result
+        challengeHistoryRepo
+              .add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
+              .map(x => if (x > 0) challengeTrackerRepo.clearTable else ())
+      }
+    } yield ()
   }
 }

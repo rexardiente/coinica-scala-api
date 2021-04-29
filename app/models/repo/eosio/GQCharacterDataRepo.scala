@@ -57,16 +57,13 @@ class GQCharacterDataRepo @Inject()(
   def getNoLifeCharacters(): Future[Seq[GQCharacterData]] =
     db.run(dataDAO.Query.filter(_.life < 1).result)
 
-  def updateOrInsertAsSeq(seq: Seq[GQCharacterData]): Unit = {
-    seq.foreach { data =>
-      for {
+  def updateOrInsertAsSeq(data: GQCharacterData): Future[Int] = {
+    for {
         isExists <- exist(data.key)
-        _ <- if (isExists) update(data) else insert(data)
-      } yield ()
-    }
+        result <- if (isExists) update(data) else insert(data)
+      } yield (result)
   }
-
-  // History Functions...
+  // Character Data History
   def insertDataHistory(data: GQCharacterDataHistory): Future[Int] =
     db.run(dataHistoryDAO.Query += data)
 
@@ -104,9 +101,4 @@ class GQCharacterDataRepo @Inject()(
   //       eliminated <- db.run(dataHistoryDAO.Query.dynamicSortBy(sortsBy).result)
   //   } yield (alive ++ eliminated))
   // }
-  def getGameHistoryByDateRange(from: Long, to: Long): Future[Seq[GQCharacterGameHistory]] =
-    db.run(gameHistoryDAO.Query.filter(x => x.timeExecuted >= from && x.timeExecuted <= to).result)
-
-  def getAllGameHistory(): Future[Seq[GQCharacterGameHistory]] =
-    db.run(gameHistoryDAO.Query.result)
 }

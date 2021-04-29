@@ -1,5 +1,6 @@
 package models.dao
 
+import java.util.UUID
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
@@ -24,17 +25,18 @@ final class VIPBenefitDAO @Inject()(
     def updatedAt = column[Instant] ("UPDATED_AT")
 
     def * = (id,
-    		cashBack,
-    		redemptionRate,
-    		referralRate,
-    		closedBeta,
-    		concierge,
-    		amount,
-    		points,
-    		updatedAt) <> (VIPBenefit.tupled, VIPBenefit.unapply)
+        		cashBack,
+        		redemptionRate,
+        		referralRate,
+        		closedBeta,
+        		concierge,
+        		amount,
+        		points,
+        		updatedAt) <> (VIPBenefit.tupled, VIPBenefit.unapply)
   }
 
   object Query extends TableQuery(new VIPBenefitsTable(_)) {
     def apply(id: VIP.value) = this.withFilter(_.id === id)
+    def apply(cashBack: Double) = this.withFilter(_.cashBack === cashBack)
   }
 }

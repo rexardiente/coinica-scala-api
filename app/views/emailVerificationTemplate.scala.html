@@ -1,0 +1,35 @@
+@(u: String, p: String, email: String) @main("EGS - User Email Confirmation") {
+    <script type="text/javascript">
+      window.onload = function() { verifyAccount() };
+
+      function verifyAccount() {
+        $.ajax({
+          type : "POST",
+          dataType: 'json',
+          data: JSON.stringify({'username':"@u",'password':"@p" }),
+          headers: { 'Content-Type':'application/json' },
+          // contentType: "application/json; charset=utf-8",
+          url: "@routes.HomeController.signIn(true)",
+          success: function(response) {
+            setTimeout(function() { confirmEmail(response.token); }, 1000);
+          },
+          error: function(err) { setTimeout(function() { window.close(); }, 1000); }
+       });
+      };
+
+      function confirmEmail(session) {
+        $.ajax({
+          type : "POST",
+          dataType: 'json',
+          data: JSON.stringify({'email': "@email"}),
+          contentType: "application/json; charset=utf-8",
+          headers: { 'CLIENT_TOKEN': session, 'Content-Type':'application/json' },
+          url: "@routes.SecureActionController.updateEmailAccount()",
+          success: function(res) {
+            window.location="@routes.HomeController.index()";
+          },
+          error: function(err) { setTimeout(function() { window.close(); }, 1000); }
+       });
+      };
+    </script>
+}

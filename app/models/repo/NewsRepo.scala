@@ -13,7 +13,8 @@ import models.domain.News
 @Singleton
 class NewsRepo @Inject()(
     dao: models.dao.NewsDAO,
-    protected val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
+    protected val dbConfigProvider: DatabaseConfigProvider
+  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
   def add(news: News): Future[Int] =

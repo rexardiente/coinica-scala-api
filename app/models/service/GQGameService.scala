@@ -13,16 +13,18 @@ import models.domain.eosio.GQ.v2.{ GQCharacterData, GQCharacterDataHistory }
 import models.repo.eosio._
 
 @Singleton
-class GQGameService @Inject()(
-      charDataRepo: GQCharacterDataRepo,
-      // charDataHistoryRepo: GQCharacterDataHistoryRepo,
-      charGameHistoryRepo: GQCharacterGameHistoryRepo ) {
-
-  def getHistoryByCharacterID(id: String): Future[Seq[GQCharacterGameHistory]] = {
-    charGameHistoryRepo.getByCharacterID(id)
-  }
-
-  def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
+class GQGameService @Inject()(charDataRepo: GQCharacterDataRepo, gameHistoryRepo: GQCharacterGameHistoryRepo) {
+  private def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
+  def getHistoryByCharacterID(id: String): Future[Seq[GQCharacterGameHistory]] =
+    gameHistoryRepo.getGameHistoryByCharacterID(id)
+  def getGQGameHistoryByUserID(id: UUID): Future[Seq[GQCharacterGameHistory]] =
+    gameHistoryRepo.getGameHistoryByUserID(id)
+  def getGameHistoryByUsernameAndCharacterID(player: UUID, id: String): Future[Seq[GQCharacterGameHistory]] =
+    gameHistoryRepo.getGameHistoryByUsernameAndCharacterID(player, id)
+  def filteredGameHistoryByID(id: String): Future[Seq[GQCharacterGameHistory]] =
+    gameHistoryRepo.filteredGameHistoryByID(id)
+  def getAllGameHistory(): Future[Seq[GQCharacterGameHistory]] =
+    gameHistoryRepo.getAllGameHistory()
 
   // get all characters from specific player
   // characters are separate by status
@@ -66,7 +68,7 @@ class GQGameService @Inject()(
   // Top 10 results of characters
   def highEarnCharactersAllTime(): Future[Seq[GQCharactersRankByEarned]] = {
     for {
-      txs <- charDataRepo.getAllGameHistory()
+      txs <- gameHistoryRepo.getAllGameHistory()
       grouped <- Future.successful(classifyHighEarnChar(txs, 10))
       getCharaterInfo <- Future.sequence {
         grouped.map { case (id, (player, amount)) =>
@@ -86,7 +88,7 @@ class GQGameService @Inject()(
 
   def highEarnCharactersDaily(): Future[Seq[GQCharactersRankByEarned]] = {
     for {
-      txs <- charDataRepo.getGameHistoryByDateRange(Instant.now.getEpochSecond - (24*60*60), Instant.now.getEpochSecond)
+      txs <- gameHistoryRepo.getGameHistoryByDateRange(Instant.now.getEpochSecond - (24*60*60), Instant.now.getEpochSecond)
       grouped <- Future.successful(classifyHighEarnChar(txs, 10))
       getCharaterInfo <- Future.sequence {
         grouped.map { case (id, (player, amount)) =>
@@ -106,7 +108,7 @@ class GQGameService @Inject()(
 
   def highEarnCharactersWeekly(): Future[Seq[GQCharactersRankByEarned]] = {
     for {
-      txs <- charDataRepo.getGameHistoryByDateRange(Instant.now.getEpochSecond - ((24*60*60) * 7), Instant.now.getEpochSecond)
+      txs <- gameHistoryRepo.getGameHistoryByDateRange(Instant.now.getEpochSecond - ((24*60*60) * 7), Instant.now.getEpochSecond)
       grouped <- Future.successful(classifyHighEarnChar(txs, 10))
       getCharaterInfo <- Future.sequence {
         grouped.map { case (id, (player, amount)) =>
@@ -347,7 +349,7 @@ class GQGameService @Inject()(
   def winStreakPerDay(): Future[List[GQCharactersRankByWinStreak]] = {
     val today: Long = Instant.now().getEpochSecond
     for {
-      history <- charDataRepo.getGameHistoryByDateRange(today - (24*60*60), today)
+      history <- gameHistoryRepo.getGameHistoryByDateRange(today - (24*60*60), today)
       separatedHistory <- Future.successful(separateHistoryByCharID(history))
       calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
       result <- calcStreakToStreakObject(calcWinStreak)
@@ -357,7 +359,7 @@ class GQGameService @Inject()(
   def winStreakPerWeekly(): Future[List[GQCharactersRankByWinStreak]] = {
     val today: Long = Instant.now().getEpochSecond
     for {
-      history <- charDataRepo.getGameHistoryByDateRange(today - ((24*60*60) * 7), today)
+      history <- gameHistoryRepo.getGameHistoryByDateRange(today - ((24*60*60) * 7), today)
       separatedHistory <- Future.successful(separateHistoryByCharID(history))
       calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
       result <- calcStreakToStreakObject(calcWinStreak)
@@ -366,7 +368,7 @@ class GQGameService @Inject()(
 
   def winStreakLifeTime(): Future[List[GQCharactersRankByWinStreak]] = {
     for {
-      history <- charDataRepo.getAllGameHistory()
+      history <- gameHistoryRepo.getAllGameHistory()
       separatedHistory <- Future.successful(separateHistoryByCharID(history))
       calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
       result <- calcStreakToStreakObject(calcWinStreak)

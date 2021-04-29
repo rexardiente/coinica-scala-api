@@ -3,29 +3,106 @@ package models.domain
 import java.time.Instant
 import java.util.UUID
 import play.api.libs.json._
+import utils.auth.EncryptKey
 
-object UserAccount {
-	val tupled = (apply: (UUID, String, Option[String], String, Double, Double, Double, Instant) => UserAccount).tupled
+object UserAccount extends utils.CommonImplicits {
+	val tupled = (apply: (UUID,
+												String,
+												String,
+												Option[String],
+												Option[String],
+												String,
+												Double,
+												Double,
+												Double,
+												Boolean,
+												Instant,
+												Instant) => UserAccount).tupled
 	def apply(id: UUID,
-						name: String,
-						referred_by: Option[String],
-						referral_code: String,
+						username: String,
+						password: String,
+						email: Option[String],
+						referredBy: Option[String],
+						referralCode: String,
 						referral: Double,
-						referral_rate: Double,
-						win_rate: Double, // TODO
-						created_at: Instant): UserAccount =
-		new UserAccount(id, name, referred_by, referral_code, referral, referral_rate, win_rate, created_at)
-	def apply(name: String): UserAccount = new UserAccount(UUID.randomUUID, name, None, UUID.randomUUID.toString.replaceAll("-", ""))
-	implicit def implUserAccount = Json.format[UserAccount]
+						referralRate: Double,
+						winRate: Double,
+						isVerified: Boolean,
+						lastSignIn: Instant,
+						createdAt: Instant): UserAccount =
+		new UserAccount(id,
+										username,
+										password,
+										email,
+										referredBy,
+										referralCode,
+										referral,
+										referralRate,
+										winRate,
+										isVerified,
+										lastSignIn,
+										createdAt)
+	// def apply(username: String): UserAccount = new UserAccount(UUID.randomUUID, username, None, UUID.randomUUID.toString.replaceAll("-", ""))
+	def apply(username: String, password: String): UserAccount = new UserAccount(
+						UUID.randomUUID,
+						username,
+						password,
+						None,
+						None,
+						UUID.randomUUID.toString.replaceAll("-", ""),
+						0,
+						models.domain.enum.VIP.BRONZE.id,
+						0,
+						false,
+						Instant.now,
+						Instant.now)
+	def apply(username: String, password: String, referredBy: Option[String]): UserAccount = new UserAccount(
+						UUID.randomUUID,
+						username,
+						password,
+						None,
+						referredBy,
+						UUID.randomUUID.toString.replaceAll("-", ""),
+						0,
+						models.domain.enum.VIP.BRONZE.id,
+						0,
+						false,
+						Instant.now,
+						Instant.now)
 }
 // TODO: Win rate and referral system
 // 2.0 as defult referral rate
 // Referral Code: check if user has already referral history then invalid request
 case class UserAccount(id: UUID,
-											name: String,
-											referred_by: Option[String],
-											referral_code: String,
+											username: String,
+											password: String,
+											email: Option[String],
+											referredBy: Option[String],
+											referralCode: String,
 											referral: Double = 0,
-											referral_rate: Double = 2,
-											win_rate: Double = 0,
-											created_at: Instant = Instant.now)
+											referralRate: Double = 0,
+											winRate: Double = 0,
+											isVerified: Boolean,
+											lastSignIn: Instant,
+											createdAt: Instant = Instant.now()) {
+	def toJson(): JsValue = Json.toJson(this)
+}
+
+object UserToken extends utils.CommonImplicits {
+	val tupled = (apply: (UUID, Option[String], Option[Long], Option[Long], Option[Long]) => UserToken).tupled
+	def apply(id: UUID): UserToken = new UserToken(id, None, None, None, None)
+}
+case class UserToken(id: UUID,
+											token: Option[String],
+											login: Option[Long],
+											email: Option[Long],
+											password: Option[Long]) {
+	def toJson(): JsValue = Json.toJson(this)
+}
+
+
+
+
+
+
+

@@ -68,3 +68,10 @@ lib_managed/
 src_managed/
 project/boot/
 project/plugins/project/
+
+### Play framework with reactjs UI
+*.vscode
+*.metals
+public/
+# ui/node_modules
+# ui/build

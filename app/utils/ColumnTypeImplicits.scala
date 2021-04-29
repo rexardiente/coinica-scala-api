@@ -86,12 +86,12 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
         } catch {
           case _: Throwable => 0
         }),
-    s => VIPBenefitAmount.withName(s.toString))
+    s => VIPBenefitAmount.apply(s))
   implicit val vipBenefitPointsMapper = MappedColumnType.base[VIPBenefitPoints.value, Int](
     e => (try {
           e.id
         } catch {
           case _: Throwable => 0
         }),
-    s => VIPBenefitPoints.withName(s.toString))
+    s => VIPBenefitPoints.apply(s))
 }

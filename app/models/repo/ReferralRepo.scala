@@ -35,6 +35,12 @@ class ReferralHistoryRepo @Inject()(
   def getByCode(code: String): Future[Seq[ReferralHistory]] =
     db.run(dao.Query.filter(r => r.code === code).result)
 
+  def isReferred(appliedBy: UUID, code: String): Future[Boolean] =
+    db.run(dao.Query.filter(r => r.appliedBy === appliedBy && r.code === code).exists.result)
+
+  // def isReferrer(referrer: UUID, referred: String): Future[Boolean] = ???
+  //   db.run(dao.Query.filter(r => r.appliedBy === referrer && r.code === referred).exists.result)
+
   // def findByDaily(currentdate: Long, limit: Int, offset: Int): Future[Seq[ReferralHistory]] =
   //  db.run(dao.Query.filter(r =>  r.createdAt === currentdate)
   //    .drop(offset)

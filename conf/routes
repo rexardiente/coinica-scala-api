@@ -4,22 +4,20 @@
 # ket
 GET     /ws                                  	controllers.HomeController.socket
 
-GET     /                                        controllers.HomeController.index
+GET     /                           					controllers.HomeController.index()
 # Login API
-#POST    /donut/api/v1/login/add                   controllers.AdminController.addLogin
-#PUT     /donut/api/v1/login/update               controllers.AdminController.updateLogin(id: UUID)
-#POST    /donut/api/v1/login/remove                controllers.AdminController.removeLogin(id: UUID)
 
-GET     /donut/api/v1/login/weekly               controllers.AdminController.logindate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-GET     /donut/api/v1/login/daily                controllers.AdminController.logindate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-GET     /donut/api/v1/login/monthly              controllers.AdminController.logindate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+POST   	/donut/api/v1/sign-in            	controllers.HomeController.signIn(verify: Boolean ?= false)
+POST   	/donut/api/v1/sign-up            	controllers.HomeController.signUp()
+GET   	/donut/api/v1/sign-out           	controllers.SecureActionController.signOut()
+GET   	/donut/api/v1/login/token/renew   controllers.SecureActionController.renewLoginSessionToken()
 
 # Challenge API
 #POST    /donut/api/v1/challenge/add                   controllers.HomeController.addChallenge
 #PUT     /donut/api/v1/challenge/update               controllers.HomeController.updateChallenge(id: UUID)
 #POST    /donut/api/v1/challenge/remove                controllers.HomeController.removeChallenge(id: UUID)
 
-GET     /donut/api/v1/challenge               controllers.HomeController.getChallenge(date: java.time.Instant ?= java.time.Instant.now)
+GET     /donut/api/v1/challenge               controllers.HomeController.getChallenge(date: Option[java.time.Instant])
 GET     /donut/api/v1/challenge/ranks/daily   controllers.HomeController.getDailyRanksChallenge()
 # GET     /donut/api/v1/challenge/daily                controllers.HomeController.challengedaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 # GET     /donut/api/v1/challenge/monthly              controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
@@ -28,17 +26,16 @@ GET     /donut/api/v1/challenge/ranks/daily   controllers.HomeController.getDail
 #POST    /donut/api/v1/ranking/add                   controllers.HomeController.addRanking
 #PUT     /donut/api/v1/ranking/update               controllers.HomeController.updateRanking(id: UUID)
 #POST    /donut/api/v1/ranking/remove                controllers.HomeController.removeRanking(id: UUID)
-GET     /donut/api/v1/ranking               	controllers.HomeController.getRankingByDate(date: Option[java.time.Instant])
-#GET     /donut/api/v1/ranking/daily                controllers.HomeController.rankingdaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
-#GET     /donut/api/v1/ranking/monthly              controllers.HomeController.rankingdate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
+GET     /donut/api/v1/ranking/daily               	controllers.HomeController.getRankingDaily()
+GET     /donut/api/v1/ranking/monthly               controllers.HomeController.getRankingHistory()
 
 # Referral API
-POST   	/donut/api/v1/referral/apply              controllers.HomeController.applyReferralCode
-GET    	/donut/api/v1/referral/history/:code      controllers.HomeController.getReferralHistory(code: String)
+POST   	/donut/api/v1/referral/apply              controllers.SecureActionController.applyReferralCode
+GET    	/donut/api/v1/referral/history/:code      controllers.SecureActionController.getReferralHistory(code: String)
 
 # Task API
-GET     /donut/api/v1/task/daily                controllers.HomeController.getTodayTaskUpdates(user: UUID, game_id: UUID)
-GET     /donut/api/v1/task/monthly                controllers.HomeController.getMonthlyTaskUpdates(user: UUID, game_id: UUID)
+GET     /donut/api/v1/task/daily                	controllers.SecureActionController.getTodayTaskUpdates(game_id: UUID)
+GET     /donut/api/v1/task/monthly                controllers.SecureActionController.getMonthlyTaskUpdates(game_id: UUID)
 #GET     /donut/api/v1/task/weekly                controllers.HomeController.getWeeklyTaskUpdates(user: String, game_id: UUID)
 
 # Game API
@@ -62,36 +59,51 @@ GET    /donut/api/v1/txs               			 	 controllers.HomeController.transact
 GET    /donut/api/v1/tx/find              	 	 controllers.HomeController.transactionByTraceID(trace_id: String)
 
 # Ghost Quest API
-GET   /donut/api/v1/game/ghost-quest/character/:id   controllers.HomeController.getCharacterByID(id: String)
-GET   /donut/api/v1/game/ghost-quest/character/:user/:id controllers.HomeController.getCharacterByUserAndID(user: UUID, id: String)
-GET   /donut/api/v1/game/ghost-quest/characters       controllers.HomeController.getAllCharacters()
-GET   /donut/api/v1/game/ghost-quest/characters/:user     controllers.HomeController.getCharactersByUser(user: UUID)
-GET   /donut/api/v1/game/ghost-quest/characters/:user/all controllers.HomeController.getAllCharactersByUser(user: UUID)
-GET   /donut/api/v1/game/ghost-quest/history/characters/:user  controllers.HomeController.getCharacterHistoryByUser(user: UUID)
-GET   /donut/api/v1/game/ghost-quest/history/character/:user/:id  controllers.HomeController.getCharacterHistoryByUserAndID(user: UUID, id: String)
-GET   /donut/api/v1/game/ghost-quest/history/games     controllers.HomeController.getAllGQGameHistory()
-GET   /donut/api/v1/game/ghost-quest/history/games/:user   controllers.HomeController.getGQGameHistoryByUser(user: UUID)
-GET   /donut/api/v1/game/ghost-quest/history/game/id/:id  controllers.HomeController.getGQGameHistoryByGameID(id: String)
-GET   /donut/api/v1/game/ghost-quest/history/game/:user/:id   controllers.HomeController.getGQGameHistoryByUserAndCharacterID(user: UUID, id: String)
+GET   /donut/api/v1/game/ghost-quest/character/:id   controllers.SecureActionController.getCharacterByID(id: String)
+GET   /donut/api/v1/game/ghost-quest/character/:user/:id controllers.SecureActionController.getCharacterByUserAndID(user: UUID, id: String)
+#GET   /donut/api/v1/game/ghost-quest/characters       controllers.SecureActionController.getAllCharacters()
+GET   /donut/api/v1/game/ghost-quest/characters/:user     controllers.SecureActionController.getCharactersByUser(user: UUID)
+GET   /donut/api/v1/game/ghost-quest/characters/:user/all controllers.SecureActionController.getAllCharactersByUser(user: UUID)
+GET   /donut/api/v1/game/ghost-quest/history/characters/:user  controllers.SecureActionController.getCharacterHistoryByUser(user: UUID)
+GET   /donut/api/v1/game/ghost-quest/history/character/:user/:id  controllers.SecureActionController.getCharacterHistoryByUserAndID(user: UUID, id: String)
+GET   /donut/api/v1/game/ghost-quest/history/games     controllers.SecureActionController.getAllGQGameHistory()
+GET   /donut/api/v1/game/ghost-quest/history/games/:user   controllers.SecureActionController.getGQGameHistoryByUser(user: UUID)
+GET   /donut/api/v1/game/ghost-quest/history/game/id/:id  controllers.SecureActionController.getGQGameHistoryByGameID(id: String)
+GET   /donut/api/v1/game/ghost-quest/history/game/:user/:id   controllers.SecureActionController.getGQGameHistoryByUserAndCharacterID(user: UUID, id: String)
 
-GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/lifetime controllers.HomeController.highEarnCharactersAllTime
-GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/daily controllers.HomeController.highEarnCharactersDaily
-GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/weekly controllers.HomeController.highEarnCharactersWeekly
+GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/lifetime controllers.SecureActionController.highEarnCharactersAllTime
+GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/daily controllers.SecureActionController.highEarnCharactersDaily
+GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/weekly controllers.SecureActionController.highEarnCharactersWeekly
 
-GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/weekly controllers.HomeController.winStreakPerDay
-GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily controllers.HomeController.winStreakPerWeekly
-GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime controllers.HomeController.winStreakLifeTime
+GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/weekly controllers.SecureActionController.winStreakPerDay
+GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily controllers.SecureActionController.winStreakPerWeekly
+GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime controllers.SecureActionController.winStreakLifeTime
 
 # Overall History
-GET   /donut/api/v1/game/all/history controllers.HomeController.overAllHistory(limit: Int ?= 10)
+#GET   /donut/api/v1/game/all/history controllers.SecureActionController.overAllHistory(limit: Int ?= 10)
+GET   /donut/api/v1/game/all/history/:game controllers.SecureActionController.overAllHistoryByGameID(game: UUID)
+GET   /donut/api/v1/game/all/history/:game/:user controllers.SecureActionController.gameHistoryByGameIDAndUser(game: UUID, user: UUID)
 
 # TODO: News with pagination
 GET   /donut/api/v1/news controllers.HomeController.news
 
 # User Account
-GET   /donut/api/v1/account/user/:user controllers.HomeController.userAccount(user)
+#GET   /donut/api/v1/account/user/:user 					controllers.SecureActionController.getAccountByName(user)
+GET   /donut/api/v1/account/code/:code 					controllers.SecureActionController.getAccountByCode(code: String)
+GET   /donut/api/v1/account/id/:id 							controllers.SecureActionController.getAccountByID(id: UUID)
 # VIP Account
-GET   /donut/api/v1/vip 				controllers.HomeController.vipUser(id: UUID)
+GET   /donut/api/v1/vip 				controllers.SecureActionController.vipUser(id: UUID)
+
+# Add Email Address Email Confirmation
+GET   /donut/api/v1/user/email/confirm 					controllers.HomeController.emailVerification(code: String)
+POST  /donut/api/v1/user/email/update 					controllers.SecureActionController.updateEmailAccount()
+POST  /donut/api/v1/user/email/add 							controllers.SecureActionController.addEmailAccount()
+# Reset Password Email Confirmation
+#GET   /donut/api/v1/user/reset/password/confirm controllers.HomeController.resetPasswordVerification(code: String)
+POST  /donut/api/v1/user/password/reset/send 			controllers.HomeController.resetPassword()
+GET   /donut/api/v1/user/password/reset/confirm 	controllers.HomeController.resetPasswordVerification(code: String)
+POST  /donut/api/v1/user/password/reset/submit 		controllers.HomeController.submitNewPassword()
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET     /stylesheets/*file          @controllers.Assets.at(path="/public/stylesheets", file)

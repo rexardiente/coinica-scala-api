@@ -7,7 +7,6 @@ import models.dao._
 
 @Singleton
 class Generator @Inject()(
-    login : LoginDAO,
     user: UserAccountDAO,
     game: GameDAO,
     genre: GenreDAO,
@@ -23,8 +22,6 @@ class Generator @Inject()(
     gqCharacterData: GQCharacterDataDAO,
     gqCharacterGameHistory: GQCharacterGameHistoryDAO,
     gqCharacterDataHistory: GQCharacterDataHistoryDAO,
-    // admin: AdminDAO,
-    vipUser: VIPUserDAO,
     vipBenefit: VIPBenefitDAO,
     news: NewsDAO,
     overAllGameHistory: OverAllGameHistoryDAO,
@@ -34,8 +31,9 @@ class Generator @Inject()(
 
   def createDDLScript() = {
     val schemas =
-     login.Query.schema ++
-      user.Query.schema ++
+      user.UserAccountQuery.schema ++
+      user.UserTokenQuery.schema ++
+      user.VIPUserQuery.schema ++
       game.Query.schema ++
       genre.Query.schema ++
       task.Query.schema ++
@@ -50,8 +48,6 @@ class Generator @Inject()(
       gqCharacterData.Query.schema ++
       gqCharacterGameHistory.Query.schema ++
       gqCharacterDataHistory.Query.schema ++
-      // admin.Query.schema ++
-      vipUser.Query.schema ++
       vipBenefit.Query.schema ++
       news.Query.schema ++
       overAllGameHistory.Query.schema
