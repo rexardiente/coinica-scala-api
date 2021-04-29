@@ -226,11 +226,14 @@ class HomeController @Inject()(
                         val currentTime: Long = Instant.now.getEpochSecond
                         // check if has existing valid token else create new
                         if (user.login.map(_ >= currentTime).getOrElse(false))
-                          Future(Ok(Json.obj("token" -> user.token)))
+                          Future(Ok(ClientTokenEndpoint(user.id, user.token.getOrElse(null)).toJson()))
                         else
                           accountService
                             .updateUserToken(tempAccount)
-                            .map(x => if (x > 0) Ok(Json.obj("token" -> tempAccount.token)) else InternalServerError)
+                            .map { x =>
+                              if (x > 0) Ok(ClientTokenEndpoint(user.id, tempAccount.token.getOrElse(null)).toJson())
+                              else InternalServerError
+                           }
                       }
                       .getOrElse(Future(InternalServerError))
                   }

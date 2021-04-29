@@ -648,4 +648,5 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		"created_at" -> tx.createdAt)
 	}
 	implicit def implUserToken = Json.format[UserToken]
+	implicit def implClientTokenEndpoint = Json.format[ClientTokenEndpoint]
 }

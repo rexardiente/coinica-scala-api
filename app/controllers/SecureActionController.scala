@@ -165,6 +165,7 @@ class SecureActionController @Inject()(
     request
       .account
       .map { account =>
+        println(account)
         if (account.username == username)
           accountService.getAccountByName(username).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
         else

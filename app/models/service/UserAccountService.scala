@@ -64,10 +64,10 @@ class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo
   def newVIPAcc(vip: VIPUser): Future[Int] =
   	vipUserRepo.add(vip)
 
-  def getUserAccountBySessionToken(token: String): Future[Option[UserAccount]] = {
+  def getUserAccountByIDAndToken(id: UUID, token: String): Future[Option[UserAccount]] = {
     for {
       // check if token exists on DB..
-       hasValidToken <- userTokenRepo.getLoginByToken(token)
+       hasValidToken <- userTokenRepo.getLoginByIDAndToken(id, token)
        // validate
        processed <- {
          if (hasValidToken != None) getAccountByID(hasValidToken.map(_.id).getOrElse(UUID.randomUUID))

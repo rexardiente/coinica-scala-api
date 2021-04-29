@@ -39,8 +39,8 @@ class UserTokenRepo @Inject()(
   //       x.tokenLimit >= currentTime
   //     ).exists.result)
   // and make sure token is valid by checking if not expired..
-  def getLoginByToken(token: String): Future[Option[UserToken]] =
-    db.run(dao.UserTokenQuery.filter(x => x.token === token && x.login >= Instant.now.getEpochSecond).result.headOption)
+  def getLoginByIDAndToken(id: UUID, token: String): Future[Option[UserToken]] =
+    db.run(dao.UserTokenQuery.filter(x => x.id === id && x.token === token && x.login >= Instant.now.getEpochSecond).result.headOption)
   // def getByNameAndSessionToken(username: String, token: String): Future[Option[UserAccount]] =
   //   db.run(dao.UserTokenQuery.filter(x => x.username === username && x.token === token).result.headOption)
 }

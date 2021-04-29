@@ -22,7 +22,9 @@ class SecureUserAction @Inject()(
   // get by session token but make sure token is not expired else return false.
   def transform[A](request: Request[A]) = {
     accService
-      .getUserAccountBySessionToken(request.headers.get("EGS_TOKEN_SESSION").getOrElse(null))
+      .getUserAccountByIDAndToken(
+        request.headers.get("CLIENT_ID").map(UUID.fromString(_)).getOrElse(UUID.randomUUID),
+        request.headers.get("CLIENT_TOKEN").getOrElse(null))
       .map(new SecureUserRequest(_, request))
   }
 
