@@ -14,7 +14,7 @@
             setTimeout(function() { confirmEmail(response); }, 1000);
           },
           error: function(err) { setTimeout(function() { window.close(); }, 1000); }
-       });
+        });
       };
 
       function confirmEmail(params) {
@@ -29,7 +29,7 @@
             window.location="@routes.HomeController.index()";
           },
           error: function(err) { setTimeout(function() { window.close(); }, 1000); }
-       });
+        });
       };
     </script>
 }

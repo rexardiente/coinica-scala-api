@@ -636,7 +636,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	  def writes(tx: UserAccount): JsValue = Json.obj(
 		"id" -> tx.id,
 		"username" -> tx.username,
-		"password" -> tx.password,
+		// "password" -> tx.password,
 		"email" -> tx.email,
 		"referred_by" -> tx.referredBy,
 		"referral_code" -> tx.referralCode,
