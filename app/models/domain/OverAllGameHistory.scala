@@ -37,6 +37,7 @@ case class THGameHistory(user: String, prediction: List[Int], result: List[Int],
 // 												win_count: Int) extends TransactionType {
 // 	override def toJson(): JsValue = Json.toJson(this)
 // }
+// case class MJGameHistory(user: String, bet: Double, amount: Double) extends TransactionType
 case class GameType(user: String, isWin: Boolean, bet: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }

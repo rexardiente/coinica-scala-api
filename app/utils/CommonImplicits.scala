@@ -427,7 +427,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		override def reads(js: JsValue): JsResult[InEvent] = js match {
 			case json: JsValue => {
 				try {
-					JsSuccess(InEvent((json \ "id").as[JsString], (json \ "input").as[JsValue]))
+					JsSuccess(InEvent((json \ "id").as[JsString], (json \ "input").as[InEventMessage]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}

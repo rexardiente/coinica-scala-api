@@ -58,7 +58,7 @@ object ConnectionAlive extends utils.CommonImplicits
 sealed trait Event {
   def toJson(): JsValue = Json.toJson(this)
 }
-case class InEvent(id: JsValue, input: JsValue) extends Event
+case class InEvent(id: JsValue, input: InEventMessage) extends Event
 case class OutEvent(id: JsValue, response: JsValue) extends Event
 case class Subscribe(id: String, message: String) extends Event {
 	require(message == "subscribe", "Subscribe: Invalid message received")

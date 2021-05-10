@@ -93,106 +93,104 @@ class WebSocketActor@Inject()(
             // check if id/user is subscribed else do not allow
             WebSocketActor.subscribers.exists(x => x._1 == user) match {
               case false => out ! OutEvent(JsString(user), JsString("unauthorized"))
-              case true =>
-                in.input.as[InEventMessage] match {
-                  // if server got a WS message for newly created character
-                  // try to update character DB
-                  case cc: GQCharacterCreated =>
-                    if (!WebSocketActor.hasPrevUpdateCharacter) {
-                      // set has existing request to update characters DB
-                      WebSocketActor.hasPrevUpdateCharacter = true
-                      Thread.sleep(300)
-                      Await.ready(getEOSTableRows(Some("REQUEST_UPDATE_CHARACTERS_DB")), Duration.Inf)
-                      Thread.sleep(1000)
-                      if (!WebSocketActor.isUpdatedCharacters.isEmpty) {
-                        val seq: Seq[GQCharacterData] = WebSocketActor.isUpdatedCharacters.map(_._2).toSeq
-                        // remove characters with no life..
-                        for {
-                          _ <- Future.sequence {
-                            seq.filter(x => x.life <= 0).map { data =>
-                              userAccountService.getAccountByID(data.owner).map {
-                                case Some(account) =>
-                                  Await.ready(for {
-                                    isRemoved <- characterRepo.remove(account.id, data.key)
-                                    _ <- Future.successful {
-                                      Thread.sleep(500)
-                                      // check if character exist already on history else add..
-                                      characterRepo.getCharacterHistoryByID(data.key).map {
-                                        case Some(v) => ()
-                                        case None =>
-                                          characterRepo
-                                            .insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-                                            .map(x => if(x < 1) characterRepo.insert(data))
-                                      }
+              case true => in.input match {
+                // if server got a WS message for newly created character
+                // try to update character DB
+                case cc: GQCharacterCreated =>
+                  if (!WebSocketActor.hasPrevUpdateCharacter) {
+                    // set has existing request to update characters DB
+                    WebSocketActor.hasPrevUpdateCharacter = true
+                    Thread.sleep(300)
+                    Await.ready(getEOSTableRows(Some("REQUEST_UPDATE_CHARACTERS_DB")), Duration.Inf)
+                    Thread.sleep(1000)
+                    if (!WebSocketActor.isUpdatedCharacters.isEmpty) {
+                      val seq: Seq[GQCharacterData] = WebSocketActor.isUpdatedCharacters.map(_._2).toSeq
+                      // remove characters with no life..
+                      for {
+                        _ <- Future.sequence {
+                          seq.filter(x => x.life <= 0).map { data =>
+                            userAccountService.getAccountByID(data.owner).map {
+                              case Some(account) =>
+                                Await.ready(for {
+                                  isRemoved <- characterRepo.remove(account.id, data.key)
+                                  _ <- Future.successful {
+                                    Thread.sleep(500)
+                                    // check if character exist already on history else add..
+                                    characterRepo.getCharacterHistoryByID(data.key).map {
+                                      case Some(v) => ()
+                                      case None =>
+                                        characterRepo
+                                          .insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                                          .map(x => if(x < 1) characterRepo.insert(data))
                                     }
-                                  } yield (Thread.sleep(1000)), Duration.Inf)
-                                case _ => ()
-                              }
-                            }
-                          }
-                          // update remaining characters that are still on battle
-                          _ <- Future.sequence(seq.filter(x => x.life > 0).map(characterRepo.updateOrInsertAsSeq))
-                        } yield ()
-                        out ! OutEvent(JsNull, JsString("characters updated"))
-                      }
-                      WebSocketActor.isUpdatedCharacters.clear
-                      WebSocketActor.hasPrevUpdateCharacter = false
-                    }
-                  // if result is empty it means on battle else standby mode..
-                  case cc: GQGetNextBattle =>
-                    if (GQBattleScheduler.nextBattle == 0)
-                      out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
-                    else
-                      out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
-
-                  case th: THGameResult =>
-                    // TODO: Save overall game data into TH history
-                    // default constructors..
-                    val txHash: String = th.tx_hash
-                    val gameID: String = th.game_id
-                    val prediction: List[Int] = th.data.panel_set.map(_.isopen).toList
-                    val result: List[Int] = th.data.panel_set.map(_.iswin).toList
-                    val betAmount: Double = th.data.destination
-                    val prize: Double = th.data.prize
-
-                    val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-                                                        txHash,
-                                                        gameID,
-                                                        Config.TH_CODE,
-                                                        THGameHistory(user, prediction, result, betAmount, prize),
-                                                        true,
-                                                        Instant.now.getEpochSecond)
-
-                    // save into DB overAllGameHistory
-                    // if success then broadcast into users
-                    overAllGameHistory.isExistsByTxHash(txHash).map { isExists =>
-                      if (!isExists) {
-                        overAllGameHistory.add(gameHistory).map { x =>
-                          if(x > 0) {
-                            out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> false))
-                            dynamicBroadcast ! Array(gameHistory)
-
-                            userAccountService.getAccountByName(user).map {
-                              case Some(v) =>
-                                dynamicProcessor ! DailyTask(v.id, Config.TH_GAME_ID, 1)
-                                dynamicProcessor ! ChallengeTracker(v.id, betAmount, prize, 1, if (prize == 0) 0 else 1)
+                                  }
+                                } yield (Thread.sleep(1000)), Duration.Inf)
                               case _ => ()
                             }
                           }
-                          else out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> true))
                         }
-                      }
-                      else out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> true))
+                        // update remaining characters that are still on battle
+                        _ <- Future.sequence(seq.filter(x => x.life > 0).map(characterRepo.updateOrInsertAsSeq))
+                      } yield ()
+                      out ! OutEvent(JsNull, JsString("characters updated"))
                     }
+                    WebSocketActor.isUpdatedCharacters.clear
+                    WebSocketActor.hasPrevUpdateCharacter = false
+                  }
+                // if result is empty it means on battle else standby mode..
+                case cc: GQGetNextBattle =>
+                  if (GQBattleScheduler.nextBattle == 0)
+                    out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
+                  else
+                    out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
 
-                  case e: EOSNotifyTransaction =>
-                    // Check if notification relates to TH
-                    // save into DB if found..
-                    println("EOSNotifyTransaction" + e)
-                  // send out the message to self and process separately..
-                  case vip: VIPWSRequest => self ! vip
-                  case _ => ()
-                }
+                case th: THGameResult =>
+                  // TODO: Save overall game data into TH history
+                  // default constructors..
+                  val txHash: String = th.tx_hash
+                  val gameID: String = th.game_id
+                  val prediction: List[Int] = th.data.panel_set.map(_.isopen).toList
+                  val result: List[Int] = th.data.panel_set.map(_.iswin).toList
+                  val betAmount: Double = th.data.destination
+                  val prize: Double = th.data.prize
+                  val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
+                                                      txHash,
+                                                      gameID,
+                                                      Config.TH_CODE,
+                                                      THGameHistory(user, prediction, result, betAmount, prize),
+                                                      true,
+                                                      Instant.now.getEpochSecond)
+
+                  // save into DB overAllGameHistory
+                  // if success then broadcast into users
+                  overAllGameHistory.isExistsByTxHash(txHash).map { isExists =>
+                    if (!isExists) {
+                      overAllGameHistory.add(gameHistory).map { x =>
+                        if(x > 0) {
+                          out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> false))
+                          dynamicBroadcast ! Array(gameHistory)
+
+                          userAccountService.getAccountByName(user).map {
+                            case Some(v) =>
+                              dynamicProcessor ! DailyTask(v.id, Config.TH_GAME_ID, 1)
+                              dynamicProcessor ! ChallengeTracker(v.id, betAmount, prize, 1, if (prize == 0) 0 else 1)
+                            case _ => ()
+                          }
+                        }
+                        else out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> true))
+                      }
+                    }
+                    else out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> true))
+                  }
+
+                case e: EOSNotifyTransaction =>
+                  // Check if notification relates to TH
+                  // save into DB if found..
+                  println("EOSNotifyTransaction" + e)
+                // send out the message to self and process separately..
+                case vip: VIPWSRequest => self ! vip
+                case _ => ()
+              }
             }
 
           case oe: OutEvent =>
