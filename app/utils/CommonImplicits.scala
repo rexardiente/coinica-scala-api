@@ -7,6 +7,7 @@ import play.api.libs.functional.syntax._
 import models.domain._
 import models.domain.eosio._
 import models.domain.eosio.GQ.v2._
+import models.domain.multi.currency._
 
 trait CommonImplicits {
 	// Common
@@ -649,4 +650,18 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	}
 	implicit def implUserToken = Json.format[UserToken]
 	implicit def implClientTokenEndpoint = Json.format[ClientTokenEndpoint]
+	// Multi Currency
+	implicit def implCoin = Json.format[Coin]
+	implicit def implLimits = Json.format[Limits]
+	implicit def implWalletAddress = Json.format[WalletAddress]
+	implicit def implGenerateOffer = Json.format[GenerateOffer]
+	implicit def implCreateOrderTx = Json.format[CreateOrderTx]
+	implicit def implCreateOrder = Json.format[CreateOrder]
+	implicit def implCreateOrderResponse = Json.format[CreateOrderResponse]
+	implicit def implOrderStatus = Json.format[OrderStatus]
+	implicit def implListOfOrders = Json.format[ListOfOrders]
+	implicit def implKeyPairGeneratorResponse = Json.format[KeyPairGeneratorResponse]
+
 }
+
+

@@ -27,6 +27,7 @@ class SecureActionController @Inject()(
                           ghostQuestService: GQGameService,
                           taskService: TaskService,
                           mailerService: MailerService,
+                          multiCurrencySupport: utils.lib.MultiCurrencyHTTPSupport,
                           cc: ControllerComponents,
                           SecureUserAction: SecureUserAction) extends AbstractController(cc) {
   private val referralForm = Form(tuple(
