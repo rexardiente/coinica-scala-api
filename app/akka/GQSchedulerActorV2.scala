@@ -15,8 +15,7 @@ import models.domain._
 import models.domain.eosio.{ TableRowsRequest, GQCharacterGameHistory, GQBattleResult }
 import models.repo.{ OverAllGameHistoryRepo, DailyTaskRepo, TaskRepo, UserAccountRepo }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import models.service.GQSmartContractAPI
-import utils.lib.{ EOSIOSupport, GQBattleCalculation }
+import utils.lib.{ EOSIOHTTPSupport, GQBattleCalculation }
 import models.domain.eosio.GQ.v2._
 import akka.common.objects._
 import utils.Config
