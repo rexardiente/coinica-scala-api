@@ -18,9 +18,8 @@ import models.domain.eosio.GQ.v2.{ GQRowsResponse, GQGame, GQCharacterData, GQTa
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.repo.{ OverAllGameHistoryRepo, VIPUserRepo }
 import models.service.UserAccountService
-import models.service.GQSmartContractAPI
 import akka.common.objects.{ Connect, GQBattleScheduler }
-import utils.lib.EOSIOSupport
+import utils.lib.EOSIOHTTPSupport
 import utils.Config
 
 object WebSocketActor {

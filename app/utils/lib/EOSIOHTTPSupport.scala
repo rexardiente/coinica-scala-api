@@ -1,4 +1,4 @@
-package akka
+package utils.lib
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
