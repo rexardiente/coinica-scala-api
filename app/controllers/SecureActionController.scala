@@ -13,6 +13,7 @@ import play.api.libs.json._
 import play.api.libs.mailer.MailerService
 import play.api.data.validation.Constraints.emailAddress
 import models.domain._
+import models.domain.multi.currency._
 import models.repo._
 import models.service._
 import utils.auth.SecureUserAction
@@ -34,7 +35,140 @@ class SecureActionController @Inject()(
     "code" -> nonEmptyText,
     "applied_by" -> uuid))
   private val emailForm = Form(single("email" -> email.verifying(emailAddress)))
+  private val getSupportedSymbolForm = Form(single("symbol" -> text))
+  private val getListOfOrdersForm = Form(tuple(
+    "start" -> optional(number),
+    "count" -> optional(number),
+    "id" -> optional(text)))
+  private val getExchangeLimitsForm = Form(tuple(
+    "deposit" -> nonEmptyText,
+    "destination" -> nonEmptyText))
+  private val generateOfferForm = Form(tuple(
+    "deposit" -> nonEmptyText,
+    "destination" -> nonEmptyText,
+    "amount" -> bigDecimal))
+  // https://stackoverflow.com/questions/15074684/play-framework-2-1-form-mapping-with-complex-objects
+  private val createOrderForm = Form(mapping(
+    "transaction" -> mapping(
+      "depositCoin" -> nonEmptyText,
+      "destinationCoin" -> nonEmptyText,
+      "depositCoinAmount" -> bigDecimal,
+      "destinationAddress" -> mapping(
+          "address" -> nonEmptyText,
+          "tag" -> optional(text)
+        )(WalletAddress.apply)(WalletAddress.unapply),
+      "refundAddress" -> mapping(
+          "address" -> nonEmptyText,
+          "tag" -> optional(text)
+        )(WalletAddress.apply)(WalletAddress.unapply),
+      "userReferenceId" -> nonEmptyText,
+      "offerReferenceId" -> nonEmptyText
+    )(CreateOrderTx.apply)(CreateOrderTx.unapply)
+  )(CreateOrder.apply)(CreateOrder.unapply))
 
+
+  def getListOfOrders() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { _ =>
+        getListOfOrdersForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (start, count, id)  =>
+          multiCurrencySupport
+          .getListOfOrders(start, count, id)
+          .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getSupportedCoins() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => multiCurrencySupport.getSupportedCoins().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getSupportedPairs() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { _ =>
+        getSupportedSymbolForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (symbol)  =>
+          multiCurrencySupport.getSupportedPairs(symbol).map(x => Ok(Json.toJson(x)))
+        })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getSupportedDepositCoins() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { _ =>
+        getSupportedSymbolForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (symbol)  =>
+          multiCurrencySupport.getSupportedDepositCoins(symbol).map(x => Ok(Json.toJson(x)))
+        })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getExchangeLimits() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { _ =>
+        getExchangeLimitsForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (deposit, destination)  =>
+          multiCurrencySupport
+            .getExchangeLimits(deposit, destination)
+            .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
+        })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def generateOffer() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { _ =>
+        generateOfferForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (deposit, destination, amount)  =>
+          multiCurrencySupport
+            .generateOffer(deposit, destination, amount)
+            .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
+        })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+
+  def createOrder() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { _ =>
+        createOrderForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (order)  =>
+          multiCurrencySupport
+            .createOrder(order)
+            .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
+        })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def getOrderStatus() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { _ =>
+        Form(single("id" -> nonEmptyText))
+          .bindFromRequest
+          .fold(
+          formErr => Future.successful(BadRequest("Invalid request")),
+          { case (id)  =>
+            multiCurrencySupport
+              .getOrderStatus(id)
+              .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
+          })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def signOut() = SecureUserAction.async { implicit request =>
     request
       .account

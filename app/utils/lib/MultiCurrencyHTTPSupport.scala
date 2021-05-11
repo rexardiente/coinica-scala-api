@@ -15,7 +15,7 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
   // route: /multi-currency/v1/coins
   // parameters: ""
-  def getSupportedDepositCoin(): Future[Seq[Coin]] = {
+  def getSupportedCoins(): Future[Seq[Coin]] = {
     val request: WSRequest = ws.url(nodeServerURI +  "/multi-currency/v1/coins")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")

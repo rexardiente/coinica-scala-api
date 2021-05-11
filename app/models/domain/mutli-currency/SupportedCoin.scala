@@ -64,4 +64,6 @@ case class ListOfOrders(count: Int, items: Seq[OrderStatus]) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 object KeyPairGeneratorResponse extends utils.CommonImplicits
-case class KeyPairGeneratorResponse(currency: String, address: String, privateKey: String, publicKey: String)
+case class KeyPairGeneratorResponse(currency: String, address: String, privateKey: String, publicKey: String) {
+	def toJson(): JsValue = Json.toJson(this)
+}
