@@ -63,7 +63,16 @@ case class OrderStatus(orderId: String,
 case class ListOfOrders(count: Int, items: Seq[OrderStatus]) {
 	def toJson(): JsValue = Json.toJson(this)
 }
+
 object KeyPairGeneratorResponse extends utils.CommonImplicits
 case class KeyPairGeneratorResponse(currency: String, address: String, privateKey: String, publicKey: String) {
+	def toJson(): JsValue = Json.toJson(this)
+	def toWalletKey(): WalletKey = new WalletKey(address, privateKey, publicKey)
+}
+object WalletKey extends utils.CommonImplicits {
+	def apply(address: String, privateKey: String, publicKey: String): WalletKey =
+		new WalletKey(address, privateKey, publicKey)
+}
+case class WalletKey(address: String, privateKey: String, publicKey: String) {
 	def toJson(): JsValue = Json.toJson(this)
 }

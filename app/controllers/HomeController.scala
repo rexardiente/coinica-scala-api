@@ -54,6 +54,7 @@ class HomeController @Inject()(
       encryptKey: utils.auth.EncryptKey,
       validateEmail: EmailValidation,
       mailerService: MailerService,
+      multiCurrencySupport: utils.lib.MultiCurrencyHTTPSupport,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
@@ -161,21 +162,39 @@ class HomeController @Inject()(
           processed <- {
             if (isAccountAlreadyExists == None) {
               if (hasReferralCode.map(_.referralCode) == code) {
-                // encrypt account password into SHA256 algorithm...
-                val userAccount: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
-                // generate User Account and VIP Account
-                for {
-                  addAccount <- accountService.newUserAcc(userAccount)
-                  addAccountToken <- accountService.addUpdateUserToken(UserToken(userAccount.id))
-                  addVip <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
-                  // apply code if has value
-                  _ <- Future.successful {
-                    Thread.sleep(500) // add small delay
-                    if (hasReferralCode.map(_.referralCode) != None) {
-                      referralHistoryService.applyReferralCode(userAccount.id, code.getOrElse(null))
+                try {
+                  // encrypt account password into SHA256 algorithm...
+                  val userAccount: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
+                  // generate User Account, VIP Account and User Wallet..
+                  for {
+                    addAccount <- accountService.newUserAcc(userAccount)
+                    addAccountToken <- accountService.addUpdateUserToken(UserToken(userAccount.id))
+                    addVip <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
+                    // apply code if has value
+                    _ <- Future.successful {
+                      Thread.sleep(500) // add small delay
+                      if (hasReferralCode.map(_.referralCode) != None) {
+                        referralHistoryService.applyReferralCode(userAccount.id, code.getOrElse(null))
+                      }
                     }
-                  }
-                } yield (Created)
+                    // wallet creation process
+                    btc <- multiCurrencySupport.generateKeyPairs("btc")
+                    eth <- multiCurrencySupport.generateKeyPairs("eth")
+                    usdc <- multiCurrencySupport.generateKeyPairs("usdc")
+                    _ <- Future.successful {
+                      if (btc != None && eth != None && usdc != None) {
+                        val accWallet = new UserAccountWallet(userAccount.id,
+                                                              btc.get.toWalletKey(),
+                                                              eth.get.toWalletKey(),
+                                                              usdc.get.toWalletKey())
+                        accountService.addUserWallet(accWallet)
+                      }
+                      else throw new Exception("Wallet Creation")
+                    }
+                  } yield (Created)
+                } catch {
+                  case _: Throwable => Future(InternalServerError)
+                }
               }
               else Future(InternalServerError)
             }

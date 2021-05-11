@@ -661,7 +661,31 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit def implOrderStatus = Json.format[OrderStatus]
 	implicit def implListOfOrders = Json.format[ListOfOrders]
 	implicit def implKeyPairGeneratorResponse = Json.format[KeyPairGeneratorResponse]
-
+	implicit def implWalletKey = Json.format[WalletKey]
+	// implicit def implUserAccountWallet = Json.format[UserAccountWallet]
+	implicit val implicitUserAccountWalletReads: Reads[UserAccountWallet] = new Reads[UserAccountWallet] {
+		override def reads(js: JsValue): JsResult[UserAccountWallet] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(UserAccountWallet(
+						(json \ "id").as[UUID],
+						(json \ "btc").as[WalletKey],
+						(json \ "eth").as[WalletKey],
+						(json \ "usdc").as[WalletKey]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitUserAccountWalletWrites = new Writes[UserAccountWallet] {
+	  def writes(tx: UserAccountWallet): JsValue = Json.obj(
+			"id" -> tx.id,
+			"btc" -> tx.btc.address,
+			"eth" -> tx.eth.address,
+			"usdc" -> tx.usdc.address)
+	}
 }
 
 

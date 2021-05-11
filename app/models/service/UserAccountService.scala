@@ -6,11 +6,16 @@ import java.time.{ Instant, LocalDate, ZoneId, ZoneOffset }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json._
-import models.domain.{ PaginatedResult, UserAccount, VIPUser, UserToken }
-import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokenRepo }
+import models.domain.{ PaginatedResult, UserAccount, VIPUser, UserToken, UserAccountWallet }
+import models.domain.multi.currency.WalletKey
+import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokenRepo, UserAccountWalletRepo }
 
 @Singleton
-class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo: VIPUserRepo, userTokenRepo: UserTokenRepo) {
+class UserAccountService @Inject()(
+      userAccountRepo: UserAccountRepo,
+      vipUserRepo: VIPUserRepo,
+      userTokenRepo: UserTokenRepo,
+      userWalletRepo: UserAccountWalletRepo) {
   def isExist(name: String): Future[Boolean] =
   	userAccountRepo.exist(name)
 
@@ -106,4 +111,7 @@ class UserAccountService @Inject()(userAccountRepo: UserAccountRepo, vipUserRepo
       }
     } yield (process)
 
+  def addUserWallet(wallet: UserAccountWallet): Future[Int] = userWalletRepo.add(wallet)
+  def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
+  def getUserAccountWallet(id: UUID): Future[Option[UserAccountWallet]] = userWalletRepo.getByID(id)
 }

@@ -4,6 +4,7 @@ import java.time.Instant
 import java.util.UUID
 import play.api.libs.json._
 import utils.auth.EncryptKey
+import models.domain.multi.currency.WalletKey
 
 object UserAccount extends utils.CommonImplicits {
 	val tupled = (apply: (UUID,
@@ -93,14 +94,19 @@ object UserToken extends utils.CommonImplicits {
 	def apply(id: UUID): UserToken = new UserToken(id, None, None, None, None)
 }
 case class UserToken(id: UUID,
-											token: Option[String],
-											login: Option[Long],
-											email: Option[Long],
-											password: Option[Long]) {
+										token: Option[String],
+										login: Option[Long],
+										email: Option[Long],
+										password: Option[Long]) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 
-
+object UserAccountWallet extends utils.CommonImplicits {
+	val tupled = (apply: (UUID, WalletKey, WalletKey, WalletKey) => UserAccountWallet).tupled
+}
+case class UserAccountWallet(id: UUID, btc: WalletKey, eth: WalletKey, usdc: WalletKey) {
+	def toJson(): JsValue = Json.toJson(this)
+}
 
 
 

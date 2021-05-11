@@ -66,7 +66,15 @@ class SecureActionController @Inject()(
     )(CreateOrderTx.apply)(CreateOrderTx.unapply)
   )(CreateOrder.apply)(CreateOrder.unapply))
 
-
+  def getUserAccountWallet() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        accountService
+          .getUserAccountWallet(account.id)
+          .map(x => Ok(x.map(_.toJson).getOrElse(JsNull)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def getListOfOrders() = SecureUserAction.async { implicit request =>
     request
       .account
