@@ -66,11 +66,11 @@ final class UserAccountDAO @Inject()(
   }
   protected class UserAccountWalletTable(tag: Tag) extends Table[UserAccountWallet](tag, "USER_ACCOUNT_WALLET") {
     def id = column[UUID]("ID", O.PrimaryKey)
-    def btc = column[WalletKey]("BTC")
-    def eth = column[WalletKey]("ETH")
-    def usdc = column[WalletKey]("USDC")
+    def btc = column[Double]("BTC")
+    def eth = column[Double]("ETH")
+    def usdt = column[Double]("USDT")
 
-    def * = (id, btc, eth, usdc) <> (UserAccountWallet.tupled, UserAccountWallet.unapply)
+    def * = (id, btc, eth, usdt) <> (UserAccountWallet.tupled, UserAccountWallet.unapply)
     def fk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id)
   }
 

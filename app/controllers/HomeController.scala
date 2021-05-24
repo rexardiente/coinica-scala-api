@@ -177,19 +177,8 @@ class HomeController @Inject()(
                         referralHistoryService.applyReferralCode(userAccount.id, code.getOrElse(null))
                       }
                     }
-                    // wallet creation process
-                    btc <- multiCurrencySupport.generateKeyPairs("btc")
-                    eth <- multiCurrencySupport.generateKeyPairs("eth")
-                    usdc <- multiCurrencySupport.generateKeyPairs("usdc")
                     _ <- Future.successful {
-                      if (btc != None && eth != None && usdc != None) {
-                        val accWallet = new UserAccountWallet(userAccount.id,
-                                                              btc.get.toWalletKey(),
-                                                              eth.get.toWalletKey(),
-                                                              usdc.get.toWalletKey())
-                        accountService.addUserWallet(accWallet)
-                      }
-                      else throw new Exception("Wallet Creation")
+                      accountService.addUserWallet(new UserAccountWallet(userAccount.id, 0, 0, 0))
                     }
                   } yield (Created)
                 } catch {

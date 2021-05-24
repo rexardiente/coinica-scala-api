@@ -669,9 +669,9 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 				try {
 					JsSuccess(UserAccountWallet(
 						(json \ "id").as[UUID],
-						(json \ "btc").as[WalletKey],
-						(json \ "eth").as[WalletKey],
-						(json \ "usdc").as[WalletKey]))
+						(json \ "btc").as[Double],
+						(json \ "eth").as[Double],
+						(json \ "usdt").as[Double]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -682,9 +682,9 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implicitUserAccountWalletWrites = new Writes[UserAccountWallet] {
 	  def writes(tx: UserAccountWallet): JsValue = Json.obj(
 			"id" -> tx.id,
-			"btc" -> tx.btc.address,
-			"eth" -> tx.eth.address,
-			"usdc" -> tx.usdc.address)
+			"btc" -> tx.btc,
+			"eth" -> tx.eth,
+			"usdt" -> tx.usdt)
 	}
 }
 
