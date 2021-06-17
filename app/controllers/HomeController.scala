@@ -21,6 +21,7 @@ import models.service._
 import models.domain.enum._
 import akka.WebSocketActor
 import utils.Config
+import models.domain.wallet.support.Coin
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -178,7 +179,7 @@ class HomeController @Inject()(
                       }
                     }
                     _ <- Future.successful {
-                      accountService.addUserWallet(new UserAccountWallet(userAccount.id, 0, 0, 0))
+                      accountService.addUserWallet(new UserAccountWallet(userAccount.id, Coin("BTC"), Coin("ETH"), Coin("USDC")))
                     }
                   } yield (Created)
                 } catch {

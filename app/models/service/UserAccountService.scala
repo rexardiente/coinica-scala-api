@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json._
 import models.domain.{ PaginatedResult, UserAccount, VIPUser, UserToken, UserAccountWallet }
-import models.domain.multi.currency.WalletKey
+import models.domain.wallet.support._
 import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokenRepo, UserAccountWalletRepo }
 
 @Singleton
@@ -15,7 +15,8 @@ class UserAccountService @Inject()(
       userAccountRepo: UserAccountRepo,
       vipUserRepo: VIPUserRepo,
       userTokenRepo: UserTokenRepo,
-      userWalletRepo: UserAccountWalletRepo) {
+      userWalletRepo: UserAccountWalletRepo,
+      httpSupport: utils.lib.MultiCurrencyHTTPSupport) {
   def isExist(name: String): Future[Boolean] =
   	userAccountRepo.exist(name)
 
@@ -114,4 +115,35 @@ class UserAccountService @Inject()(
   def addUserWallet(wallet: UserAccountWallet): Future[Int] = userWalletRepo.add(wallet)
   def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
   def getUserAccountWallet(id: UUID): Future[Option[UserAccountWallet]] = userWalletRepo.getByID(id)
+
+  def updateWithWithdrawCoin(coin: CoinWithdraw): Unit = {
+    ???
+  }
+  def updateWithDepositCoin(coin: CoinDeposit): Future[Int] = {
+    for {
+      // chechk if tx already exists by txHash
+      // check if transaction details using tx_hash
+      txDetails <- httpSupport.getETHTransactionDetails(coin.txHash, coin.receiver.currency)
+      // get account balances using ID and validate data.. (account and amount)
+      hasAccount <- getUserAccountWallet(coin.id)
+      process <- {
+        hasAccount.map { account =>
+          // update account  balance..
+          val result: ETHJsonRpcResult = txDetails.get.result
+          // check tx request and response details...
+          if (result.from == coin.issuer.address.getOrElse("") && result.to == coin.receiver.address.getOrElse("")) {
+            // check if type of currency to update
+            coin.receiver.currency match {
+              case "USDC" =>
+                val newBalance: Double = account.usdc.amount + result.value.toDouble
+                userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
+
+              case _ => Future(0)
+            }
+          } else Future(0)
+        }.getOrElse(Future(0))
+      }
+      // if success insert history else do nothing,.
+    } yield (process)
+  }
 }

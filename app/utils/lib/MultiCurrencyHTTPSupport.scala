@@ -9,10 +9,26 @@ import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
 import models.domain.multi.currency._
+import models.domain.wallet.support.ETHJsonRpc
 
 @Singleton
 class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
+
+  // Version 2 Currency Support..
+  def getETHTransactionDetails(txHash: String, currency: String): Future[Option[ETHJsonRpc]] = {
+    val request: WSRequest = ws.url(nodeServerURI +  "/etherscan/transaction/details")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+    val reqParams: JsValue = Json.obj("txhash" -> txHash, "currency" -> currency)
+    complexRequest
+      .post(reqParams)
+      .map(v => (v.json).asOpt[ETHJsonRpc])
+      .recover { case e: Exception => None }
+  }
+  // ===============================
+
   // route: /multi-currency/v1/coins
   // parameters: ""
   def getSupportedCoins(): Future[Seq[Coin]] = {

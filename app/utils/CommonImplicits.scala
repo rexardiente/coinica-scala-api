@@ -4,6 +4,8 @@ import java.time.Instant
 import java.util.UUID
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.data.format.Formatter
+import play.api.data.format.Formats._
 import models.domain._
 import models.domain.eosio._
 import models.domain.eosio.GQ.v2._
@@ -17,6 +19,12 @@ trait CommonImplicits {
     } catch {
       case _: Throwable => None
     }
+
+ 	implicit object DoubleFormatter extends Formatter[Double] {
+    override val format = Some(("format.data", Nil))
+    override def bind(key: String, data: Map[String, String]) = parsing(_.toDouble, "error.data", Nil)(key, data)
+    override def unbind(key: String, value: Double) = Map(key -> value.toString)
+  }
 
 	// Models domain
 	implicit def implGame = Json.format[Game]
@@ -663,15 +671,18 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit def implKeyPairGeneratorResponse = Json.format[KeyPairGeneratorResponse]
 	implicit def implWalletKey = Json.format[WalletKey]
 	// implicit def implUserAccountWallet = Json.format[UserAccountWallet]
+
+	import models.domain.wallet.support._
+	implicit def implWalletSupportCoin = Json.format[Coin]
 	implicit val implicitUserAccountWalletReads: Reads[UserAccountWallet] = new Reads[UserAccountWallet] {
 		override def reads(js: JsValue): JsResult[UserAccountWallet] = js match {
 			case json: JsValue => {
 				try {
 					JsSuccess(UserAccountWallet(
 						(json \ "id").as[UUID],
-						(json \ "btc").as[Double],
-						(json \ "eth").as[Double],
-						(json \ "usdt").as[Double]))
+						(json \ "btc").as[Coin],
+						(json \ "eth").as[Coin],
+						(json \ "usdc").as[Coin]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -684,8 +695,120 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 			"id" -> tx.id,
 			"btc" -> tx.btc,
 			"eth" -> tx.eth,
-			"usdt" -> tx.usdt)
+			"usdc" -> tx.usdc)
 	}
+	implicit val implWalletSupportCoinDepositReads: Reads[CoinDeposit] = new Reads[CoinDeposit] {
+		override def reads(js: JsValue): JsResult[CoinDeposit] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(CoinDeposit(
+						(json \ "id").as[UUID],
+						(json \ "tx_hash").as[String],
+						(json \ "issuer").as[Coin],
+						(json \ "receiver").as[Coin]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implWalletSupportCoinDepositWrites = new Writes[CoinDeposit] {
+	  def writes(tx: CoinDeposit): JsValue = Json.obj(
+			"id" -> tx.id,
+			"tx_hash" -> tx.txHash,
+			"issuer" -> tx.issuer,
+			"receiver" -> tx.receiver)
+	}
+	implicit val implWalletSupportCoinWithdrawReads: Reads[CoinWithdraw] = new Reads[CoinWithdraw] {
+		override def reads(js: JsValue): JsResult[CoinWithdraw] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(CoinWithdraw(
+						(json \ "id").as[UUID],
+						(json \ "currency").as[String],
+						(json \ "receiver").as[Coin]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implWalletSupportCoinWithdrawWrites = new Writes[CoinWithdraw] {
+	  def writes(tx: CoinWithdraw): JsValue = Json.obj(
+			"id" -> tx.id,
+			"currency" -> tx.currency,
+			"receiver" -> tx.receiver)
+	}
+
+	implicit val implETHJsonRpcResultReads: Reads[ETHJsonRpcResult] = new Reads[ETHJsonRpcResult] {
+		override def reads(js: JsValue): JsResult[ETHJsonRpcResult] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(ETHJsonRpcResult(
+						(json \ "blockHash").as[String],
+						(json \ "blockNumber").as[Long],
+						(json \ "from").as[String],
+						(json \ "gas").as[Long],
+						(json \ "gasPrice").as[Int],
+						(json \ "hash").as[String],
+						(json \ "input").as[String],
+						(json \ "nonce").as[Int],
+						(json \ "to").as[String],
+						(json \ "transactionIndex").as[String],
+						(json \ "value").as[String],
+						(json \ "type").as[String],
+						(json \ "v").as[String],
+						(json \ "r").as[String],
+						(json \ "s").as[String]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implETHJsonRpcResultWrites = new Writes[ETHJsonRpcResult] {
+	  def writes(tx: ETHJsonRpcResult): JsValue = Json.obj(
+			"blockHash" -> tx.blockHash,
+			"blockNumber" -> tx.blockNumber,
+			"from" -> tx.from,
+			"gas" -> tx.gas,
+			"gasPrice" -> tx.gasPrice,
+			"hash" -> tx.hash,
+			"input" -> tx.input,
+			"nonce" -> tx.nonce,
+			"to" -> tx.to,
+			"transactionIndex" -> tx.transactionIndex,
+			"value" -> tx.value,
+			"type" -> tx.`type`,
+			"v" -> tx.v,
+			"r" -> tx.r,
+			"s" -> tx.s)
+	}
+	implicit val implETHJsonRpc = Json.format[ETHJsonRpc]
+	implicit val implicitCryptoJsonRpcReads: Reads[CryptoJsonRpc] = {
+	  Json.format[ETHJsonRpc].map(x => x: CryptoJsonRpc)
+	}
+	implicit val implicitCryptoJsonRpcWrites = new Writes[CryptoJsonRpc] {
+	  def writes(event: CryptoJsonRpc): JsValue = {
+	    event match {
+	      case v: ETHJsonRpc => Json.toJson(v)
+	      case _ => Json.obj("error" -> "wrong Json")
+	    }
+	  }
+	}
+	implicit val implicitCryptoJsonRpcHistoryReads: Reads[CryptoJsonRpcHistory] = {
+	  Json.format[ETHJsonRpcResult].map(x => x: CryptoJsonRpcHistory)
+	}
+	implicit val implicitCryptoJsonRpcHistoryWrites = new Writes[CryptoJsonRpcHistory] {
+	  def writes(event: CryptoJsonRpcHistory): JsValue = {
+	    event match {
+	      case v: ETHJsonRpcResult => Json.toJson(v)
+	      case _ => Json.obj("error" -> "wrong Json")
+	    }
+	  }
+	}
+	implicit val implUserAccountWalletHistory = Json.format[UserAccountWalletHistory]
 }
-
-

@@ -7,11 +7,12 @@ import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.UserAccountWallet
 
+import models.domain.wallet.support.{ Coin, CoinDeposit }
 @Singleton
 class UserAccountWalletRepo @Inject()(
     dao: models.dao.UserAccountDAO,
     protected val dbConfigProvider: DatabaseConfigProvider
-  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
+  ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
   def add(user: UserAccountWallet): Future[Int] =

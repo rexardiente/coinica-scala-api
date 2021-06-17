@@ -14,6 +14,7 @@ import play.api.libs.mailer.MailerService
 import play.api.data.validation.Constraints.emailAddress
 import models.domain._
 import models.domain.multi.currency._
+import models.domain.wallet.support.{ Coin, CoinDeposit, CoinWithdraw }
 import models.repo._
 import models.service._
 import utils.auth.SecureUserAction
@@ -30,7 +31,7 @@ class SecureActionController @Inject()(
                           mailerService: MailerService,
                           multiCurrencySupport: utils.lib.MultiCurrencyHTTPSupport,
                           cc: ControllerComponents,
-                          SecureUserAction: SecureUserAction) extends AbstractController(cc) {
+                          SecureUserAction: SecureUserAction) extends AbstractController(cc) with utils.CommonImplicits {
   private val referralForm = Form(tuple(
     "code" -> nonEmptyText,
     "applied_by" -> uuid))
@@ -65,6 +66,61 @@ class SecureActionController @Inject()(
       "offerReferenceId" -> nonEmptyText
     )(CreateOrderTx.apply)(CreateOrderTx.unapply)
   )(CreateOrder.apply)(CreateOrder.unapply))
+  // https://stackoverflow.com/questions/12850000/how-can-i-handle-decimal-numbers-using-the-scala-framework-play
+  private val depositForm = Form(mapping(
+    "id" -> uuid,
+    "tx_hash" -> nonEmptyText,
+    "issuer" -> mapping(
+        "address" -> optional(text),
+        "currency" -> nonEmptyText,
+        "amount" -> of[Double]
+      )(Coin.apply)(Coin.unapply),
+    "receiver" -> mapping(
+        "address" -> optional(text),
+        "currency" -> nonEmptyText,
+        "amount" -> of[Double]
+      )(Coin.apply)(Coin.unapply)
+    )(CoinDeposit.apply)(CoinDeposit.unapply))
+  private val withdrawForm = Form(mapping(
+    "id" -> uuid,
+    "currency" -> nonEmptyText,
+    "receiver" -> mapping(
+        "address" -> optional(text),
+        "currency" -> nonEmptyText,
+        "amount" -> of[Double]
+      )(Coin.apply)(Coin.unapply)
+    )(CoinWithdraw.apply)(CoinWithdraw.unapply))
+
+  def coinDeposit() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        depositForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest(formErr.toString)),
+        { case acc  =>
+          if (acc.id == account.id) {
+            accountService
+              .updateWithDepositCoin(acc)
+              .map(x => if (x > 0) Created else NotModified)
+          }
+          else Future(InternalServerError)
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+
+  def coinWithdraw() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        withdrawForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest(formErr.toString)),
+        { case acc  =>
+          if (acc.id == account.id)
+            ???
+          else Future(InternalServerError)
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
 
   def getUserAccountWallet() = SecureUserAction.async { implicit request =>
     request
