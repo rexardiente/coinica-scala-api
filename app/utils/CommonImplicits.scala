@@ -702,7 +702,6 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 			case json: JsValue => {
 				try {
 					JsSuccess(CoinDeposit(
-						(json \ "id").as[UUID],
 						(json \ "tx_hash").as[String],
 						(json \ "issuer").as[Coin],
 						(json \ "receiver").as[Coin]))
@@ -715,7 +714,6 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	}
 	implicit val implWalletSupportCoinDepositWrites = new Writes[CoinDeposit] {
 	  def writes(tx: CoinDeposit): JsValue = Json.obj(
-			"id" -> tx.id,
 			"tx_hash" -> tx.txHash,
 			"issuer" -> tx.issuer,
 			"receiver" -> tx.receiver)
@@ -724,10 +722,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		override def reads(js: JsValue): JsResult[CoinWithdraw] = js match {
 			case json: JsValue => {
 				try {
-					JsSuccess(CoinWithdraw(
-						(json \ "id").as[UUID],
-						(json \ "currency").as[String],
-						(json \ "receiver").as[Coin]))
+					JsSuccess(CoinWithdraw((json \ "receiver").as[Coin], (json \ "fee").as[Double]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -736,10 +731,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		}
 	}
 	implicit val implWalletSupportCoinWithdrawWrites = new Writes[CoinWithdraw] {
-	  def writes(tx: CoinWithdraw): JsValue = Json.obj(
-			"id" -> tx.id,
-			"currency" -> tx.currency,
-			"receiver" -> tx.receiver)
+	  def writes(tx: CoinWithdraw): JsValue = Json.obj("receiver" -> tx.receiver, "fee" -> tx.fee)
 	}
 
 	implicit val implETHJsonRpcResultReads: Reads[ETHJsonRpcResult] = new Reads[ETHJsonRpcResult] {

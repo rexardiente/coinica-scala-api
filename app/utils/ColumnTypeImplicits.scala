@@ -10,7 +10,7 @@ import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus, GameLog }
 import models.domain.{ ChallengeTracker, TransactionType, RankType }
 import models.domain.multi.currency.WalletKey
-import models.domain.wallet.support.Coin
+import models.domain.wallet.support.{ Coin, CryptoJsonRpcHistory }
 import models.domain.enum._
 // import ejisan.kuro.otp.OTPKey
 // import ejisan.scalauthx.HashedCredential
@@ -44,6 +44,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val walletCoinColumnMapper = MappedColumnType.base[Coin, JsValue](
      s => s.toJson(),
      i => i.as[Coin])
+  implicit val CryptoJsonRpcHistoryColumnMapper = MappedColumnType.base[CryptoJsonRpcHistory, JsValue](
+     s => s.toJson(),
+     i => i.as[CryptoJsonRpcHistory])
   implicit val listTransactionTypeColumnMapper = MappedColumnType.base[List[TransactionType], JsValue](
     s => Json.toJson(s),
     i => i.as[List[TransactionType]])

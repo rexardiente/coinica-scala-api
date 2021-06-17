@@ -8,7 +8,7 @@ import scala.concurrent.Future
 import play.api.libs.json._
 import models.domain.{ PaginatedResult, UserAccount, VIPUser, UserToken, UserAccountWallet }
 import models.domain.wallet.support._
-import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokenRepo, UserAccountWalletRepo }
+import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokenRepo, UserAccountWalletRepo, UserAccountWalletHistoryRepo }
 
 @Singleton
 class UserAccountService @Inject()(
@@ -16,6 +16,7 @@ class UserAccountService @Inject()(
       vipUserRepo: VIPUserRepo,
       userTokenRepo: UserTokenRepo,
       userWalletRepo: UserAccountWalletRepo,
+      userWalletHistoryRepo: UserAccountWalletHistoryRepo,
       httpSupport: utils.lib.MultiCurrencyHTTPSupport) {
   def isExist(name: String): Future[Boolean] =
   	userAccountRepo.exist(name)
@@ -116,34 +117,69 @@ class UserAccountService @Inject()(
   def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
   def getUserAccountWallet(id: UUID): Future[Option[UserAccountWallet]] = userWalletRepo.getByID(id)
 
-  def updateWithWithdrawCoin(coin: CoinWithdraw): Unit = {
-    ???
+  def updateWithWithdrawCoin(id: UUID, coin: CoinWithdraw): Future[Int] = {
+    for {
+      // check if wallet has enough balance..
+      hasAccount <- getUserAccountWallet(id)
+      // check balances
+      hasEnoughBalance <- Future.successful {
+        hasAccount.map { account =>
+          coin.receiver.currency match {
+            case "USDC" =>
+              if (account.usdc.amount >= (coin.receiver.amount + coin.fee)) true
+              else false
+            case _ => false
+          }
+        }.getOrElse(false)
+      }
+      // transfer using Node API, and validate response..
+      process <- Future.successful {
+        if (hasEnoughBalance) 1
+        else 0
+      }
+      // update balance and save history else do nothing
+    } yield (process)
   }
-  def updateWithDepositCoin(coin: CoinDeposit): Future[Int] = {
+  def updateWithDepositCoin(id: UUID, coin: CoinDeposit): Future[Int] = {
     for {
       // chechk if tx already exists by txHash
+      isTxHashExists <- userWalletHistoryRepo.existByTxHashAndID(coin.txHash, id)
       // check if transaction details using tx_hash
       txDetails <- httpSupport.getETHTransactionDetails(coin.txHash, coin.receiver.currency)
-      // get account balances using ID and validate data.. (account and amount)
-      hasAccount <- getUserAccountWallet(coin.id)
       process <- {
-        hasAccount.map { account =>
-          // update account  balance..
-          val result: ETHJsonRpcResult = txDetails.get.result
-          // check tx request and response details...
-          if (result.from == coin.issuer.address.getOrElse("") && result.to == coin.receiver.address.getOrElse("")) {
-            // check if type of currency to update
-            coin.receiver.currency match {
-              case "USDC" =>
-                val newBalance: Double = account.usdc.amount + result.value.toDouble
-                userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
+        if (!isTxHashExists) {
+          for {
+            // get account balances using ID and validate data.. (account and amount)
+            hasAccount <- getUserAccountWallet(id)
+            update <- {
+              hasAccount.map { account =>
+                // update account  balance..
+                val result: ETHJsonRpcResult = txDetails.get.result
+                // check tx request and response details...
+                if (result.from == coin.issuer.address.getOrElse("") && result.to == coin.receiver.address.getOrElse("")) {
+                  // check if type of currency to update
+                  coin.receiver.currency match {
+                    case "USDC" =>
+                      val newBalance: Double = account.usdc.amount + result.value.toDouble
+                      userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
 
-              case _ => Future(0)
+                    case _ => Future(0)
+                  }
+                } else Future(0)
+              }.getOrElse(Future(0))
             }
-          } else Future(0)
-        }.getOrElse(Future(0))
+          } yield (update)
+        } else Future(0)
       }
-      // if success insert history else do nothing,.
+      // if success insert history else do nothing,. Neeed enhancements..
+      _ <- Future.successful {
+        try {
+          val history: UserAccountWalletHistory = coin.toWalletHistory(id, "DEPOSIT", txDetails.get.result)
+          userWalletHistoryRepo.add(history)
+        } catch {
+          case _: Throwable => None
+        }
+      }
     } yield (process)
   }
 }

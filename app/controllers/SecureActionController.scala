@@ -68,7 +68,6 @@ class SecureActionController @Inject()(
   )(CreateOrder.apply)(CreateOrder.unapply))
   // https://stackoverflow.com/questions/12850000/how-can-i-handle-decimal-numbers-using-the-scala-framework-play
   private val depositForm = Form(mapping(
-    "id" -> uuid,
     "tx_hash" -> nonEmptyText,
     "issuer" -> mapping(
         "address" -> optional(text),
@@ -82,13 +81,12 @@ class SecureActionController @Inject()(
       )(Coin.apply)(Coin.unapply)
     )(CoinDeposit.apply)(CoinDeposit.unapply))
   private val withdrawForm = Form(mapping(
-    "id" -> uuid,
-    "currency" -> nonEmptyText,
     "receiver" -> mapping(
         "address" -> optional(text),
         "currency" -> nonEmptyText,
         "amount" -> of[Double]
-      )(Coin.apply)(Coin.unapply)
+      )(Coin.apply)(Coin.unapply),
+    "fee" -> of[Double]
     )(CoinWithdraw.apply)(CoinWithdraw.unapply))
 
   def coinDeposit() = SecureUserAction.async { implicit request =>
@@ -97,13 +95,10 @@ class SecureActionController @Inject()(
       .map { account =>
         depositForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest(formErr.toString)),
-        { case acc  =>
-          if (acc.id == account.id) {
-            accountService
-              .updateWithDepositCoin(acc)
-              .map(x => if (x > 0) Created else NotModified)
-          }
-          else Future(InternalServerError)
+        { case deposit  =>
+          accountService
+            .updateWithDepositCoin(account.id, deposit)
+            .map(x => if (x > 0) Created else Conflict)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -114,10 +109,10 @@ class SecureActionController @Inject()(
       .map { account =>
         withdrawForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest(formErr.toString)),
-        { case acc  =>
-          if (acc.id == account.id)
-            ???
-          else Future(InternalServerError)
+        { case withdraw  =>
+          accountService
+            .updateWithWithdrawCoin(account.id, withdraw)
+            .map(x => if (x > 0) Created else Conflict)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
