@@ -133,12 +133,17 @@ class UserAccountService @Inject()(
         }.getOrElse(false)
       }
       // transfer using Node API, and validate response..
-      process <- Future.successful {
-        if (hasEnoughBalance) 1
+      transfer <- Future.successful {
+        if (hasEnoughBalance)
+          coin.receiver.currency match {
+            case "USDC" => 0
+            case _ => 0
+          }
         else 0
       }
       // update balance and save history else do nothing
-    } yield (process)
+    } yield ()
+    ???
   }
   def updateWithDepositCoin(id: UUID, coin: CoinDeposit): Future[Int] = {
     for {

@@ -623,6 +623,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 				try {
 					JsSuccess(UserAccount(
 						(json \ "id").as[UUID],
+						(json \ "user_game_id").as[Int],
 						(json \ "username").as[String],
 						(json \ "password").as[String],
 						(json \ "email").asOpt[String],
@@ -644,6 +645,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implicitUserAccountWrites = new Writes[UserAccount] {
 	  def writes(tx: UserAccount): JsValue = Json.obj(
 		"id" -> tx.id,
+		"user_game_id" -> tx.userGameID,
 		"username" -> tx.username,
 		// "password" -> tx.password,
 		"email" -> tx.email,

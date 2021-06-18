@@ -8,6 +8,7 @@ import models.domain.wallet.support.Coin
 
 object UserAccount extends utils.CommonImplicits {
 	val tupled = (apply: (UUID,
+												Int,
 												String,
 												String,
 												Option[String],
@@ -20,6 +21,7 @@ object UserAccount extends utils.CommonImplicits {
 												Instant,
 												Instant) => UserAccount).tupled
 	def apply(id: UUID,
+						userGameID: Int,
 						username: String,
 						password: String,
 						email: Option[String],
@@ -32,6 +34,7 @@ object UserAccount extends utils.CommonImplicits {
 						lastSignIn: Instant,
 						createdAt: Instant): UserAccount =
 		new UserAccount(id,
+										userGameID,
 										username,
 										password,
 										email,
@@ -46,6 +49,7 @@ object UserAccount extends utils.CommonImplicits {
 	// def apply(username: String): UserAccount = new UserAccount(UUID.randomUUID, username, None, UUID.randomUUID.toString.replaceAll("-", ""))
 	def apply(username: String, password: String): UserAccount = new UserAccount(
 						UUID.randomUUID,
+						0,
 						username,
 						password,
 						None,
@@ -59,6 +63,7 @@ object UserAccount extends utils.CommonImplicits {
 						Instant.now)
 	def apply(username: String, password: String, referredBy: Option[String]): UserAccount = new UserAccount(
 						UUID.randomUUID,
+						0,
 						username,
 						password,
 						None,
@@ -75,6 +80,7 @@ object UserAccount extends utils.CommonImplicits {
 // 2.0 as defult referral rate
 // Referral Code: check if user has already referral history then invalid request
 case class UserAccount(id: UUID,
+											userGameID: Int,
 											username: String,
 											password: String,
 											email: Option[String],

@@ -16,6 +16,7 @@ final class UserAccountDAO @Inject()(
 
   protected class UserAccountTable(tag: Tag) extends Table[UserAccount](tag, "USER_ACCOUNT_INFO") {
     def id = column[UUID]("ID", O.PrimaryKey)
+    def userGameID = column[Int]("USER_GAME_ID", O.AutoInc)
     def username = column[String]("USERNAME")
     def password = column[String]("PASSWORD")
     def email = column[Option[String]]("EMAIL_ADDRESS")
@@ -29,6 +30,7 @@ final class UserAccountDAO @Inject()(
     def createdAt = column[Instant]("CREATED_AT")
 
     def * = (id,
+            userGameID,
             username,
             password,
             email,
