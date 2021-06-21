@@ -16,15 +16,51 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
 
   // Version 2 Currency Support..
-  def getETHTransactionDetails(txHash: String, currency: String): Future[Option[ETHJsonRpc]] = {
+  def getETHTxInfo(id: UUID, txType: String, txHash: String, currency: String): Future[Option[ETHJsonRpc]] = {
     val request: WSRequest = ws.url(nodeServerURI +  "/etherscan/transaction/details")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
-    val reqParams: JsValue = Json.obj("txhash" -> txHash, "currency" -> currency)
+    val reqParams: JsValue = Json.obj(
+      "account_id" -> id,
+      "tx_type" -> txType,
+      "tx_hash" -> txHash,
+      "currency" -> currency)
     complexRequest
       .post(reqParams)
       .map(v => (v.json).asOpt[ETHJsonRpc])
+      .recover { case e: Exception => None }
+  }
+
+  // def walletWithdrawETH(address: String, amount: Double, fee: Double): Future[Option[String]] = {
+  //   val request: WSRequest = ws.url(nodeServerURI +  "/wallet/withdraw-eth")
+  //   val complexRequest: WSRequest = request
+  //     .addHttpHeaders("Accept" -> "application/json")
+  //     .withRequestTimeout(10000.millis)
+  //   val reqParams: JsValue = Json.obj(
+  //     "address" -> address,
+  //     "value" -> amount,
+  //     "gasPrice" -> fee)
+  //   complexRequest
+  //     .post(reqParams)
+  //     .map { v =>
+  //       if (!(v.json \ "error").as[Boolean]) (v.json \ "tx_hash").asOpt[String]
+  //       else None
+  //     }
+  //     .recover { case e: Exception => None }
+  // }
+  def walletWithdrawUSDC(address: String, amount: Double, fee: Double): Future[Option[Int]] = {
+    val request: WSRequest = ws.url(nodeServerURI +  "/wallet/withdraw-usdc")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+    val reqParams: JsValue = Json.obj(
+      "address" -> address,
+      "value" -> amount,
+      "gasPrice" -> fee)
+    complexRequest
+      .post(reqParams)
+      .map(_.json.asOpt[Int])
       .recover { case e: Exception => None }
   }
   // ===============================

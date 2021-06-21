@@ -1,5 +1,6 @@
 package models.domain
 
+import java.util.UUID
 import play.api.libs.json._
 
 object InEventMessage extends utils.CommonImplicits
@@ -50,6 +51,7 @@ case class VIPWSRequest(user: String, command: String, request: String) extends 
 }
 
 object Event extends utils.CommonImplicits
+object ETHWalletTxEvent extends utils.CommonImplicits
 object InEvent extends utils.CommonImplicits
 object OutEvent extends utils.CommonImplicits
 object Subscribe extends utils.CommonImplicits
@@ -57,6 +59,12 @@ object ConnectionAlive extends utils.CommonImplicits
 
 sealed trait Event {
   def toJson(): JsValue = Json.toJson(this)
+}
+case class ETHWalletTxEvent(id: UUID,
+													tx_hash: String,
+													tx_type: String,
+													data: models.domain.wallet.support.ETHJsonRpc) extends Event {
+	require(tx_type == "DEPOSIT" || tx_type == "WITHDRAW", "invalid parameter")
 }
 case class InEvent(id: JsValue, input: InEventMessage) extends Event
 case class OutEvent(id: JsValue, response: JsValue) extends Event

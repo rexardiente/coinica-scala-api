@@ -117,40 +117,149 @@ class UserAccountService @Inject()(
   def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
   def getUserAccountWallet(id: UUID): Future[Option[UserAccountWallet]] = userWalletRepo.getByID(id)
 
+  def addBalanceByCurrency(id: UUID, currency: String, amount: Double): Future[Int] = {
+    for {
+      hasAccount <- getUserAccountWallet(id)
+      process <- {
+        hasAccount.map { account =>
+          currency match {
+            case "USDC" =>
+              val newBalance: Double = account.usdc.amount + amount
+              userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
+            case "ETH" =>
+              val newBalance: Double = account.eth.amount + amount
+              userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
+            case _ =>
+              Future(0)
+          }
+        }.getOrElse(Future(0))
+      }
+    } yield (process)
+  }
+
+  def deductBalanceByCurrency(id: UUID, currency: String, amount: Double): Future[Int] = {
+    for {
+      hasAccount <- getUserAccountWallet(id)
+      process <- {
+        hasAccount.map { account =>
+          currency match {
+            case "USDC" =>
+              val newBalance: Double = account.usdc.amount - amount
+              userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
+            case "ETH" =>
+              val newBalance: Double = account.eth.amount - amount
+              userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
+            case _ =>
+              Future(0)
+          }
+        }.getOrElse(Future(0))
+      }
+    } yield (process)
+  }
+
+  def saveUserWalletHistory(history: UserAccountWalletHistory): Future[Int] =
+    userWalletHistoryRepo.add(history)
   def updateWithWithdrawCoin(id: UUID, coin: CoinWithdraw): Future[Int] = {
     for {
       // check if wallet has enough balance..
       hasAccount <- getUserAccountWallet(id)
       // check balances
-      hasEnoughBalance <- Future.successful {
+      process <- {
         hasAccount.map { account =>
           coin.receiver.currency match {
             case "USDC" =>
-              if (account.usdc.amount >= (coin.receiver.amount + coin.fee)) true
-              else false
-            case _ => false
+              if (account.usdc.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001)))
+                httpSupport
+                  .walletWithdrawUSDC(coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
+                  .map(_.getOrElse(0))
+              else Future(0)
+            case "ETH" =>
+              if (account.eth.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001))) Future(1)
+              else Future(0)
+            case "BTC" =>
+              if (account.btc.amount >= (coin.receiver.amount + coin.fee)) Future(1)
+              else Future(0)
+            case _ => Future(0)
           }
-        }.getOrElse(false)
+        }.getOrElse(Future(0))
       }
-      // transfer using Node API, and validate response..
-      transfer <- Future.successful {
-        if (hasEnoughBalance)
-          coin.receiver.currency match {
-            case "USDC" => 0
-            case _ => 0
-          }
-        else 0
-      }
-      // update balance and save history else do nothing
-    } yield ()
-    ???
+    } yield (process)
   }
+  // def updateWithWithdrawCoin(id: UUID, coin: CoinWithdraw): Future[Int] = {
+  //   for {
+  //     // check if wallet has enough balance..
+  //     hasAccount <- getUserAccountWallet(id)
+  //     // check balances
+  //     hasEnoughBalance <- Future.successful {
+  //       hasAccount.map { account =>
+  //         coin.receiver.currency match {
+  //           case "USDC" =>
+  //             if (account.usdc.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001))) true
+  //             else false
+  //           case _ => false
+  //         }
+  //       }.getOrElse(false)
+  //     }
+  //     // transfer using Node API, and validate response..
+  //     transfer <- {
+  //       if (hasEnoughBalance)
+  //         coin.receiver.currency match {
+  //           case "USDC" =>
+  //             httpSupport
+  //               .walletWithdrawUSDC(coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
+  //               .map((_, coin.receiver.currency))
+  //           case _ =>
+  //             Future((None, coin.receiver.currency))
+  //         }
+  //       else Future((None, coin.receiver.currency))
+  //     }
+  //     // check transaction details using tx_hash
+  //     txDetails <- {
+  //       if (transfer._1 != None)
+  //         httpSupport.getETHTxInfo(transfer._1.getOrElse(""), transfer._2)
+  //       else Future(None)
+  //     }
+  //     updateBalance <- {
+  //       println("txDetails", txDetails)
+  //       if (txDetails != None) {
+  //         hasAccount.map { account =>
+  //           // update account  balance..
+  //           val result: ETHJsonRpcResult = txDetails.get.result
+  //           // check tx request and response details...
+  //           if (result.to == coin.receiver.address.getOrElse("")) {
+  //             // check if type of currency to update
+  //             coin.receiver.currency match {
+  //               case "BTC" =>
+  //                 val newBalance: Double = account.btc.amount - result.value.toDouble
+  //                 userWalletRepo.update(account.copy(btc=Coin("BTC", newBalance)))
+
+  //               case "USDC" =>
+  //                 val newBalance: Double = account.usdc.amount - result.value.toDouble
+  //                 userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
+
+  //               case "ETH" =>
+  //                 val newBalance: Double = account.eth.amount - result.value.toDouble
+  //                 userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
+
+  //               case _ => Future(0)
+  //             }
+  //           } else Future(0)
+  //         }.getOrElse(Future(0))
+  //       }
+  //       else Future(0)
+  //     }
+  //     _ <- Future.successful {
+  //       if (transfer._1 != None && txDetails != None)
+  //         saveUserWalletHistory(coin.toWalletHistory(transfer._1.getOrElse(""), id, "WITHDRAW", txDetails.get.result))
+  //     }
+  //   } yield (updateBalance)
+  // }
   def updateWithDepositCoin(id: UUID, coin: CoinDeposit): Future[Int] = {
     for {
       // chechk if tx already exists by txHash
       isTxHashExists <- userWalletHistoryRepo.existByTxHashAndID(coin.txHash, id)
-      // check if transaction details using tx_hash
-      txDetails <- httpSupport.getETHTransactionDetails(coin.txHash, coin.receiver.currency)
+      // check transaction details using tx_hash
+      txDetails <- httpSupport.getETHTxInfo(id, "DEPOSIT", coin.txHash, coin.receiver.currency)
       process <- {
         if (!isTxHashExists) {
           for {
@@ -165,26 +274,18 @@ class UserAccountService @Inject()(
                   // check if type of currency to update
                   coin.receiver.currency match {
                     case "USDC" =>
-                      val newBalance: Double = account.usdc.amount + result.value.toDouble
-                      userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
-
+                      addBalanceByCurrency(id, coin.receiver.currency, result.value.toDouble)
                     case _ => Future(0)
                   }
-                } else Future(0)
+                }
+                else Future(0)
               }.getOrElse(Future(0))
             }
           } yield (update)
         } else Future(0)
       }
       // if success insert history else do nothing,. Neeed enhancements..
-      _ <- Future.successful {
-        try {
-          val history: UserAccountWalletHistory = coin.toWalletHistory(id, "DEPOSIT", txDetails.get.result)
-          userWalletHistoryRepo.add(history)
-        } catch {
-          case _: Throwable => None
-        }
-      }
+      _ <- saveUserWalletHistory(coin.toWalletHistory(id, "DEPOSIT", txDetails.get.result))
     } yield (process)
   }
 }

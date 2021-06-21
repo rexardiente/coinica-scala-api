@@ -21,6 +21,8 @@ case class CoinDeposit(txHash: String, issuer: Coin, receiver: Coin) {
 }
 
 object CoinWithdraw extends utils.CommonImplicits
-case class CoinWithdraw(receiver: Coin, fee: Double) {
+case class CoinWithdraw(receiver: Coin, fee: Long) {
 	def toJson(): JsValue = Json.toJson(this)
+	def toWalletHistory(txHash: String, id: UUID, txType: String, data: CryptoJsonRpcHistory): UserAccountWalletHistory =
+		new UserAccountWalletHistory(txHash, id, receiver.currency, txType, data, Instant.now)
 }

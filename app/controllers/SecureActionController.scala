@@ -86,7 +86,7 @@ class SecureActionController @Inject()(
         "currency" -> nonEmptyText,
         "amount" -> of[Double]
       )(Coin.apply)(Coin.unapply),
-    "fee" -> of[Double]
+    "fee" -> longNumber
     )(CoinWithdraw.apply)(CoinWithdraw.unapply))
 
   def coinDeposit() = SecureUserAction.async { implicit request =>

@@ -473,25 +473,6 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	  		Json.obj("id" -> tx.id, "response" -> tx.response)
 	  }
 	}
-	implicit val implicitEventReads: Reads[Event] = {
-		Json.format[InEvent].map(x => x: Event) or
-    Json.format[OutEvent].map(x => x: Event) or
-    Json.format[Subscribe].map(x => x: Event) or
-    Json.format[ConnectionAlive].map(x => x: Event)
-  }
-
-  implicit val implicitEventWrites = new Writes[Event] {
-    def writes(event: Event): JsValue = {
-      event match {
-        case m: InEvent => Json.toJson(m)
-        case m: OutEvent => Json.toJson(m)
-        case m: Subscribe => Json.toJson(m)
-        case m: ConnectionAlive => Json.toJson(m)
-        case _ => Json.obj("error" -> "wrong Json")
-      }
-    }
-  }
-
   implicit val implicitGQCharacterDataTraitReads: Reads[GQCharacterDataTrait] = {
 		Json.format[GQCharacterData].map(x => x: GQCharacterDataTrait) or
     Json.format[GQCharacterDataHistory].map(x => x: GQCharacterDataTrait)
@@ -724,7 +705,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		override def reads(js: JsValue): JsResult[CoinWithdraw] = js match {
 			case json: JsValue => {
 				try {
-					JsSuccess(CoinWithdraw((json \ "receiver").as[Coin], (json \ "fee").as[Double]))
+					JsSuccess(CoinWithdraw((json \ "receiver").as[Coin], (json \ "fee").as[Long]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -786,8 +767,8 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	  Json.format[ETHJsonRpc].map(x => x: CryptoJsonRpc)
 	}
 	implicit val implicitCryptoJsonRpcWrites = new Writes[CryptoJsonRpc] {
-	  def writes(event: CryptoJsonRpc): JsValue = {
-	    event match {
+	  def writes(param: CryptoJsonRpc): JsValue = {
+	    param match {
 	      case v: ETHJsonRpc => Json.toJson(v)
 	      case _ => Json.obj("error" -> "wrong Json")
 	    }
@@ -797,12 +778,33 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	  Json.format[ETHJsonRpcResult].map(x => x: CryptoJsonRpcHistory)
 	}
 	implicit val implicitCryptoJsonRpcHistoryWrites = new Writes[CryptoJsonRpcHistory] {
-	  def writes(event: CryptoJsonRpcHistory): JsValue = {
-	    event match {
+	  def writes(param: CryptoJsonRpcHistory): JsValue = {
+	    param match {
 	      case v: ETHJsonRpcResult => Json.toJson(v)
 	      case _ => Json.obj("error" -> "wrong Json")
 	    }
 	  }
 	}
 	implicit val implUserAccountWalletHistory = Json.format[UserAccountWalletHistory]
+	implicit val implETHWalletTxEvent = Json.format[ETHWalletTxEvent]
+	implicit val implicitEventReads: Reads[Event] = {
+		Json.format[InEvent].map(x => x: Event) or
+    Json.format[OutEvent].map(x => x: Event) or
+    Json.format[Subscribe].map(x => x: Event) or
+    Json.format[ConnectionAlive].map(x => x: Event) or
+    Json.format[ETHWalletTxEvent].map(x => x: Event)
+  }
+
+  implicit val implicitEventWrites = new Writes[Event] {
+    def writes(event: Event): JsValue = {
+      event match {
+        case m: InEvent => Json.toJson(m)
+        case m: OutEvent => Json.toJson(m)
+        case m: Subscribe => Json.toJson(m)
+        case m: ConnectionAlive => Json.toJson(m)
+        case m: ETHWalletTxEvent => Json.toJson(m)
+        case _ => Json.obj("error" -> "wrong Json")
+      }
+    }
+  }
 }
