@@ -170,15 +170,15 @@ class UserAccountService @Inject()(
             case "USDC" =>
               if (account.usdc.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001)))
                 httpSupport
-                  .walletWithdrawUSDC(coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
+                  .walletWithdrawUSDC(id,"WITHDRAW",coin.receiver.address.getOrElse(""),coin.receiver.amount,coin.fee)
                   .map(_.getOrElse(0))
               else Future(0)
-            case "ETH" =>
-              if (account.eth.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001))) Future(1)
-              else Future(0)
-            case "BTC" =>
-              if (account.btc.amount >= (coin.receiver.amount + coin.fee)) Future(1)
-              else Future(0)
+            // case "ETH" =>
+            //   if (account.eth.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001))) Future(1)
+            //   else Future(0)
+            // case "BTC" =>
+            //   if (account.btc.amount >= (coin.receiver.amount + coin.fee)) Future(1)
+            //   else Future(0)
             case _ => Future(0)
           }
         }.getOrElse(Future(0))
@@ -259,7 +259,7 @@ class UserAccountService @Inject()(
       // chechk if tx already exists by txHash
       isTxHashExists <- userWalletHistoryRepo.existByTxHashAndID(coin.txHash, id)
       // check transaction details using tx_hash
-      txDetails <- httpSupport.getETHTxInfo(id, "DEPOSIT", coin.txHash, coin.receiver.currency)
+      txDetails <- httpSupport.getETHTxInfo(coin.txHash, coin.receiver.currency)
       process <- {
         if (!isTxHashExists) {
           for {

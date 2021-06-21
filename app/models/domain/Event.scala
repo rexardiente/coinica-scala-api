@@ -60,10 +60,7 @@ object ConnectionAlive extends utils.CommonImplicits
 sealed trait Event {
   def toJson(): JsValue = Json.toJson(this)
 }
-case class ETHWalletTxEvent(id: UUID,
-													tx_hash: String,
-													tx_type: String,
-													data: models.domain.wallet.support.ETHJsonRpc) extends Event {
+case class ETHWalletTxEvent(account_id: UUID, tx_hash: String, tx_type: String, currency: String) extends Event {
 	require(tx_type == "DEPOSIT" || tx_type == "WITHDRAW", "invalid parameter")
 }
 case class InEvent(id: JsValue, input: InEventMessage) extends Event
