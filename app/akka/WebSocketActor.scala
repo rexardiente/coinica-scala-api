@@ -89,39 +89,7 @@ class WebSocketActor@Inject()(
       try {
         ev match {
           case tx: ETHWalletTxEvent =>
-            println(tx)
-            // add to scheduler for tx details
-            // for {
-            //   // check account information..
-            //   hasAcc <- userAccountService.getUserAccountWallet(tx.id)
-            //   _ <- Future.successful {
-            //     hasAcc.map { acc =>
-            //       tx.data.currency match {
-            //       case "USDC" | "ETH" =>
-            //         for {
-            //           // update DB
-            //           _ <- {
-            //             if (tx.tx_type == "DEPOSIT")
-            //               userAccountService.addBalanceByCurrency(tx.id, tx.data.currency, tx.data.result.value.toDouble)
-            //             else
-            //               userAccountService.deductBalanceByCurrency(tx.id, tx.data.currency, tx.data.result.value.toDouble)
-            //           }
-            //           // update history..
-            //           _ <- userAccountService.saveUserWalletHistory(
-            //               new UserAccountWalletHistory(tx.tx_hash,
-            //                                           tx.id,
-            //                                           tx.data.currency,
-            //                                           tx.tx_type,
-            //                                           tx.data.result,
-            //                                           Instant.now))
-            //         } yield ()
-
-            //        case _ => null
-            //       }
-            //     }
-            //     .getOrElse(null)
-            //   }
-            // } yield ()
+            SystemSchedulerActor.walletTransactions.addOne(tx.tx_hash, tx)
 
           case in: InEvent =>
             val user: String = in.id.as[String]

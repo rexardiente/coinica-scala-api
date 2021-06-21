@@ -24,31 +24,26 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     val reqParams: JsValue = Json.obj("tx_hash" -> txHash, "currency" -> currency)
     complexRequest
       .post(reqParams)
-      .map(v => {
-        println(v)
-        (v.json).asOpt[ETHJsonRpc]
-      })
+      .map(v => (v.json).asOpt[ETHJsonRpc])
       .recover { case e: Exception => None }
   }
 
-  // def walletWithdrawETH(address: String, amount: Double, fee: Double): Future[Option[String]] = {
-  //   val request: WSRequest = ws.url(nodeServerURI +  "/wallet/withdraw-eth")
-  //   val complexRequest: WSRequest = request
-  //     .addHttpHeaders("Accept" -> "application/json")
-  //     .withRequestTimeout(10000.millis)
-  //   val reqParams: JsValue = Json.obj(
-  //     "address" -> address,
-  //     "value" -> amount,
-  //     "gasPrice" -> fee)
-  //   complexRequest
-  //     .post(reqParams)
-  //     .map { v =>
-  //       if (!(v.json \ "error").as[Boolean]) (v.json \ "tx_hash").asOpt[String]
-  //       else None
-  //     }
-  //     .recover { case e: Exception => None }
-  // }
-  def walletWithdrawUSDC(id: UUID, txType: String, address: String, amount: Double, fee: Double): Future[Option[Int]] = {
+  def walletWithdrawETH(id: UUID, address: String, amount: Double, fee: Double): Future[Option[Int]] = {
+    val request: WSRequest = ws.url(nodeServerURI +  "/wallet/withdraw-eth")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+    val reqParams: JsValue = Json.obj(
+      "account_id" -> id,
+      "address" -> address,
+      "value" -> amount,
+      "gasPrice" -> fee)
+    complexRequest
+      .post(reqParams)
+      .map(v => (v.json \ "status").asOpt[Int])
+      .recover { case e: Exception => None }
+  }
+  def walletWithdrawUSDC(id: UUID, address: String, amount: Double, fee: Double): Future[Option[Int]] = {
     val request: WSRequest = ws.url(nodeServerURI +  "/wallet/withdraw-usdc")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")

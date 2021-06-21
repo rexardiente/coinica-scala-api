@@ -17,12 +17,16 @@ import play.api.libs.json._
 import akka.common.objects._
 import models.domain._
 import models.repo._
+import models.service.UserAccountService
 import models.domain.enum._
+import utils.lib.MultiCurrencyHTTPSupport
 
 object SystemSchedulerActor {
   var currentChallengeGame: Option[UUID] = None
   var isIntialized: Boolean = false
+  val walletTransactions = HashMap.empty[String, ETHWalletTxEvent]
   def props(
+            userAccountService: UserAccountService,
             gameRepo: GameRepo,
             challengeRepo: ChallengeRepo,
             challengeHistoryRepo: ChallengeHistoryRepo,
@@ -34,8 +38,10 @@ object SystemSchedulerActor {
             userAccountRepo: UserAccountRepo,
             rankingHistoryRepo: RankingHistoryRepo,
             vipUserRepo: VIPUserRepo,
+            httpSupport: MultiCurrencyHTTPSupport,
             )(implicit system: ActorSystem) =
     Props(classOf[SystemSchedulerActor],
+          userAccountService,
           gameRepo,
           challengeRepo,
           challengeHistoryRepo,
@@ -47,23 +53,25 @@ object SystemSchedulerActor {
           userAccountRepo,
           rankingHistoryRepo,
           vipUserRepo,
+          httpSupport,
           system)
 }
 
 @Singleton
-class SystemSchedulerActor @Inject()(
-                                      gameRepo: GameRepo,
-                                      challengeRepo: ChallengeRepo,
-                                      challengeHistoryRepo: ChallengeHistoryRepo,
-                                      challengeTrackerRepo: ChallengeTrackerRepo,
-                                      taskRepo: TaskRepo,
-                                      dailyTaskRepo: DailyTaskRepo,
-                                      taskHistoryRepo: TaskHistoryRepo,
-                                      overAllGameHistory: OverAllGameHistoryRepo,
-                                      userAccountRepo: UserAccountRepo,
-                                      rankingHistoryRepo: RankingHistoryRepo,
-                                      vipUserRepo: VIPUserRepo,
-                                      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
+class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
+                                    gameRepo: GameRepo,
+                                    challengeRepo: ChallengeRepo,
+                                    challengeHistoryRepo: ChallengeHistoryRepo,
+                                    challengeTrackerRepo: ChallengeTrackerRepo,
+                                    taskRepo: TaskRepo,
+                                    dailyTaskRepo: DailyTaskRepo,
+                                    taskHistoryRepo: TaskHistoryRepo,
+                                    overAllGameHistory: OverAllGameHistoryRepo,
+                                    userAccountRepo: UserAccountRepo,
+                                    rankingHistoryRepo: RankingHistoryRepo,
+                                    vipUserRepo: VIPUserRepo,
+                                    httpSupport: MultiCurrencyHTTPSupport,
+                                    @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
@@ -102,6 +110,56 @@ class SystemSchedulerActor @Inject()(
           WebSocketActor.subscribers.addOne(Config.GQ_CODE, self)
           WebSocketActor.subscribers.addOne(Config.TH_CODE, self)
           WebSocketActor.subscribers.addOne(Config.MJHilo_CODE, self)
+          // ETH and USDC wallet tx details checker,
+          // limit checking of tx details failed..
+          akka
+            .stream
+            .scaladsl
+            .Source
+            .tick(0.seconds, 5.minutes, "SystemSchedulerActor")
+            .runForeach(n => {
+              // schedule every 5mins
+              // add to scheduler for tx details
+              SystemSchedulerActor.walletTransactions.foreach { data: (String, ETHWalletTxEvent) =>
+                for {
+                  // check account information..
+                  hasAccount <- userAccountService.getUserAccountWallet(data._2.account_id)
+                  _ <- {
+                    hasAccount.map { account =>
+                      data._2.currency match {
+                      case "USDC" | "ETH" =>
+                        for {
+                          txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
+                          // update DB and history..
+                          _ <- Future.successful {
+                            txDetails.map { detail =>
+                              if (data._2.tx_type == "DEPOSIT")
+                                userAccountService.addBalanceByCurrency(data._2.account_id, data._2.currency, detail.result.value.toDouble)
+                              else
+                                userAccountService.deductBalanceByCurrency(data._2.account_id, data._2.currency, detail.result.value.toDouble)
+                            }
+                          }
+                          _ <- Future.successful {
+                            txDetails.map { detail =>
+                              userAccountService.saveUserWalletHistory(
+                                new models.domain.wallet.support.UserAccountWalletHistory(data._2.tx_hash,
+                                                                                          data._2.account_id,
+                                                                                          data._2.currency,
+                                                                                          data._2.tx_type,
+                                                                                          detail.result,
+                                                                                          Instant.now))
+                            }
+                          }
+                        } yield ()
+
+                       case _ => Future(None)
+                      }
+                    }
+                    .getOrElse(Future(None))
+                  }
+                } yield ()
+              }
+            })
 
           log.info("System Scheduler Actor Initialized")
         }

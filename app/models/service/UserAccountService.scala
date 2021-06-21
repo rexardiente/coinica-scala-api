@@ -170,12 +170,15 @@ class UserAccountService @Inject()(
             case "USDC" =>
               if (account.usdc.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001)))
                 httpSupport
-                  .walletWithdrawUSDC(id, "WITHDRAW", coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
+                  .walletWithdrawUSDC(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
                   .map(_.getOrElse(0))
               else Future(0)
-            // case "ETH" =>
-            //   if (account.eth.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001))) Future(1)
-            //   else Future(0)
+            case "ETH" =>
+              if (account.eth.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001)))
+                httpSupport
+                  .walletWithdrawETH(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
+                  .map(_.getOrElse(0))
+              else Future(0)
             // case "BTC" =>
             //   if (account.btc.amount >= (coin.receiver.amount + coin.fee)) Future(1)
             //   else Future(0)
@@ -274,7 +277,7 @@ class UserAccountService @Inject()(
                   if (result.from == coin.issuer.address.getOrElse("") && result.to == coin.receiver.address.getOrElse("")) {
                     // check if type of currency to update
                     coin.receiver.currency match {
-                      case "USDC" =>
+                      case "USDC" | "ETH" =>
                         addBalanceByCurrency(id, coin.receiver.currency, result.value.toDouble)
                       case _ => Future(0)
                     }
