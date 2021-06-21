@@ -24,7 +24,10 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     val reqParams: JsValue = Json.obj("tx_hash" -> txHash, "currency" -> currency)
     complexRequest
       .post(reqParams)
-      .map(v => (v.json).asOpt[ETHJsonRpc])
+      .map(v => {
+        println(v)
+        (v.json).asOpt[ETHJsonRpc]
+      })
       .recover { case e: Exception => None }
   }
 
@@ -52,7 +55,6 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
       .withRequestTimeout(10000.millis)
     val reqParams: JsValue = Json.obj(
       "account_id" -> id,
-      "tx_type" -> txType,
       "address" -> address,
       "value" -> amount,
       "gasPrice" -> fee)

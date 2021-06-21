@@ -170,7 +170,7 @@ class UserAccountService @Inject()(
             case "USDC" =>
               if (account.usdc.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001)))
                 httpSupport
-                  .walletWithdrawUSDC(id,"WITHDRAW",coin.receiver.address.getOrElse(""),coin.receiver.amount,coin.fee)
+                  .walletWithdrawUSDC(id, "WITHDRAW", coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
                   .map(_.getOrElse(0))
               else Future(0)
             // case "ETH" =>
@@ -268,24 +268,26 @@ class UserAccountService @Inject()(
             update <- {
               hasAccount.map { account =>
                 // update account  balance..
-                val result: ETHJsonRpcResult = txDetails.get.result
-                // check tx request and response details...
-                if (result.from == coin.issuer.address.getOrElse("") && result.to == coin.receiver.address.getOrElse("")) {
-                  // check if type of currency to update
-                  coin.receiver.currency match {
-                    case "USDC" =>
-                      addBalanceByCurrency(id, coin.receiver.currency, result.value.toDouble)
-                    case _ => Future(0)
+                txDetails.map { details =>
+                  val result: ETHJsonRpcResult = details.result
+                  // check tx request and response details...
+                  if (result.from == coin.issuer.address.getOrElse("") && result.to == coin.receiver.address.getOrElse("")) {
+                    // check if type of currency to update
+                    coin.receiver.currency match {
+                      case "USDC" =>
+                        addBalanceByCurrency(id, coin.receiver.currency, result.value.toDouble)
+                      case _ => Future(0)
+                    }
                   }
-                }
-                else Future(0)
+                  else Future(0)
+                }.getOrElse(Future(0))
               }.getOrElse(Future(0))
             }
           } yield (update)
         } else Future(0)
       }
       // if success insert history else do nothing,. Neeed enhancements..
-      _ <- saveUserWalletHistory(coin.toWalletHistory(id, "DEPOSIT", txDetails.get.result))
+      _ <- Future.successful(txDetails.map(_ => saveUserWalletHistory(coin.toWalletHistory(id, "DEPOSIT", txDetails.get.result))))
     } yield (process)
   }
 }

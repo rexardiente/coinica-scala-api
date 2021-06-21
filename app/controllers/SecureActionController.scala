@@ -98,7 +98,7 @@ class SecureActionController @Inject()(
         { case deposit  =>
           accountService
             .updateWithDepositCoin(account.id, deposit)
-            .map(x => if (x > 0) Created else Conflict)
+            .map(x => if (x > 0) Created else InternalServerError)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -112,7 +112,7 @@ class SecureActionController @Inject()(
         { case withdraw  =>
           accountService
             .updateWithWithdrawCoin(account.id, withdraw)
-            .map(x => if (x > 0) Created else Conflict)
+            .map(x => if (x > 0) Created else InternalServerError)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
