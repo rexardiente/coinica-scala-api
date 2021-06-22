@@ -15,20 +15,25 @@ sealed trait CryptoJsonRpcHistory {
 }
 case class ETHJsonRpcResult(blockHash: String,
 											      blockNumber: Long,
+											      chainId: Option[String],
+											      condition: Option[String],
+											      creates: Option[String],
 											      from: String,
 											      gas: Long,
 											      gasPrice: Int,
 											      hash: String,
 											      input: String,
 											      nonce: Int,
+											      publicKey: Option[String],
+											      raw: Option[String],
+											      standardV: Option[String],
 											      to: String,
 											      transactionIndex: String,
 											      value: String,
-											      `type`: String,
+											      `type`: Option[String],
 											      v: String,
 											      r: String,
 											      s: String) extends CryptoJsonRpcHistory
 case class ETHJsonRpc(currency: String, jsonrpc: String, id: Int, result: ETHJsonRpcResult) extends CryptoJsonRpc {
 	override def toJson(): JsValue = Json.toJson(this)
 }
-
