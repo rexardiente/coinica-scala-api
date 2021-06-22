@@ -89,7 +89,9 @@ class WebSocketActor@Inject()(
       try {
         ev match {
           case tx: ETHWalletTxEvent =>
+            println(tx.toJson)
             SystemSchedulerActor.walletTransactions.addOne(tx.tx_hash, tx)
+            println("ETHWalletTxEvent" + SystemSchedulerActor.walletTransactions.size)
 
           case in: InEvent =>
             val user: String = in.id.as[String]

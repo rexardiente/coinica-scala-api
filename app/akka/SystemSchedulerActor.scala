@@ -128,6 +128,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                     hasAccount.map { account =>
                       data._2.currency match {
                       case "USDC" | "ETH" =>
+                        println("USDC | ETH -> received")
                         for {
                           txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
                           // update DB and history..
@@ -150,7 +151,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                                                                           Instant.now))
                             }
                           }
-                        } yield ()
+                        } yield (println("Done Process"))
 
                        case _ => Future(None)
                       }
