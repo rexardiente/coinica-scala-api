@@ -134,9 +134,14 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                           _ <- Future.successful {
                             txDetails.map { detail =>
                               if (data._2.tx_type == "DEPOSIT")
-                                userAccountService.addBalanceByCurrency(data._2.account_id, data._2.currency, detail.result.value.toDouble)
+                                userAccountService.addBalanceByCurrency(data._2.account_id,
+                                                                        data._2.currency,
+                                                                        detail.result.value.toDouble)
                               else
-                                userAccountService.deductBalanceByCurrency(data._2.account_id, data._2.currency, detail.result.value.toDouble, detail.result.gasPrice)
+                                userAccountService.deductBalanceByCurrency(data._2.account_id,
+                                                                          data._2.currency,
+                                                                          detail.result.value.toDouble,
+                                                                          detail.result.gasPrice)
                             }
                           }
                           _ <- Future.successful {

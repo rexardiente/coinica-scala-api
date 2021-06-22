@@ -137,17 +137,17 @@ class UserAccountService @Inject()(
     } yield (process)
   }
 
-  def deductBalanceByCurrency(id: UUID, currency: String, amount: Double, fee: Int): Future[Int] = {
+  def deductBalanceByCurrency(id: UUID, currency: String, amount: Double, gasPrice: Int): Future[Int] = {
     for {
       hasAccount <- getUserAccountWallet(id)
       process <- {
         hasAccount.map { account =>
           currency match {
             case "USDC" =>
-              val newBalance: Double = account.usdc.amount - (amount + fee)
+              val newBalance: Double = account.usdc.amount - ((gasPrice * 0.000000000000000001) + amount)
               userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
             case "ETH" =>
-              val newBalance: Double = account.eth.amount - (amount + fee)
+              val newBalance: Double = account.eth.amount - (((500000 * gasPrice) * 0.000000000000000001) + amount)
               userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
             case _ =>
               Future(0)
@@ -168,19 +168,19 @@ class UserAccountService @Inject()(
         hasAccount.map { account =>
           coin.receiver.currency match {
             case "USDC" =>
-              if (account.usdc.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001)))
+              if (account.usdc.amount >= (coin.gasPrice * 0.000000000000000001) + coin.receiver.amount)
                 httpSupport
-                  .walletWithdrawUSDC(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
+                  .walletWithdrawUSDC(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, 500000 * coin.gasPrice)
                   .map(_.getOrElse(0))
               else Future(0)
             case "ETH" =>
-              if (account.eth.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001)))
+              if (account.eth.amount >= ((500000 * coin.gasPrice) * 0.000000000000000001) + coin.receiver.amount)
                 httpSupport
-                  .walletWithdrawETH(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
+                  .walletWithdrawETH(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.gasPrice)
                   .map(_.getOrElse(0))
               else Future(0)
             // case "BTC" =>
-            //   if (account.btc.amount >= (coin.receiver.amount + coin.fee)) Future(1)
+            //   if (account.btc.amount >= (coin.receiver.amount + coin.gasPrice)) Future(1)
             //   else Future(0)
             case _ => Future(0)
           }
@@ -197,7 +197,7 @@ class UserAccountService @Inject()(
   //       hasAccount.map { account =>
   //         coin.receiver.currency match {
   //           case "USDC" =>
-  //             if (account.usdc.amount >= (coin.receiver.amount + (coin.fee * 0.000000000000000001))) true
+  //             if (account.usdc.amount >= (coin.receiver.amount + (coin.gasPrice * 0.000000000000000001))) true
   //             else false
   //           case _ => false
   //         }
@@ -209,7 +209,7 @@ class UserAccountService @Inject()(
   //         coin.receiver.currency match {
   //           case "USDC" =>
   //             httpSupport
-  //               .walletWithdrawUSDC(coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.fee)
+  //               .walletWithdrawUSDC(coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.gasPrice)
   //               .map((_, coin.receiver.currency))
   //           case _ =>
   //             Future((None, coin.receiver.currency))

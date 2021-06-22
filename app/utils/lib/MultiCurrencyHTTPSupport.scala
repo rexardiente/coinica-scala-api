@@ -28,7 +28,7 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
       .recover { case e: Exception => None }
   }
 
-  def walletWithdrawETH(id: UUID, address: String, amount: Double, fee: Long): Future[Option[Int]] = {
+  def walletWithdrawETH(id: UUID, address: String, amount: Double, fee: Double): Future[Option[Int]] = {
     val request: WSRequest = ws.url(nodeServerURI + "/wallet/withdraw-eth")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
