@@ -134,7 +134,6 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                           txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
                           // update DB and history..
                           _ <- Future.successful {
-                            println(txDetails)
                             txDetails.map { detail =>
                               if (data._2.tx_type == "DEPOSIT")
                                 userAccountService.addBalanceByCurrency(data._2.account_id, data._2.currency, detail.result.value.toDouble)
@@ -152,6 +151,9 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                                                                           detail.result,
                                                                                           Instant.now))
                             }
+                          }
+                          _ <- Future.successful {
+                            txDetails.map(detail => SystemSchedulerActor.walletTransactions.remove(data._1))
                           }
                         } yield (println("Done Process"))
 
