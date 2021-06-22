@@ -137,17 +137,17 @@ class UserAccountService @Inject()(
     } yield (process)
   }
 
-  def deductBalanceByCurrency(id: UUID, currency: String, amount: Double): Future[Int] = {
+  def deductBalanceByCurrency(id: UUID, currency: String, amount: Double, fee: Int): Future[Int] = {
     for {
       hasAccount <- getUserAccountWallet(id)
       process <- {
         hasAccount.map { account =>
           currency match {
             case "USDC" =>
-              val newBalance: Double = account.usdc.amount - amount
+              val newBalance: Double = account.usdc.amount - (amount + fee)
               userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
             case "ETH" =>
-              val newBalance: Double = account.eth.amount - amount
+              val newBalance: Double = account.eth.amount - (amount + fee)
               userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
             case _ =>
               Future(0)
