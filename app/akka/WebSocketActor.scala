@@ -86,6 +86,7 @@ class WebSocketActor@Inject()(
 
   def receive: Receive = {
     case ev: Event =>
+      println("Event", ev)
       try {
         ev match {
           case tx: ETHWalletTxEvent =>
@@ -227,7 +228,9 @@ class WebSocketActor@Inject()(
             log.info("Unknown")
         }
       } catch {
-        case _: Throwable => out ! OutEvent(JsNull, JsString("invalid"))
+        case e: Throwable =>
+          println("Throwable", e)
+          out ! OutEvent(JsNull, JsString("invalid"))
       }
 
     case VIPWSRequest(id, cmd, req) => req match {
@@ -253,7 +256,9 @@ class WebSocketActor@Inject()(
       //   }
       // } yield ()
 
-    case e => out ! OutEvent(JsNull, JsString("invalid"))
+    case e =>
+      println("Invalid", e)
+      out ! OutEvent(JsNull, JsString("invalid"))
   }
   // recursive request no matter how many times till finished
   private def getEOSTableRows(sender: Option[String]): Future[Unit] = Future.successful {
