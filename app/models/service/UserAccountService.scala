@@ -137,7 +137,7 @@ class UserAccountService @Inject()(
     } yield (process)
   }
 
-  def deductBalanceByCurrency(id: UUID, currency: String, amount: Double, fee: Long): Future[Int] = {
+  def deductBalanceByCurrency(id: UUID, currency: String, amount: Double, fee: Int): Future[Int] = {
     for {
       hasAccount <- getUserAccountWallet(id)
       process <- {
