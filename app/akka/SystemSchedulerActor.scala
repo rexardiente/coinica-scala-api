@@ -118,6 +118,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .Source
             .tick(0.seconds, 5.minutes, "SystemSchedulerActor")
             .runForeach(n => {
+              println("Running every 5 mins >>>>>")
               // schedule every 5mins
               // add to scheduler for tx details
               SystemSchedulerActor.walletTransactions.foreach { data: (String, ETHWalletTxEvent) =>
@@ -133,6 +134,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                           txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
                           // update DB and history..
                           _ <- Future.successful {
+                            println(txDetails)
                             txDetails.map { detail =>
                               if (data._2.tx_type == "DEPOSIT")
                                 userAccountService.addBalanceByCurrency(data._2.account_id, data._2.currency, detail.result.value.toDouble)

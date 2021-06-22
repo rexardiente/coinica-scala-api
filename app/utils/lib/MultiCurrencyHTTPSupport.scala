@@ -24,7 +24,10 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     val reqParams: JsValue = Json.obj("tx_hash" -> txHash, "currency" -> currency)
     complexRequest
       .post(reqParams)
-      .map(v => (v.json).asOpt[ETHJsonRpc])
+      .map(v => {
+        println(v.json)
+        (v.json).asOpt[ETHJsonRpc]
+      })
       .recover { case e: Exception => None }
   }
 
@@ -40,8 +43,13 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
       "gasPrice" -> fee)
     complexRequest
       .post(reqParams)
-      .map(v => (v.json \ "status").asOpt[Int])
-      .recover { case e: Exception => None }
+      .map(v => {
+        println(v.json)
+        (v.json \ "status").asOpt[Int]
+      })
+      .recover { case e: Exception =>
+      println(e)
+      None }
   }
   def walletWithdrawUSDC(id: UUID, address: String, amount: Double, fee: Double): Future[Option[Int]] = {
     val request: WSRequest = ws.url(nodeServerURI +  "/wallet/withdraw-usdc")
