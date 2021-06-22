@@ -118,7 +118,6 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .Source
             .tick(0.seconds, 5.minutes, "SystemSchedulerActor")
             .runForeach(n => {
-              println("Running every 5 mins >>>>>")
               // schedule every 5mins
               // add to scheduler for tx details
               SystemSchedulerActor.walletTransactions.foreach { data: (String, ETHWalletTxEvent) =>
@@ -129,7 +128,6 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                     hasAccount.map { account =>
                       data._2.currency match {
                       case "USDC" | "ETH" =>
-                        println("USDC | ETH -> received")
                         for {
                           txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
                           // update DB and history..
@@ -155,7 +153,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                           _ <- Future.successful {
                             txDetails.map(detail => SystemSchedulerActor.walletTransactions.remove(data._1))
                           }
-                        } yield (println("Done Process"))
+                        } yield ()
 
                        case _ => Future(None)
                       }
