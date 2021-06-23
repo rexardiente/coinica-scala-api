@@ -20,7 +20,7 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     val request: WSRequest = ws.url(nodeServerURI + "/etherscan/transaction/details")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      .withRequestTimeout(30000.millis)
     val reqParams: JsValue = Json.obj("tx_hash" -> txHash, "currency" -> currency)
     complexRequest
       .post(reqParams)
@@ -32,7 +32,7 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     val request: WSRequest = ws.url(nodeServerURI + "/wallet/withdraw-eth")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      .withRequestTimeout(30000.millis)
     val reqParams: JsValue = Json.obj(
       "account_id" -> id,
       "address" -> address,
@@ -47,7 +47,7 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     val request: WSRequest = ws.url(nodeServerURI + "/wallet/withdraw-usdc")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      .withRequestTimeout(30000.millis)
     val reqParams: JsValue = Json.obj(
       "account_id" -> id,
       "address" -> address,
