@@ -8,6 +8,7 @@ import scala.concurrent.{ Await, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import Ordering.Double.IeeeOrdering
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
@@ -56,6 +57,7 @@ object SystemSchedulerActor {
           httpSupport,
           system)
 }
+case object WalletTxScheduler
 
 @Singleton
 class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
@@ -78,6 +80,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
 
   override def preStart: Unit = {
     super.preStart
+
+    QuartzSchedulerExtension(system).schedule("WalletTxScheduler", self, WalletTxScheduler)
     // keep alive connection
     // https://stackoverflow.com/questions/13700452/scheduling-a-task-at-a-fixed-time-of-the-day-with-akka
     akka.stream.scaladsl.Source.tick(0.seconds, 20.seconds, "SystemSchedulerActor").runForeach(n => ())
@@ -110,65 +114,6 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           WebSocketActor.subscribers.addOne(Config.GQ_CODE, self)
           WebSocketActor.subscribers.addOne(Config.TH_CODE, self)
           WebSocketActor.subscribers.addOne(Config.MJHilo_CODE, self)
-          // ETH and USDC wallet tx details checker,
-          // limit checking of tx details failed..
-          akka
-            .stream
-            .scaladsl
-            .Source
-            .tick(0.seconds, 5.minutes, "SystemSchedulerActor")
-            .runForeach(n => {
-              // schedule every 5mins
-              // add to scheduler for tx details
-              SystemSchedulerActor.walletTransactions.foreach { data: (String, ETHWalletTxEvent) =>
-                for {
-                  // check account information..
-                  hasAccount <- userAccountService.getUserAccountWallet(data._2.account_id)
-                  _ <- {
-                    hasAccount.map { account =>
-                      data._2.currency match {
-                      case "USDC" | "ETH" =>
-                        for {
-                          txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
-                          // update DB and history..
-                          _ <- Future.successful {
-                            txDetails.map { detail =>
-                              if (data._2.tx_type == "DEPOSIT")
-                                userAccountService.addBalanceByCurrency(data._2.account_id,
-                                                                        data._2.currency,
-                                                                        detail.result.value.toDouble)
-                              else
-                                userAccountService.deductBalanceByCurrency(data._2.account_id,
-                                                                          data._2.currency,
-                                                                          detail.result.value.toDouble,
-                                                                          detail.result.gasPrice)
-                            }
-                          }
-                          _ <- Future.successful {
-                            txDetails.map { detail =>
-                              userAccountService.saveUserWalletHistory(
-                                new models.domain.wallet.support.UserAccountWalletHistory(data._2.tx_hash,
-                                                                                          data._2.account_id,
-                                                                                          data._2.currency,
-                                                                                          data._2.tx_type,
-                                                                                          detail.result,
-                                                                                          Instant.now))
-                            }
-                          }
-                          _ <- Future.successful {
-                            txDetails.map(detail => SystemSchedulerActor.walletTransactions.remove(data._1))
-                          }
-                        } yield ()
-
-                       case _ => Future(None)
-                      }
-                    }
-                    .getOrElse(Future(None))
-                  }
-                } yield ()
-              }
-            })
-
           log.info("System Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
@@ -176,6 +121,57 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
   }
 
   def receive: Receive = {
+    // ETH and USDC wallet tx details checker,
+    // limit checking of tx details failed..
+    case WalletTxScheduler =>
+      SystemSchedulerActor.walletTransactions.foreach { data: (String, ETHWalletTxEvent) =>
+        for {
+          // check account information..
+          hasAccount <- userAccountService.getUserAccountWallet(data._2.account_id)
+          _ <- {
+            hasAccount.map { account =>
+              data._2.currency match {
+              case "USDC" | "ETH" =>
+                for {
+                  txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
+                  // update DB and history..
+                  _ <- Future.successful {
+                    txDetails.map { detail =>
+                      if (data._2.tx_type == "DEPOSIT")
+                        userAccountService.addBalanceByCurrency(data._2.account_id,
+                                                                data._2.currency,
+                                                                detail.result.value.toDouble)
+                      else
+                        userAccountService.deductBalanceByCurrency(data._2.account_id,
+                                                                  data._2.currency,
+                                                                  detail.result.value.toDouble,
+                                                                  detail.result.gasPrice)
+                    }
+                  }
+                  _ <- Future.successful {
+                    txDetails.map { detail =>
+                      userAccountService.saveUserWalletHistory(
+                        new models.domain.wallet.support.UserAccountWalletHistory(data._2.tx_hash,
+                                                                                  data._2.account_id,
+                                                                                  data._2.currency,
+                                                                                  data._2.tx_type,
+                                                                                  detail.result,
+                                                                                  Instant.now))
+                    }
+                  }
+                  _ <- Future.successful {
+                    txDetails.map(detail => SystemSchedulerActor.walletTransactions.remove(data._1))
+                  }
+                } yield ()
+
+               case _ => Future(None)
+              }
+            }
+            .getOrElse(Future(None))
+          }
+        } yield ()
+      }
+
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
       val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
