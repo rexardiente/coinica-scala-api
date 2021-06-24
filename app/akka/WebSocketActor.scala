@@ -258,7 +258,7 @@ class WebSocketActor@Inject()(
     var hasNextKey: Option[String] = None
     var hasRows: Seq[GQTable] = Seq.empty
     do {
-      Await.ready(eosioHTTPSupport.getTableRows(new TableRowsRequest(Config.GQ_CODE,
+      Await.ready(eosioHTTPSupport.getGhostQuestTableRows(new TableRowsRequest(Config.GQ_CODE,
                                                                     Config.GQ_TABLE,
                                                                     Config.GQ_SCOPE,
                                                                     None,

@@ -88,13 +88,38 @@ class SecureActionController @Inject()(
       )(Coin.apply)(Coin.unapply),
     "fee" -> of[Double]
     )(CoinWithdraw.apply)(CoinWithdraw.unapply))
+  private val thGameStartForm = Form(tuple("receiver" -> number, "fee" -> number))
+  private val thWithdrawForm = Form(single("id" -> number))
+
+  def thGameStart() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        thGameStartForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case deposit  =>
+          ???
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def thWithdraw() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        thWithdrawForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case deposit  =>
+          ???
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
 
   def coinDeposit() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
         depositForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest(formErr.toString)),
+        formErr => Future.successful(BadRequest("Invalid request")),
         { case deposit  =>
           accountService
             .updateWithDepositCoin(account.id, deposit)
@@ -108,7 +133,7 @@ class SecureActionController @Inject()(
       .account
       .map { account =>
         withdrawForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest(formErr.toString)),
+        formErr => Future.successful(BadRequest("Invalid request")),
         { case withdraw  =>
           accountService
             .updateWithWithdrawCoin(account.id, withdraw)
@@ -126,108 +151,7 @@ class SecureActionController @Inject()(
           .map(x => Ok(x.map(_.toJson).getOrElse(JsNull)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getListOfOrders() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { _ =>
-        getListOfOrdersForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest("Invalid request")),
-        { case (start, count, id)  =>
-          multiCurrencySupport
-          .getListOfOrders(start, count, id)
-          .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
-        })
-      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
-  def getSupportedCoins() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map(_ => multiCurrencySupport.getSupportedCoins().map(x => Ok(Json.toJson(x))))
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
-  def getSupportedPairs() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { _ =>
-        getSupportedSymbolForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest("Invalid request")),
-        { case (symbol)  =>
-          multiCurrencySupport.getSupportedPairs(symbol).map(x => Ok(Json.toJson(x)))
-        })
-      }
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
-  def getSupportedDepositCoins() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { _ =>
-        getSupportedSymbolForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest("Invalid request")),
-        { case (symbol)  =>
-          multiCurrencySupport.getSupportedDepositCoins(symbol).map(x => Ok(Json.toJson(x)))
-        })
-      }
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
-  def getExchangeLimits() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { _ =>
-        getExchangeLimitsForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest("Invalid request")),
-        { case (deposit, destination)  =>
-          multiCurrencySupport
-            .getExchangeLimits(deposit, destination)
-            .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
-        })
-      }
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
-  def generateOffer() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { _ =>
-        generateOfferForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest("Invalid request")),
-        { case (deposit, destination, amount)  =>
-          multiCurrencySupport
-            .generateOffer(deposit, destination, amount)
-            .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
-        })
-      }
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
 
-  def createOrder() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { _ =>
-        createOrderForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest("Invalid request")),
-        { case (order)  =>
-          multiCurrencySupport
-            .createOrder(order)
-            .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
-        })
-      }
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
-  def getOrderStatus() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { _ =>
-        Form(single("id" -> nonEmptyText))
-          .bindFromRequest
-          .fold(
-          formErr => Future.successful(BadRequest("Invalid request")),
-          { case (id)  =>
-            multiCurrencySupport
-              .getOrderStatus(id)
-              .map(_.map(x => Ok(x.toJson)).getOrElse(NotAcceptable))
-          })
-      }
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
   def signOut() = SecureUserAction.async { implicit request =>
     request
       .account

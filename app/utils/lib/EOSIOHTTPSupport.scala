@@ -15,11 +15,11 @@ import models.domain.eosio.TableRowsRequest
 class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
 
-  def getTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
+  def getGhostQuestTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      .withRequestTimeout(30000.millis)
 
     complexRequest
       .post(Json.obj(
@@ -45,11 +45,11 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .recover { case e: Exception => None }
   }
 
-  def battleResult(gameid: String, winner: (String, String), loser: (String, String)): Future[Option[String]] =  {
+  def ghostQuestBattleResult(gameid: String, winner: (String, String), loser: (String, String)): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/battle_result")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      .withRequestTimeout(30000.millis)
 
     complexRequest
       .post(Json.obj(
@@ -62,11 +62,11 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       // return transaction ID
   }
 
-  def eliminate(user: String, characterID: String): Future[Option[String]] = {
+  def ghostQuestEliminate(user: String, characterID: String): Future[Option[String]] = {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/eliminate")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      .withRequestTimeout(30000.millis)
 
     complexRequest
       .post(Json.obj(

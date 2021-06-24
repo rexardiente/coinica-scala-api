@@ -79,6 +79,10 @@ GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/weekly 		control
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily 		controllers.SecureActionController.winStreakPerWeekly
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime 	controllers.SecureActionController.winStreakLifeTime
 
+# Treasurehunt API
+POST   /donut/api/v1/game/treasurehunt/start 		controllers.SecureActionController.thGameStart
+POST   /donut/api/v1/game/treasurehunt/withdraw controllers.SecureActionController.thWithdraw
+
 # Overall History
 #GET   /donut/api/v1/game/all/history controllers.SecureActionController.overAllHistory(limit: Int ?= 10)
 GET   /donut/api/v1/game/all/history/:game controllers.SecureActionController.overAllHistoryByGameID(game: UUID)
@@ -108,16 +112,6 @@ POST  /donut/api/v1/user/email/add 							controllers.SecureActionController.add
 POST  /donut/api/v1/user/password/reset/send 			controllers.HomeController.resetPassword()
 GET   /donut/api/v1/user/password/reset/confirm 	controllers.HomeController.resetPasswordVerification(code: String)
 POST  /donut/api/v1/user/password/reset/submit 		controllers.HomeController.submitNewPassword()
-
-# Multi Currency Support
-GET  	/donut/api/v1/multi-currency/coins 										controllers.SecureActionController.getSupportedCoins()
-POST  /donut/api/v1/multi-currency/supported-pairs 					controllers.SecureActionController.getSupportedPairs()
-POST  /donut/api/v1/multi-currency/supported-deposit-coins 	controllers.SecureActionController.getSupportedDepositCoins()
-POST  /donut/api/v1/multi-currency/exchange-limit 					controllers.SecureActionController.getExchangeLimits()
-POST  /donut/api/v1/multi-currency/generate-offer 					controllers.SecureActionController.generateOffer()
-POST  /donut/api/v1/multi-currency/make-order 							controllers.SecureActionController.createOrder()
-POST  /donut/api/v1/multi-currency/order 										controllers.SecureActionController.getOrderStatus()
-POST  /donut/api/v1/multi-currency/orders 									controllers.SecureActionController.getListOfOrders()
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
