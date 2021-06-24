@@ -116,7 +116,7 @@ class GQSchedulerActorV2 @Inject()(
               p1 <- accountRepo.getByID(winner._2._1)
               p2 <- accountRepo.getByID(loser._2._1)
               _ <- Await.ready({
-                eosioHTTPSupport.battleResult(counter._1.toString, (winner._1, p1.get.username), (loser._1, p2.get.username)).map {
+                eosioHTTPSupport.ghostQuestBattleResult(counter._1.toString, (winner._1, p1.get.username), (loser._1, p2.get.username)).map {
                   case Some(e) => scBattleCounter.addOne(e, counter)
                   case e => null
                 }
@@ -136,7 +136,7 @@ class GQSchedulerActorV2 @Inject()(
             Thread.sleep(1000)
             // remove no life characters
             // successfully removed characters in SC must be removed from DB
-            Await.ready(removedNoLifeContract(), Duration.Inf)
+            Await.ready(removedNoHpOnSc(), Duration.Inf)
             Thread.sleep(1000)
 
             Await.ready(for {
@@ -198,7 +198,7 @@ class GQSchedulerActorV2 @Inject()(
     case _ => ()
   }
 
-  private def removedNoLifeContract(): Future[Any] = {
+  private def removedNoHpOnSc(): Future[Any] = {
     try {
       // filter only characters that has no more life..
       val eliminatedOrWithdrawn = GQBattleScheduler.eliminatedOrWithdrawn.filter(x => x._2.life < 1)
@@ -211,7 +211,7 @@ class GQSchedulerActorV2 @Inject()(
               if (account != None) {
                 val acc: UserAccount =  account.get
 
-                eosioHTTPSupport.eliminate(acc.username, id).map {
+                eosioHTTPSupport.ghostQuestEliminate(acc.username, id).map {
                   case Some(txHash) => GQBattleScheduler.toRemovedCharacters.addOne(id, data)
                   case None => ()
                 }
@@ -362,7 +362,7 @@ class GQSchedulerActorV2 @Inject()(
     var hasNextKey: Option[String] = None
     var hasRows: Seq[GQTable] = Seq.empty
     do {
-      Await.ready(requestTableRow(new TableRowsRequest(Config.GQ_CODE,
+      Await.ready(requestGhostQuestTableRow(new TableRowsRequest(Config.GQ_CODE,
                                                       Config.GQ_TABLE,
                                                       Config.GQ_SCOPE,
                                                       None,
@@ -426,8 +426,8 @@ class GQSchedulerActorV2 @Inject()(
     }
   }
 
-  private def requestTableRow(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =
-    eosioHTTPSupport.getTableRows(req, sender)
+  private def requestGhostQuestTableRow(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =
+    eosioHTTPSupport.getGhostQuestTableRows(req, sender)
   private def systemBattleScheduler(timer: FiniteDuration): Unit = {
     system.scheduler.scheduleOnce(timer) {
       println("GQ BattleScheduler Starting")
