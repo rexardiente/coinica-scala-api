@@ -210,19 +210,29 @@ class UserAccountService @Inject()(
       // check balances
       process <- {
         hasWallet.map { account =>
-          coin.receiver.currency match {
+          val destination: String = coin.receiver.address.getOrElse("")
+          val currency: String = coin.receiver.currency
+          val amount: BigDecimal = coin.receiver.amount
+
+          currency match {
             case "USDC" =>
-              if (account.usdc.amount >= (coin.gasPrice * 0.000000000000000001) + coin.receiver.amount)
+              val gasPrice: BigDecimal = (coin.gasPrice * 0.000000000000000001)
+              val toDeductAmount: BigDecimal = gasPrice + amount
+              if (hasEnoughBalanceByCurrency(account, currency, toDeductAmount))
                 httpSupport
-                  .walletWithdrawUSDC(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, 500000 * coin.gasPrice)
+                  .walletWithdrawUSDC(id, destination, amount, gasPrice)
                   .map(_.getOrElse(0))
               else Future(0)
+
             case "ETH" =>
-              if (account.eth.amount >= ((500000 * coin.gasPrice) * 0.000000000000000001) + coin.receiver.amount)
+              val gasPrice: BigDecimal = (coin.gasPrice * 0.000000000000000001)
+              val toDeductAmount: BigDecimal = gasPrice + amount
+              if (hasEnoughBalanceByCurrency(account, currency, toDeductAmount))
                 httpSupport
-                  .walletWithdrawETH(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.gasPrice)
+                  .walletWithdrawETH(id, destination, amount, gasPrice)
                   .map(_.getOrElse(0))
               else Future(0)
+
             case _ => Future(0)
           }
         }.getOrElse(Future(0))
@@ -232,7 +242,7 @@ class UserAccountService @Inject()(
   def updateWithDepositCoin(id: UUID, coin: CoinDeposit): Future[Int] = {
     for {
       // chechk if tx already exists by txHash
-      isTxHashExists <- userWalletHistoryRepo.existByTxHashAndID(coin.txHash, id)
+      isTxHashExists <- userWalletHistoryRepo.existByTxHash(coin.txHash)
       // check transaction details using tx_hash
       txDetails <- httpSupport.getETHTxInfo(coin.txHash, coin.receiver.currency)
       process <- {

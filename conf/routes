@@ -80,8 +80,8 @@ GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily 		controll
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime 	controllers.SecureActionController.winStreakLifeTime
 
 # Treasurehunt API
-POST   /donut/api/v1/game/treasurehunt/start 		controllers.SecureActionController.thGameStart
-POST   /donut/api/v1/game/treasurehunt/withdraw controllers.SecureActionController.thWithdraw
+POST  /donut/api/v1/game/treasurehunt/start 		controllers.SecureActionController.thGameStart
+GET  	/donut/api/v1/game/treasurehunt/withdraw  controllers.SecureActionController.thWithdraw
 
 # Overall History
 #GET   /donut/api/v1/game/all/history controllers.SecureActionController.overAllHistory(limit: Int ?= 10)

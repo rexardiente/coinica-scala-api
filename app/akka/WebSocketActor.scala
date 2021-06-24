@@ -90,6 +90,7 @@ class WebSocketActor@Inject()(
         ev match {
           case tx: ETHWalletTxEvent =>
             SystemSchedulerActor.walletTransactions.addOne(tx.tx_hash, tx)
+            out ! OutEvent(JsNull, JsString("received"))
 
           case in: InEvent =>
             val user: String = in.id.as[String]
