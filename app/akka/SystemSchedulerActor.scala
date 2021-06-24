@@ -130,7 +130,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           hasAccount <- userAccountService.getUserAccountWallet(data._2.account_id)
           _ <- {
             hasAccount.map { account =>
-              data._2.currency match {
+              val currency: String = data._2.currency
+              currency match {
               case "USDC" | "ETH" =>
                 for {
                   txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
@@ -140,12 +141,20 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                       if (data._2.tx_type == "DEPOSIT")
                         userAccountService.addBalanceByCurrency(data._2.account_id,
                                                                 data._2.currency,
-                                                                detail.result.value.toDouble)
-                      else
-                        userAccountService.deductBalanceByCurrency(data._2.account_id,
-                                                                  data._2.currency,
-                                                                  detail.result.value.toDouble,
-                                                                  detail.result.gasPrice)
+                                                                BigDecimal(detail.result.value))
+                      else {
+                        val weiAmount: BigDecimal = 0.000000000000000001
+                        val initialAmount: BigDecimal = BigDecimal(detail.result.value)
+                        val totalAmount: BigDecimal = currency match {
+                          case "USDC" =>
+                            (detail.result.gasPrice * weiAmount) + initialAmount
+
+                          case "ETH" =>
+                            val maxTxFeeLimit: BigDecimal = 500000
+                            (((maxTxFeeLimit * detail.result.gasPrice) * weiAmount) + initialAmount)
+                        }
+                        userAccountService.deductBalanceByCurrency(data._2.account_id, data._2.currency, totalAmount)
+                      }
                     }
                   }
                   _ <- Future.successful {

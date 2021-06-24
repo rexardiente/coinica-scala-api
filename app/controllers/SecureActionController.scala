@@ -13,7 +13,6 @@ import play.api.libs.json._
 import play.api.libs.mailer.MailerService
 import play.api.data.validation.Constraints.emailAddress
 import models.domain._
-import models.domain.multi.currency._
 import models.domain.wallet.support.{ Coin, CoinDeposit, CoinWithdraw }
 import models.repo._
 import models.service._
@@ -49,46 +48,31 @@ class SecureActionController @Inject()(
     "destination" -> nonEmptyText,
     "amount" -> bigDecimal))
   // https://stackoverflow.com/questions/15074684/play-framework-2-1-form-mapping-with-complex-objects
-  private val createOrderForm = Form(mapping(
-    "transaction" -> mapping(
-      "depositCoin" -> nonEmptyText,
-      "destinationCoin" -> nonEmptyText,
-      "depositCoinAmount" -> bigDecimal,
-      "destinationAddress" -> mapping(
-          "address" -> nonEmptyText,
-          "tag" -> optional(text)
-        )(WalletAddress.apply)(WalletAddress.unapply),
-      "refundAddress" -> mapping(
-          "address" -> nonEmptyText,
-          "tag" -> optional(text)
-        )(WalletAddress.apply)(WalletAddress.unapply),
-      "userReferenceId" -> nonEmptyText,
-      "offerReferenceId" -> nonEmptyText
-    )(CreateOrderTx.apply)(CreateOrderTx.unapply)
-  )(CreateOrder.apply)(CreateOrder.unapply))
   // https://stackoverflow.com/questions/12850000/how-can-i-handle-decimal-numbers-using-the-scala-framework-play
   private val depositForm = Form(mapping(
     "tx_hash" -> nonEmptyText,
     "issuer" -> mapping(
         "address" -> optional(text),
         "currency" -> nonEmptyText,
-        "amount" -> of[Double]
+        "amount" -> bigDecimal
       )(Coin.apply)(Coin.unapply),
     "receiver" -> mapping(
         "address" -> optional(text),
         "currency" -> nonEmptyText,
-        "amount" -> of[Double]
+        "amount" -> bigDecimal
       )(Coin.apply)(Coin.unapply)
     )(CoinDeposit.apply)(CoinDeposit.unapply))
   private val withdrawForm = Form(mapping(
     "receiver" -> mapping(
         "address" -> optional(text),
         "currency" -> nonEmptyText,
-        "amount" -> of[Double]
+        "amount" -> bigDecimal
       )(Coin.apply)(Coin.unapply),
-    "fee" -> of[Double]
+    "fee" -> bigDecimal
     )(CoinWithdraw.apply)(CoinWithdraw.unapply))
-  private val thGameStartForm = Form(tuple("receiver" -> number, "fee" -> number))
+  private val thGameStartForm = Form(tuple(
+    "quantity" -> number,
+    "currency" -> nonEmptyText))
   private val thWithdrawForm = Form(single("id" -> number))
 
   def thGameStart() = SecureUserAction.async { implicit request =>
@@ -97,8 +81,10 @@ class SecureActionController @Inject()(
       .map { account =>
         thGameStartForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
-        { case deposit  =>
-          ???
+        { case (quantity, symbol)  =>
+          accountService
+            .thGameStart(account.id, account.userGameID, symbol, quantity)
+            .map(x => if (x > 0) Created else InternalServerError)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -108,7 +94,7 @@ class SecureActionController @Inject()(
       .map { account =>
         thWithdrawForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
-        { case deposit  =>
+        { case deposit =>
           ???
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))

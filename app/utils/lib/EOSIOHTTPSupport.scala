@@ -15,11 +15,34 @@ import models.domain.eosio.TableRowsRequest
 class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
 
+  def treasureHuntGameStart(id: Int, quantity: Int): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/gamestart")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest
+      .post(Json.obj("id" -> id, "quantity" -> quantity))
+      .map(v => (v.json \ "error").asOpt[Boolean].getOrElse(false))
+      .recover { case e: Exception => false }
+  }
+  def treasureHuntWithdraw(id: Int): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/withdraw")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest
+      .post(Json.obj("id" -> id))
+      .map(v => (v.json \ "error").asOpt[Boolean].getOrElse(false))
+      .recover { case e: Exception => false }
+  }
+
   def getGhostQuestTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(30000.millis)
+      .withRequestTimeout(10000.millis)
 
     complexRequest
       .post(Json.obj(
@@ -49,7 +72,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/battle_result")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(30000.millis)
+      .withRequestTimeout(10000.millis)
 
     complexRequest
       .post(Json.obj(
@@ -59,14 +82,13 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       ))
       .map(v => (v.json \ "data" \ "transaction").asOpt[String])
       .recover { case e: Exception => None }
-      // return transaction ID
   }
 
   def ghostQuestEliminate(user: String, characterID: String): Future[Option[String]] = {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/eliminate")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(30000.millis)
+      .withRequestTimeout(10000.millis)
 
     complexRequest
       .post(Json.obj(
@@ -75,6 +97,5 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       ))
       .map(v => (v.json \ "data" \ "transaction").asOpt[String])
       .recover { case e: Exception => None }
-      // return transaction ID
   }
 }

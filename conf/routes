@@ -100,6 +100,9 @@ GET  	/donut/api/v1/account/wallets 						controllers.SecureActionController.get
 POST  /donut/api/v1/account/coin/deposit 				controllers.SecureActionController.coinDeposit()
 POST  /donut/api/v1/account/coin/withdraw 				controllers.SecureActionController.coinWithdraw()
 
+# coincap assets
+GET  	/donut/api/v1/coincap/asset 							controllers.HomeController.getCoinCapAsset()
+
 # VIP Account
 GET   /donut/api/v1/vip 				controllers.SecureActionController.vipUser(id: UUID)
 

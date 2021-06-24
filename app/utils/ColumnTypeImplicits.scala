@@ -9,7 +9,6 @@ import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus, GameLog }
 import models.domain.{ ChallengeTracker, TransactionType, RankType }
-import models.domain.multi.currency.WalletKey
 import models.domain.wallet.support.{ Coin, CryptoJsonRpcHistory }
 import models.domain.enum._
 // import ejisan.kuro.otp.OTPKey

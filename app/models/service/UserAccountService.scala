@@ -9,6 +9,7 @@ import play.api.libs.json._
 import models.domain.{ PaginatedResult, UserAccount, VIPUser, UserToken, UserAccountWallet }
 import models.domain.wallet.support._
 import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokenRepo, UserAccountWalletRepo, UserAccountWalletHistoryRepo }
+import utils.lib.{ MultiCurrencyHTTPSupport, EOSIOHTTPSupport }
 
 @Singleton
 class UserAccountService @Inject()(
@@ -17,7 +18,8 @@ class UserAccountService @Inject()(
       userTokenRepo: UserTokenRepo,
       userWalletRepo: UserAccountWalletRepo,
       userWalletHistoryRepo: UserAccountWalletHistoryRepo,
-      httpSupport: utils.lib.MultiCurrencyHTTPSupport) {
+      httpSupport: MultiCurrencyHTTPSupport,
+      eosioSupport: EOSIOHTTPSupport) {
   def isExist(name: String): Future[Boolean] =
   	userAccountRepo.exist(name)
 
@@ -117,55 +119,97 @@ class UserAccountService @Inject()(
   def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
   def getUserAccountWallet(id: UUID): Future[Option[UserAccountWallet]] = userWalletRepo.getByID(id)
 
-  def addBalanceByCurrency(id: UUID, currency: String, amount: Double): Future[Int] = {
+  def addBalanceByCurrency(id: UUID, currency: String, totalAmount: BigDecimal): Future[Int] = {
     for {
-      hasAccount <- getUserAccountWallet(id)
+      hasWallet <- getUserAccountWallet(id)
       process <- {
-        hasAccount.map { account =>
-          currency match {
-            case "USDC" =>
-              val newBalance: Double = account.usdc.amount + amount
-              userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
+        hasWallet.map { wallet =>
+          val updatedBalance: UserAccountWallet = currency match {
             case "ETH" =>
-              val newBalance: Double = account.eth.amount + amount
-              userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
-            case _ =>
-              Future(0)
+              val newBalance: BigDecimal = wallet.eth.amount + totalAmount
+              wallet.copy(eth=Coin("ETH", newBalance))
+            case "USDC" =>
+              val newBalance: BigDecimal = wallet.usdc.amount + totalAmount
+              wallet.copy(usdc=Coin("USDC", newBalance))
           }
+          userWalletRepo.update(updatedBalance)
+        }.getOrElse(Future(0))
+      }
+    } yield (process)
+  }
+  // before deduction, make sure amount is already final
+  // if deposit -> (gasPrice, wei and amount) = totalAmount
+  // case "USDC" =>
+  //   val newBalance: BigDecimal = account.usdc.amount - ((gasPrice * 0.000000000000000001) + totalAmount)
+  //   userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
+  // case "ETH" =>
+  //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * 0.000000000000000001) + totalAmount)
+  //   userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
+  // gasPrice: Int
+  def deductBalanceByCurrency(id: UUID, currency: String, totalAmount: BigDecimal): Future[Int] = {
+    for {
+      hasWallet <- getUserAccountWallet(id)
+      process <- {
+        hasWallet.map { wallet =>
+          val updatedBalance: UserAccountWallet = currency match {
+            case "ETH" =>
+              val newBalance: BigDecimal = wallet.eth.amount - totalAmount
+              wallet.copy(eth=Coin("ETH", newBalance))
+            case "USDC" =>
+              val newBalance: BigDecimal = wallet.usdc.amount - totalAmount
+              wallet.copy(usdc=Coin("USDC", newBalance))
+          }
+          userWalletRepo.update(updatedBalance)
         }.getOrElse(Future(0))
       }
     } yield (process)
   }
 
-  def deductBalanceByCurrency(id: UUID, currency: String, amount: Double, gasPrice: Int): Future[Int] = {
+  def thGameStart(id: UUID, gameID: Int, currency: String, quantity: Int): Future[Int] = {
     for {
-      hasAccount <- getUserAccountWallet(id)
-      process <- {
-        hasAccount.map { account =>
-          currency match {
-            case "USDC" =>
-              val newBalance: Double = account.usdc.amount - ((gasPrice * 0.000000000000000001) + amount)
-              userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
-            case "ETH" =>
-              val newBalance: Double = account.eth.amount - (((500000 * gasPrice) * 0.000000000000000001) + amount)
-              userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
-            case _ =>
-              Future(0)
-          }
-        }.getOrElse(Future(0))
+      hasWallet <- getUserAccountWallet(id)
+      currentValue <- getGameQuantityAmount(currency, quantity)
+      // check if has enough balance..
+      hasEnoughBalance <- Future.successful {
+        hasWallet
+          .map(v => hasEnoughBalanceByCurrency(v, currency, currentValue))
+          .getOrElse(false)
       }
-    } yield (process)
+      // if has enough balance proceed, else do nothing..
+      // send tx on smartcontract
+      initGame <- {
+        if (hasEnoughBalance) eosioSupport.treasureHuntGameStart(gameID, quantity)
+        else Future(false)
+      }
+      // deduct balance on the account
+      updateBalance <- {
+        if (initGame) deductBalanceByCurrency(id, currency, currentValue)
+        else Future(0)
+      }
+    } yield (updateBalance)
+  }
+  // 1 quantity = 1 game token
+  def getGameQuantityAmount(currency: String, quantity: Int): Future[BigDecimal] = {
+    httpSupport.getCurrentPriceBasedOnMainCurrency(currency).map(_ * quantity)
+  }
+  // amount must be done converted to its currency value
+  def hasEnoughBalanceByCurrency(wallet: UserAccountWallet, currency: String, amount: BigDecimal): Boolean = {
+    val baseAmount: BigDecimal = currency match {
+      case "ETH" => wallet.eth.amount
+      case "USDC" => wallet.usdc.amount
+    }
+
+    if (baseAmount >= amount) true else false
   }
 
-  def saveUserWalletHistory(history: UserAccountWalletHistory): Future[Int] =
-    userWalletHistoryRepo.add(history)
+  def saveUserWalletHistory(v: UserAccountWalletHistory): Future[Int] = userWalletHistoryRepo.add(v)
   def updateWithWithdrawCoin(id: UUID, coin: CoinWithdraw): Future[Int] = {
     for {
       // check if wallet has enough balance..
-      hasAccount <- getUserAccountWallet(id)
+      hasWallet <- getUserAccountWallet(id)
       // check balances
       process <- {
-        hasAccount.map { account =>
+        hasWallet.map { account =>
           coin.receiver.currency match {
             case "USDC" =>
               if (account.usdc.amount >= (coin.gasPrice * 0.000000000000000001) + coin.receiver.amount)
@@ -179,84 +223,12 @@ class UserAccountService @Inject()(
                   .walletWithdrawETH(id, coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.gasPrice)
                   .map(_.getOrElse(0))
               else Future(0)
-            // case "BTC" =>
-            //   if (account.btc.amount >= (coin.receiver.amount + coin.gasPrice)) Future(1)
-            //   else Future(0)
             case _ => Future(0)
           }
         }.getOrElse(Future(0))
       }
     } yield (process)
   }
-  // def updateWithWithdrawCoin(id: UUID, coin: CoinWithdraw): Future[Int] = {
-  //   for {
-  //     // check if wallet has enough balance..
-  //     hasAccount <- getUserAccountWallet(id)
-  //     // check balances
-  //     hasEnoughBalance <- Future.successful {
-  //       hasAccount.map { account =>
-  //         coin.receiver.currency match {
-  //           case "USDC" =>
-  //             if (account.usdc.amount >= (coin.receiver.amount + (coin.gasPrice * 0.000000000000000001))) true
-  //             else false
-  //           case _ => false
-  //         }
-  //       }.getOrElse(false)
-  //     }
-  //     // transfer using Node API, and validate response..
-  //     transfer <- {
-  //       if (hasEnoughBalance)
-  //         coin.receiver.currency match {
-  //           case "USDC" =>
-  //             httpSupport
-  //               .walletWithdrawUSDC(coin.receiver.address.getOrElse(""), coin.receiver.amount, coin.gasPrice)
-  //               .map((_, coin.receiver.currency))
-  //           case _ =>
-  //             Future((None, coin.receiver.currency))
-  //         }
-  //       else Future((None, coin.receiver.currency))
-  //     }
-  //     // check transaction details using tx_hash
-  //     txDetails <- {
-  //       if (transfer._1 != None)
-  //         httpSupport.getETHTxInfo(transfer._1.getOrElse(""), transfer._2)
-  //       else Future(None)
-  //     }
-  //     updateBalance <- {
-  //       println("txDetails", txDetails)
-  //       if (txDetails != None) {
-  //         hasAccount.map { account =>
-  //           // update account  balance..
-  //           val result: ETHJsonRpcResult = txDetails.get.result
-  //           // check tx request and response details...
-  //           if (result.to == coin.receiver.address.getOrElse("")) {
-  //             // check if type of currency to update
-  //             coin.receiver.currency match {
-  //               case "BTC" =>
-  //                 val newBalance: Double = account.btc.amount - result.value.toDouble
-  //                 userWalletRepo.update(account.copy(btc=Coin("BTC", newBalance)))
-
-  //               case "USDC" =>
-  //                 val newBalance: Double = account.usdc.amount - result.value.toDouble
-  //                 userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
-
-  //               case "ETH" =>
-  //                 val newBalance: Double = account.eth.amount - result.value.toDouble
-  //                 userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
-
-  //               case _ => Future(0)
-  //             }
-  //           } else Future(0)
-  //         }.getOrElse(Future(0))
-  //       }
-  //       else Future(0)
-  //     }
-  //     _ <- Future.successful {
-  //       if (transfer._1 != None && txDetails != None)
-  //         saveUserWalletHistory(coin.toWalletHistory(transfer._1.getOrElse(""), id, "WITHDRAW", txDetails.get.result))
-  //     }
-  //   } yield (updateBalance)
-  // }
   def updateWithDepositCoin(id: UUID, coin: CoinDeposit): Future[Int] = {
     for {
       // chechk if tx already exists by txHash
@@ -267,9 +239,9 @@ class UserAccountService @Inject()(
         if (!isTxHashExists) {
           for {
             // get account balances using ID and validate data.. (account and amount)
-            hasAccount <- getUserAccountWallet(id)
+            hasWallet <- getUserAccountWallet(id)
             update <- {
-              hasAccount.map { account =>
+              hasWallet.map { account =>
                 // update account  balance..
                 txDetails.map { details =>
                   val result: ETHJsonRpcResult = details.result
@@ -278,7 +250,10 @@ class UserAccountService @Inject()(
                     // check if type of currency to update
                     coin.receiver.currency match {
                       case "USDC" | "ETH" =>
-                        addBalanceByCurrency(id, coin.receiver.currency, result.value.toDouble)
+                        for {
+                          saveToDB <- saveUserWalletHistory(coin.toWalletHistory(id, "DEPOSIT", details.result))
+                          updateBalance <- addBalanceByCurrency(id, coin.receiver.currency, result.value.toDouble)
+                        } yield (updateBalance)
                       case _ => Future(0)
                     }
                   }
@@ -289,8 +264,6 @@ class UserAccountService @Inject()(
           } yield (update)
         } else Future(0)
       }
-      // if success insert history else do nothing,. Neeed enhancements..
-      _ <- Future.successful(txDetails.map(_ => saveUserWalletHistory(coin.toWalletHistory(id, "DEPOSIT", txDetails.get.result))))
     } yield (process)
   }
 }

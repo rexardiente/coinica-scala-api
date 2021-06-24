@@ -9,7 +9,7 @@ import play.api.data.format.Formats._
 import models.domain._
 import models.domain.eosio._
 import models.domain.eosio.GQ.v2._
-import models.domain.multi.currency._
+import models.domain.wallet.support._
 
 trait CommonImplicits {
 	// Common
@@ -641,21 +641,6 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	}
 	implicit def implUserToken = Json.format[UserToken]
 	implicit def implClientTokenEndpoint = Json.format[ClientTokenEndpoint]
-	// Multi Currency
-	implicit def implCoin = Json.format[Coin]
-	implicit def implLimits = Json.format[Limits]
-	implicit def implWalletAddress = Json.format[WalletAddress]
-	implicit def implGenerateOffer = Json.format[GenerateOffer]
-	implicit def implCreateOrderTx = Json.format[CreateOrderTx]
-	implicit def implCreateOrder = Json.format[CreateOrder]
-	implicit def implCreateOrderResponse = Json.format[CreateOrderResponse]
-	implicit def implOrderStatus = Json.format[OrderStatus]
-	implicit def implListOfOrders = Json.format[ListOfOrders]
-	implicit def implKeyPairGeneratorResponse = Json.format[KeyPairGeneratorResponse]
-	implicit def implWalletKey = Json.format[WalletKey]
-	// implicit def implUserAccountWallet = Json.format[UserAccountWallet]
-
-	import models.domain.wallet.support._
 	implicit def implWalletSupportCoin = Json.format[Coin]
 	implicit val implicitUserAccountWalletReads: Reads[UserAccountWallet] = new Reads[UserAccountWallet] {
 		override def reads(js: JsValue): JsResult[UserAccountWallet] = js match {
@@ -705,7 +690,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 		override def reads(js: JsValue): JsResult[CoinWithdraw] = js match {
 			case json: JsValue => {
 				try {
-					JsSuccess(CoinWithdraw((json \ "receiver").as[Coin], (json \ "gasPrice").as[Double]))
+					JsSuccess(CoinWithdraw((json \ "receiver").as[Coin], (json \ "gasPrice").as[BigDecimal]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -819,4 +804,42 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
       }
     }
   }
+
+  implicit val implCoinCapAssetReads: Reads[CoinCapAsset] = new Reads[CoinCapAsset] {
+		override def reads(js: JsValue): JsResult[CoinCapAsset] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(CoinCapAsset(
+						(json \ "id").as[String],
+						try { (json \ "rank").as[String].toInt } catch { case _: Throwable => 0 },
+						(json \ "symbol").as[String],
+						(json \ "name").as[String],
+						try { BigDecimal((json \ "supply").as[String]) } catch { case _: Throwable => 0 },
+						try { BigDecimal((json \ "maxSupply").as[String]) } catch { case _: Throwable => 0 },
+						try { BigDecimal((json \ "marketCapUsd").as[String]) } catch { case _: Throwable => 0 },
+						(json \ "volumeUsd24Hr").as[String],
+						try { BigDecimal((json \ "priceUsd").as[String]) } catch { case _: Throwable => 0 },
+						(json \ "changePercent24Hr").as[String],
+						(json \ "vwap24Hr").as[String]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implCoinCapAssetWrites = new Writes[CoinCapAsset] {
+	  def writes(v: CoinCapAsset): JsValue = Json.obj(
+			"id" -> v.id,
+			"rank" -> v.rank,
+			"symbol" -> v.symbol,
+			"name" -> v.name,
+			"supply" -> v.supply,
+			"maxSupply" -> v.maxSupply,
+			"marketCapUsd" -> v.marketCapUsd,
+			"volumeUsd24Hr" -> v.volumeUsd24Hr,
+			"priceUsd" -> v.priceUsd,
+			"changePercent24Hr" -> v.changePercent24Hr,
+			"vwap24Hr" -> v.vwap24Hr)
+	}
 }

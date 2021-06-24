@@ -497,4 +497,7 @@ class HomeController @Inject()(
   def news() = Action.async { implicit req =>
     newsRepo.all().map(x => Ok(Json.toJson(x)))
   }
+  def getCoinCapAsset() = Action.async { implicit request =>
+    multiCurrencySupport.getCoinCapAssets().map(x => Ok(Json.toJson(x)))
+  }
 }
