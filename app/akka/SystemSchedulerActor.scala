@@ -85,10 +85,10 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
   override def preStart: Unit = {
     super.preStart
 
-    QuartzSchedulerExtension(system).schedule("WalletTxScheduler", self, WalletTxScheduler)
+    // QuartzSchedulerExtension(system).schedule("WalletTxScheduler", self, WalletTxScheduler)
     // keep alive connection
     // https://stackoverflow.com/questions/13700452/scheduling-a-task-at-a-fixed-time-of-the-day-with-akka
-    akka.stream.scaladsl.Source.tick(0.seconds, 20.seconds, "SystemSchedulerActor").runForeach(n => ())
+    akka.stream.scaladsl.Source.tick(0.seconds, 2.minutes, "SystemSchedulerActor").runForeach(n => self ! WalletTxScheduler)
     // check if intializer is the SchedulerActor module..
     system.actorSelection("/user/SystemSchedulerActor").resolveOne().onComplete {
       case Success(actor) =>
@@ -128,7 +128,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
     // ETH and USDC wallet tx details checker,
     // limit checking of tx details failed..
     case WalletTxScheduler =>
-      SystemSchedulerActor.walletTransactions.foreach { data =>
+      SystemSchedulerActor.walletTransactions.map { data =>
         val txHash: String = data._1
         for {
           // check if txhash already exists else do nothing,.
