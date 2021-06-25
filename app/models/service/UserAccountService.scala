@@ -220,7 +220,7 @@ class UserAccountService @Inject()(
               val toDeductAmount: BigDecimal = gasPrice + amount
               if (hasEnoughBalanceByCurrency(account, currency, toDeductAmount))
                 httpSupport
-                  .walletWithdrawUSDC(id, destination, amount, gasPrice)
+                  .walletWithdrawUSDC(id, destination, amount, coin.gasPrice)
                   .map(_.getOrElse(0))
               else Future(0)
 
@@ -229,7 +229,7 @@ class UserAccountService @Inject()(
               val toDeductAmount: BigDecimal = gasPrice + amount
               if (hasEnoughBalanceByCurrency(account, currency, toDeductAmount))
                 httpSupport
-                  .walletWithdrawETH(id, destination, amount, gasPrice)
+                  .walletWithdrawETH(id, destination, amount, coin.gasPrice)
                   .map(_.getOrElse(0))
               else Future(0)
 
