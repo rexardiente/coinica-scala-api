@@ -64,10 +64,7 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
       "amount" -> amount)
     complexRequest
       .post(reqParams)
-      .map(v => {
-        println(v.json)
-        (v.json \ "status").asOpt[Int]
-      })
+      .map(v => (v.json \ "status").asOpt[Int])
       .recover { case e: Exception => None }
   }
   def walletWithdrawETH(id: UUID, address: String, amount: BigDecimal, fee: BigDecimal): Future[Option[Int]] = {
@@ -78,14 +75,11 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     val reqParams: JsValue = Json.obj(
       "account_id" -> id,
       "address" -> address,
-      "value" -> amount,
-      "gasPrice" -> fee)
+      "value" -> amount.toString,
+      "gasPrice" -> fee.toString)
     complexRequest
       .post(reqParams)
-      .map(v => {
-        println(v.json)
-        (v.json \ "status").asOpt[Int]
-      })
+      .map(v => (v.json \ "status").asOpt[Int])
       .recover { case e: Exception => None }
   }
   def walletWithdrawUSDC(id: UUID, address: String, amount: BigDecimal, fee: BigDecimal): Future[Option[Int]] = {
@@ -96,14 +90,11 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     val reqParams: JsValue = Json.obj(
       "account_id" -> id,
       "address" -> address,
-      "value" -> amount,
-      "gasPrice" -> fee)
+      "value" -> amount.toString,
+      "gasPrice" -> fee.toString)
     complexRequest
       .post(reqParams)
-      .map(v => {
-        println(v.json)
-        (v.json \ "status").asOpt[Int]
-      })
+      .map(v => (v.json \ "status").asOpt[Int])
       .recover { case e: Exception => None }
   }
 }
