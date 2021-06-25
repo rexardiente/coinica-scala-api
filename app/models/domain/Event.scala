@@ -51,7 +51,8 @@ case class VIPWSRequest(user: String, command: String, request: String) extends 
 }
 
 object Event extends utils.CommonImplicits
-object ETHWalletTxEvent extends utils.CommonImplicits
+object ETHUSDCWithdrawEvent extends utils.CommonImplicits
+object DepositEvent extends utils.CommonImplicits
 object InEvent extends utils.CommonImplicits
 object OutEvent extends utils.CommonImplicits
 object Subscribe extends utils.CommonImplicits
@@ -60,8 +61,18 @@ object ConnectionAlive extends utils.CommonImplicits
 sealed trait Event {
   def toJson(): JsValue = Json.toJson(this)
 }
-case class ETHWalletTxEvent(account_id: UUID, tx_hash: String, tx_type: String, currency: String) extends Event {
-	require(tx_type == "DEPOSIT" || tx_type == "WITHDRAW", "invalid parameter")
+case class ETHUSDCWithdrawEvent(account_id: UUID, tx_hash: String, tx_type: String, currency: String) extends Event {
+	require(tx_type == "WITHDRAW", "invalid transaction type")
+}
+case class DepositEvent(account_id: UUID,
+												tx_hash: String,
+												tx_type: String,
+												issuer: String,
+												receiver: String,
+												currency: String,
+												amount: BigDecimal) extends Event {
+	require(tx_type == "DEPOSIT", "invalid transaction type")
+	require(amount > 0, "amount must not equal to 0.")
 }
 case class InEvent(id: JsValue, input: InEventMessage) extends Event
 case class OutEvent(id: JsValue, response: JsValue) extends Event

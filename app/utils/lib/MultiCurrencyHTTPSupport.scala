@@ -49,6 +49,27 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
       .map(v => (v.json).asOpt[ETHJsonRpc])
       .recover { case e: Exception => None }
   }
+  def walletDeposit(id: UUID, txHash: String, issuer: String, receiver: String, currency: String, amount: BigDecimal)
+    : Future[Option[Int]] = {
+    val request: WSRequest = ws.url(nodeServerURI + "/wallet/deposit")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+    val reqParams: JsValue = Json.obj(
+      "account_id" -> id,
+      "tx_hash" -> txHash,
+      "issuer" -> issuer,
+      "receiver" -> receiver,
+      "currency" -> currency,
+      "amount" -> amount)
+    complexRequest
+      .post(reqParams)
+      .map(v => {
+        println(v.json)
+        (v.json \ "status").asOpt[Int]
+      })
+      .recover { case e: Exception => None }
+  }
   def walletWithdrawETH(id: UUID, address: String, amount: BigDecimal, fee: BigDecimal): Future[Option[Int]] = {
     val request: WSRequest = ws.url(nodeServerURI + "/wallet/withdraw-eth")
     val complexRequest: WSRequest = request
@@ -61,7 +82,10 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
       "gasPrice" -> fee)
     complexRequest
       .post(reqParams)
-      .map(v => (v.json \ "status").asOpt[Int])
+      .map(v => {
+        println(v.json)
+        (v.json \ "status").asOpt[Int]
+      })
       .recover { case e: Exception => None }
   }
   def walletWithdrawUSDC(id: UUID, address: String, amount: BigDecimal, fee: BigDecimal): Future[Option[Int]] = {
@@ -76,7 +100,10 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
       "gasPrice" -> fee)
     complexRequest
       .post(reqParams)
-      .map(v => (v.json \ "status").asOpt[Int])
+      .map(v => {
+        println(v.json)
+        (v.json \ "status").asOpt[Int]
+      })
       .recover { case e: Exception => None }
   }
 }

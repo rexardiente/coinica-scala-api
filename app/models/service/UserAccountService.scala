@@ -244,35 +244,16 @@ class UserAccountService @Inject()(
       // chechk if tx already exists by txHash
       isTxHashExists <- userWalletHistoryRepo.existByTxHash(coin.txHash)
       // check transaction details using tx_hash
-      txDetails <- httpSupport.getETHTxInfo(coin.txHash, coin.receiver.currency)
       process <- {
-        if (!isTxHashExists) {
-          for {
-            // get account balances using ID and validate data.. (account and amount)
-            hasWallet <- getUserAccountWallet(id)
-            update <- {
-              hasWallet.map { account =>
-                // update account  balance..
-                txDetails.map { details =>
-                  val result: ETHJsonRpcResult = details.result
-                  // check tx request and response details...
-                  if (result.from == coin.issuer.address.getOrElse("") && result.to == coin.receiver.address.getOrElse("")) {
-                    // check if type of currency to update
-                    coin.receiver.currency match {
-                      case "USDC" | "ETH" =>
-                        for {
-                          saveToDB <- saveUserWalletHistory(coin.toWalletHistory(id, "DEPOSIT", details.result))
-                          updateBalance <- addBalanceByCurrency(id, coin.receiver.currency, result.value.toDouble)
-                        } yield (updateBalance)
-                      case _ => Future(0)
-                    }
-                  }
-                  else Future(0)
-                }.getOrElse(Future(0))
-              }.getOrElse(Future(0))
-            }
-          } yield (update)
-        } else Future(0)
+        if (!isTxHashExists)
+          httpSupport.walletDeposit(id,
+                                    coin.txHash,
+                                    coin.issuer.address.getOrElse(""),
+                                    coin.receiver.address.getOrElse(""),
+                                    coin.receiver.currency,
+                                    coin.receiver.amount)
+                    .map(_.getOrElse(0))
+        else Future(0)
       }
     } yield (process)
   }

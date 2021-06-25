@@ -88,8 +88,12 @@ class WebSocketActor@Inject()(
     case ev: Event =>
       try {
         ev match {
-          case tx: ETHWalletTxEvent =>
-            SystemSchedulerActor.walletTransactions.addOne(tx.tx_hash, tx)
+          case withdraw: ETHUSDCWithdrawEvent =>
+            SystemSchedulerActor.walletTransactions.addOne(withdraw.tx_hash, withdraw)
+            out ! OutEvent(JsNull, JsString("received"))
+
+          case deposit: DepositEvent =>
+            SystemSchedulerActor.walletTransactions.addOne(deposit.tx_hash, deposit)
             out ! OutEvent(JsNull, JsString("received"))
 
           case in: InEvent =>

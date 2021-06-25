@@ -20,12 +20,13 @@ import models.domain._
 import models.repo._
 import models.service.UserAccountService
 import models.domain.enum._
+import models.domain.wallet.support._
 import utils.lib.MultiCurrencyHTTPSupport
 
 object SystemSchedulerActor {
   var currentChallengeGame: Option[UUID] = None
   var isIntialized: Boolean = false
-  val walletTransactions = HashMap.empty[String, ETHWalletTxEvent]
+  val walletTransactions = HashMap.empty[String, Event]
   def props(
             userAccountService: UserAccountService,
             userWalletRepo: UserAccountWalletHistoryRepo,
@@ -128,69 +129,113 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
     // limit checking of tx details failed..
     case WalletTxScheduler =>
       SystemSchedulerActor.walletTransactions.foreach { data =>
+        val txHash: String = data._1
         for {
           // check if txhash already exists else do nothing,.
-          isTxHashExists <- userWalletRepo.existByTxHash(data._1)
-          _ <- {
+          isTxHashExists <- userWalletRepo.existByTxHash(txHash)
+          processWithdrawOrDeposit <- {
             if (!isTxHashExists) {
-              for {
-                // check account information..
-                hasAccount <- userAccountService.getUserAccountWallet(data._2.account_id)
-                _ <- {
-                  hasAccount.map { account =>
-                    val currency: String = data._2.currency
-                    currency match {
-                    case "USDC" | "ETH" =>
-                      for {
-                        txDetails <- httpSupport.getETHTxInfo(data._1, data._2.currency)
-                        // update DB and history..
-                        _ <- Future.successful {
-                          txDetails.map { detail =>
-                            if (data._2.tx_type == "DEPOSIT")
-                              userAccountService.addBalanceByCurrency(data._2.account_id,
-                                                                      data._2.currency,
-                                                                      BigDecimal(detail.result.value))
-                            else {
-                              println("WITHDRAW RECEIVED")
-                              val weiAmount: BigDecimal = 0.000000000000000001
-                              val initialAmount: BigDecimal = BigDecimal(detail.result.value)
-                              val totalAmount: BigDecimal = currency match {
-                                case "USDC" =>
-                                  (detail.result.gasPrice * weiAmount) + initialAmount
+              // validate instance of data/Event object..
+              data._2 match {
+                case w: ETHUSDCWithdrawEvent =>
+                  for {
+                    wallet <- userAccountService.getUserAccountWallet(w.account_id)
+                    processWithdraw <- {
+                      wallet.map { account =>
+                        w.currency match {
+                          case "USDC" | "ETH" =>
+                            for {
+                              txDetails <- httpSupport.getETHTxInfo(txHash, w.currency)
+                              // update DB and history..
+                              updateBalance <- {
+                                txDetails.map { detail =>
+                                  val weiAmount: BigDecimal = 0.000000000000000001
+                                  val initialAmount: BigDecimal = BigDecimal(detail.result.value)
+                                  val totalAmount: BigDecimal = w.currency match {
+                                    case "USDC" =>
+                                      (detail.result.gasPrice * weiAmount) + initialAmount
 
-                                case "ETH" =>
-                                  val maxTxFeeLimit: BigDecimal = 500000
-                                  (((maxTxFeeLimit * detail.result.gasPrice) * weiAmount) + initialAmount)
+                                    case "ETH" =>
+                                      val maxTxFeeLimit: BigDecimal = 500000
+                                      (((maxTxFeeLimit * detail.result.gasPrice) * weiAmount) + initialAmount)
+                                  }
+                                  userAccountService.deductBalanceByCurrency(w.account_id, w.currency, totalAmount)
+                                }
+                                .getOrElse(Future(0))
                               }
-                              userAccountService.deductBalanceByCurrency(data._2.account_id, data._2.currency, totalAmount)
-                            }
-                          }
-                        }
-                        _ <- Future.successful {
-                          txDetails.map { detail =>
-                            userAccountService.saveUserWalletHistory(
-                              new models.domain.wallet.support.UserAccountWalletHistory(data._2.tx_hash,
-                                                                                        data._2.account_id,
-                                                                                        data._2.currency,
-                                                                                        data._2.tx_type,
-                                                                                        detail.result,
-                                                                                        Instant.now))
-                          }
-                        }
-                        _ <- Future.successful {
-                          txDetails.map(detail => SystemSchedulerActor.walletTransactions.remove(data._1))
-                        }
-                      } yield ()
 
-                     case _ => Future(None)
+                              addHistory <- {
+                                if (updateBalance > 0) {
+                                  userAccountService.saveUserWalletHistory(
+                                    new models.domain.wallet.support.UserAccountWalletHistory(txHash,
+                                                                                              w.account_id,
+                                                                                              w.currency,
+                                                                                              w.tx_type,
+                                                                                              txDetails.map(_.result)
+                                                                                                       .getOrElse(null),
+                                                                                              Instant.now))
+                                }
+                                else Future(0)
+                              }
+                            } yield (addHistory)
+                          case _ => Future(0)
+                        }
+                      }.getOrElse(Future(0))
                     }
-                  }
-                  .getOrElse(Future(None))
-                }
-              } yield ()
+                  } yield (processWithdraw)
+
+                case d: DepositEvent =>
+                  for {
+                    wallet <- userAccountService.getUserAccountWallet(d.account_id)
+                    processDeposit <- {
+                      wallet.map { account =>
+                        d.currency match {
+                          case "USDC" | "ETH" =>
+                            for {
+                              txDetails <- httpSupport.getETHTxInfo(txHash, d.currency)
+                              // update DB and history..
+                              updateBalance <- {
+                                txDetails.map { detail =>
+                                    val result: ETHJsonRpcResult = detail.result
+
+                                    if (result.from == d.issuer && result.to == d.receiver) {
+                                      userAccountService.addBalanceByCurrency(d.account_id,
+                                                                              d.currency,
+                                                                              BigDecimal(result.value))
+
+                                    }
+                                    else Future(0)
+                                }
+                                .getOrElse(Future(0))
+                              }
+
+                              addHistory <- {
+                                if (updateBalance > 0) {
+                                  userAccountService.saveUserWalletHistory(
+                                    new models.domain.wallet.support.UserAccountWalletHistory(txHash,
+                                                                                              d.account_id,
+                                                                                              d.currency,
+                                                                                              d.tx_type,
+                                                                                              txDetails.map(_.result)
+                                                                                                       .getOrElse(null),
+                                                                                              Instant.now))
+                                }
+                                else Future(0)
+                              }
+                            } yield (addHistory)
+                          case _ => Future(0)
+                        }
+                      }.getOrElse(Future(0))
+                    }
+                  } yield (processDeposit)
+                case _ => Future(0) // do nothing
+              }
             }
-            // if already exists on DB, remove tx from the list..
-            else Future(SystemSchedulerActor.walletTransactions.remove(data._1))
+            else Future(0)
+          }
+          // if already exists on DB, remove tx from the list..
+          _ <- Future.successful {
+            if (processWithdrawOrDeposit > 0) SystemSchedulerActor.walletTransactions.remove(txHash)
           }
         } yield ()
       }
