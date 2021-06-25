@@ -234,6 +234,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           }
           // if already exists on DB, remove tx from the list..
           _ <- Future.successful {
+            if (isTxHashExists) SystemSchedulerActor.walletTransactions.remove(txHash)
             if (processWithdrawOrDeposit > 0) SystemSchedulerActor.walletTransactions.remove(txHash)
           }
         } yield ()
