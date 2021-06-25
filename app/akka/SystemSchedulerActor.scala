@@ -128,7 +128,6 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
     // ETH and USDC wallet tx details checker,
     // limit checking of tx details failed..
     case WalletTxScheduler =>
-      println(WalletTxScheduler)
       SystemSchedulerActor.walletTransactions.map { data =>
         val txHash: String = data._1
         for {
