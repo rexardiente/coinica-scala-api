@@ -167,13 +167,12 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                               addHistory <- {
                                 if (updateBalance > 0) {
                                   userAccountService.saveUserWalletHistory(
-                                    new models.domain.wallet.support.UserAccountWalletHistory(txHash,
-                                                                                              w.account_id,
-                                                                                              w.currency,
-                                                                                              w.tx_type,
-                                                                                              txDetails.map(_.result)
-                                                                                                       .getOrElse(null),
-                                                                                              Instant.now))
+                                    new UserAccountWalletHistory(txHash,
+                                                                w.account_id,
+                                                                w.currency,
+                                                                w.tx_type,
+                                                                txDetails.map(_.result).getOrElse(null),
+                                                                Instant.now))
                                 }
                                 else Future(0)
                               }
@@ -212,13 +211,12 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                               addHistory <- {
                                 if (updateBalance > 0) {
                                   userAccountService.saveUserWalletHistory(
-                                    new models.domain.wallet.support.UserAccountWalletHistory(txHash,
-                                                                                              d.account_id,
-                                                                                              d.currency,
-                                                                                              d.tx_type,
-                                                                                              txDetails.map(_.result)
-                                                                                                       .getOrElse(null),
-                                                                                              Instant.now))
+                                    new UserAccountWalletHistory(txHash,
+                                                                d.account_id,
+                                                                d.currency,
+                                                                d.tx_type,
+                                                                txDetails.map(_.result).getOrElse(null),
+                                                                Instant.now))
                                 }
                                 else Future(0)
                               }

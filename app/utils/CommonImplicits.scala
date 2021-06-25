@@ -787,11 +787,11 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implDepositEvent = Json.format[DepositEvent]
 	implicit val implicitEventReads: Reads[Event] = {
 		Json.format[InEvent].map(x => x: Event) or
-    Json.format[OutEvent].map(x => x: Event) or
-    Json.format[Subscribe].map(x => x: Event) or
-    Json.format[ConnectionAlive].map(x => x: Event) or
-    Json.format[ETHUSDCWithdrawEvent].map(x => x: Event) or
-    Json.format[DepositEvent].map(x => x: Event)
+	  Json.format[OutEvent].map(x => x: Event) or
+	  Json.format[Subscribe].map(x => x: Event) or
+	  Json.format[ConnectionAlive].map(x => x: Event) or
+	  Json.format[DepositEvent].map(x => x: Event) or
+	  Json.format[ETHUSDCWithdrawEvent].map(x => x: Event)
   }
 
   implicit val implicitEventWrites = new Writes[Event] {
@@ -801,8 +801,8 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
         case m: OutEvent => Json.toJson(m)
         case m: Subscribe => Json.toJson(m)
         case m: ConnectionAlive => Json.toJson(m)
-        case m: ETHUSDCWithdrawEvent => Json.toJson(m)
         case m: DepositEvent => Json.toJson(m)
+        case m: ETHUSDCWithdrawEvent => Json.toJson(m)
         case _ => Json.obj("error" -> "wrong Json")
       }
     }
