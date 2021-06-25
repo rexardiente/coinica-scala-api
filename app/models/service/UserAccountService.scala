@@ -122,20 +122,20 @@ class UserAccountService @Inject()(
   def addBalanceByCurrency(id: UUID, currency: String, totalAmount: BigDecimal): Future[Int] = {
     for {
       hasWallet <- getUserAccountWallet(id)
-      process <- {
+      process <- Future.successful {
         hasWallet.map { wallet =>
-          val updatedBalance: UserAccountWallet = currency match {
+          currency match {
             case "ETH" =>
-              val newBalance: BigDecimal = wallet.eth.amount + totalAmount
+              val newBalance: BigDecimal = (wallet.eth.amount + totalAmount)
               wallet.copy(eth=Coin("ETH", newBalance))
             case "USDC" =>
-              val newBalance: BigDecimal = wallet.usdc.amount + totalAmount
+              val newBalance: BigDecimal = (wallet.usdc.amount + totalAmount)
               wallet.copy(usdc=Coin("USDC", newBalance))
           }
-          userWalletRepo.update(updatedBalance)
-        }.getOrElse(Future(0))
+        }
       }
-    } yield (process)
+      updateBalance <- process.map(userWalletRepo.update(_)).getOrElse(Future(0))
+    } yield (updateBalance)
   }
   // before deduction, make sure amount is already final
   // if deposit -> (gasPrice, wei and amount) = totalAmount

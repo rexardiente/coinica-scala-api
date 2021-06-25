@@ -128,6 +128,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
     // ETH and USDC wallet tx details checker,
     // limit checking of tx details failed..
     case WalletTxScheduler =>
+      println(WalletTxScheduler)
       SystemSchedulerActor.walletTransactions.map { data =>
         val txHash: String = data._1
         for {
@@ -150,7 +151,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                               updateBalance <- {
                                 txDetails.map { detail =>
                                   val weiAmount: BigDecimal = 0.000000000000000001
-                                  val initialAmount: BigDecimal = BigDecimal(detail.result.value)
+                                  val initialAmount: Double = detail.result.value.toDouble
                                   val totalAmount: BigDecimal = w.currency match {
                                     case "USDC" =>
                                       (detail.result.gasPrice * weiAmount) + initialAmount
@@ -200,7 +201,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                     if (result.from == d.issuer && result.to == d.receiver) {
                                       userAccountService.addBalanceByCurrency(d.account_id,
                                                                               d.currency,
-                                                                              BigDecimal(result.value))
+                                                                              result.value.toDouble)
 
                                     }
                                     else Future(0)
