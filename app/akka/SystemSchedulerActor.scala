@@ -88,7 +88,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
     // QuartzSchedulerExtension(system).schedule("WalletTxScheduler", self, WalletTxScheduler)
     // keep alive connection
     // https://stackoverflow.com/questions/13700452/scheduling-a-task-at-a-fixed-time-of-the-day-with-akka
-    akka.stream.scaladsl.Source.tick(0.seconds, 2.minutes, "SystemSchedulerActor").runForeach(n => self ! WalletTxScheduler)
+    akka.stream.scaladsl.Source.tick(0.seconds, 1.minutes, "SystemSchedulerActor").runForeach(_ => self ! WalletTxScheduler)
     // check if intializer is the SchedulerActor module..
     system.actorSelection("/user/SystemSchedulerActor").resolveOne().onComplete {
       case Success(actor) =>
@@ -194,9 +194,11 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                               txDetails <- httpSupport.getETHTxInfo(txHash, d.currency)
                               // update DB and history..
                               updateBalance <- {
+                                println("updateBalance", txDetails)
                                 txDetails.map { detail =>
                                     val result: ETHJsonRpcResult = detail.result
 
+                                    println(result.from == d.issuer && result.to == d.receiver)
                                     if (result.from == d.issuer && result.to == d.receiver) {
                                       userAccountService.addBalanceByCurrency(d.account_id,
                                                                               d.currency,
@@ -209,6 +211,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                               }
 
                               addHistory <- {
+                                println("updateBalance", updateBalance)
                                 if (updateBalance > 0) {
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
