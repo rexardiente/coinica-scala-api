@@ -76,7 +76,7 @@ case class DepositEvent(account_id: UUID,
 }
 case class InEvent(id: JsValue, input: InEventMessage) extends Event
 case class OutEvent(id: JsValue, response: JsValue) extends Event
-case class Subscribe(id: String, message: String) extends Event {
+case class Subscribe(id: UUID, message: String) extends Event {
 	require(message == "subscribe", "Subscribe: Invalid message received")
 }
 case class ConnectionAlive(message: String) extends Event {

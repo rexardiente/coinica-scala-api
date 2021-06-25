@@ -32,12 +32,6 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
         actorRef ! OutEvent(JsString("OVER_ALL_HISTORY_UPDATE"), history.toJson)
       }
-
-    case withdraw: ETHJsonRpc =>
-      WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString("DEPOSIT_OR_WITHDRAW"), withdraw.toJson)
-      }
-
     case history: Array[OverAllGameHistory] =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
         actorRef ! OutEvent(JsString("OVER_ALL_HISTORY_UPDATE"), Json.toJson(history.toSeq))
@@ -59,7 +53,7 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
           case (id: UUID, characters) =>
             userRepo.getByID(id).map {
               case Some(v) =>
-                WebSocketActor.subscribers(v.username) !
+                WebSocketActor.subscribers(v.id) !
                 OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(x => JsString(x._1)).toSeq)))
               case None => ()
             }

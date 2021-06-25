@@ -115,9 +115,9 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           // set true if actor already initialized
           SystemSchedulerActor.isIntialized = true
           // load default SC users/account to avoid adding into user accounts table
-          WebSocketActor.subscribers.addOne(Config.GQ_CODE, self)
-          WebSocketActor.subscribers.addOne(Config.TH_CODE, self)
-          WebSocketActor.subscribers.addOne(Config.MJHilo_CODE, self)
+          WebSocketActor.subscribers.addOne(Config.GQ_GAME_ID, self)
+          WebSocketActor.subscribers.addOne(Config.TH_GAME_ID, self)
+          WebSocketActor.subscribers.addOne(Config.MJHilo_GAME_ID, self)
           log.info("System Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
@@ -168,7 +168,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                               addHistory <- {
                                 if (updateBalance > 0) {
                                   // send user a notification process sucessful
-                                  dynamicBroadcast ! txDetails.get
+                                  WebSocketActor.subscribers(account.id) !
+                                  OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"), txDetails.get.toJson)
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
@@ -215,7 +216,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                               addHistory <- {
                                 if (updateBalance > 0) {
                                   // send user a notification process sucessful
-                                  dynamicBroadcast ! txDetails.get
+                                  WebSocketActor.subscribers(account.id) !
+                                  OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"), txDetails.get.toJson)
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,

@@ -46,7 +46,7 @@ object WebSocketActor {
           dynamicProcessor,
           system)
   val isUpdatedCharacters = HashMap.empty[String, GQCharacterData]
-  val subscribers = HashMap.empty[String, ActorRef]
+  val subscribers = HashMap.empty[UUID, ActorRef]
   var hasPrevUpdateCharacter: Boolean = false
 }
 
@@ -211,7 +211,7 @@ class WebSocketActor@Inject()(
           case Subscribe(id, msg) =>
             log.info(s"${id} ~> Subscribe")
             if (id == "default")
-              out ! OutEvent(JsString(id), JsNull)
+              out ! OutEvent(JsString(id.toString), JsNull)
             else
               // add subscriber to subscribers list
               WebSocketActor.subscribers.exists(x => x._1 == id) match {
@@ -221,7 +221,7 @@ class WebSocketActor@Inject()(
                   out ! OutEvent(JsNull, Json.obj("error" -> "session exists"))
                 case _ =>
                   WebSocketActor.subscribers.addOne(id -> out)
-                  out ! OutEvent(JsString(id), JsString(msg))
+                  out ! OutEvent(JsString(id.toString), JsString(msg))
                   // check if user connects doenst exists else do nothing..
                   // self ! Connect(id)
               }
