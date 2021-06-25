@@ -169,7 +169,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                 if (updateBalance > 0) {
                                   // send user a notification process sucessful
                                   WebSocketActor.subscribers(account.id) !
-                                  OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"), txDetails.get.toJson)
+                                  OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"),
+                                                    (txDetails.get.toJson.as[JsObject] + ("tx_type" -> JsString(w.tx_type))))
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
@@ -217,7 +218,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                 if (updateBalance > 0) {
                                   // send user a notification process sucessful
                                   WebSocketActor.subscribers(account.id) !
-                                  OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"), txDetails.get.toJson)
+                                  OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"),
+                                                    (txDetails.get.toJson.as[JsObject] + ("tx_type" -> JsString(d.tx_type))))
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
