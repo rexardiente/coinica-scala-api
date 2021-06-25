@@ -167,6 +167,9 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
 
                               addHistory <- {
                                 if (updateBalance > 0) {
+                                  // send user a notification process sucessful
+                                  dynamicBroadcast ! txDetails.get
+                                  // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
                                                                 w.account_id,
@@ -211,6 +214,9 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
 
                               addHistory <- {
                                 if (updateBalance > 0) {
+                                  // send user a notification process sucessful
+                                  dynamicBroadcast ! txDetails.get
+                                  // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
                                                                 d.account_id,

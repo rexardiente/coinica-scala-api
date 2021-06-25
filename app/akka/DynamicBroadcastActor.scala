@@ -9,6 +9,7 @@ import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
 import models.domain._
 import models.repo.UserAccountRepo
+import models.domain.wallet.support.ETHJsonRpc
 import akka.common.objects._
 import utils.Config
 
@@ -30,6 +31,11 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
     case history: OverAllGameHistory =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
         actorRef ! OutEvent(JsString("OVER_ALL_HISTORY_UPDATE"), history.toJson)
+      }
+
+    case withdraw: ETHJsonRpc =>
+      WebSocketActor.subscribers.foreach { case (id, actorRef) =>
+        actorRef ! OutEvent(JsString("DEPOSIT_OR_WITHDRAW"), withdraw.toJson)
       }
 
     case history: Array[OverAllGameHistory] =>
