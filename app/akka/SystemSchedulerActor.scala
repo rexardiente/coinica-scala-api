@@ -166,10 +166,6 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
 
                               addHistory <- {
                                 if (updateBalance > 0) {
-                                  // send user a notification process sucessful
-                                  WebSocketActor.subscribers(account.id) !
-                                  OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"),
-                                                    (txDetails.get.toJson.as[JsObject] + ("tx_type" -> JsString(w.tx_type))))
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
@@ -178,6 +174,15 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                                                 w.tx_type,
                                                                 txDetails.map(_.result).getOrElse(null),
                                                                 Instant.now))
+                                    .map { isAdded =>
+                                      if (isAdded > 0) {
+                                        // send user a notification process sucessful
+                                        WebSocketActor.subscribers(account.id) !
+                                        OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"),
+                                                (txDetails.get.toJson.as[JsObject] + ("tx_type" -> JsString(w.tx_type))))
+                                        (1)
+                                      } else (0)
+                                    }
                                 }
                                 else Future(0)
                               }
@@ -204,7 +209,6 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
 
                                     if (result.from == d.issuer && result.to == d.receiver) {
                                       userAccountService.addBalanceByCurrency(account.id, d.currency, result.value.toDouble)
-
                                     }
                                     else Future(0)
                                 }
@@ -213,10 +217,6 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
 
                               addHistory <- {
                                 if (updateBalance > 0) {
-                                  // send user a notification process sucessful
-                                  WebSocketActor.subscribers(account.id) !
-                                  OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"),
-                                                    (txDetails.get.toJson.as[JsObject] + ("tx_type" -> JsString(d.tx_type))))
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
@@ -225,6 +225,15 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                                                 d.tx_type,
                                                                 txDetails.map(_.result).getOrElse(null),
                                                                 Instant.now))
+                                    .map { isAdded =>
+                                      if (isAdded > 0) {
+                                        // send user a notification process sucessful
+                                        WebSocketActor.subscribers(account.id) !
+                                        OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"),
+                                                          (txDetails.get.toJson.as[JsObject] + ("tx_type" -> JsString(d.tx_type))))
+                                        (1)
+                                      } else (0)
+                                    }
                                 }
                                 else Future(0)
                               }
