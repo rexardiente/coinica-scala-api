@@ -104,12 +104,9 @@ class SecureActionController @Inject()(
         depositForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case deposit  =>
-          val hasExistingTx = akka.SystemSchedulerActor.walletTransactions.filter(_._2.account_id == Some(account.id))
-          if (hasExistingTx.isEmpty)
-            accountService
-              .updateWithDepositCoin(account.id, deposit)
-              .map(x => if (x > 0) Created else InternalServerError)
-          else Future(Conflict)
+          accountService
+            .updateWithDepositCoin(account.id, deposit)
+            .map(x => if (x > 0) Created else InternalServerError)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
