@@ -92,11 +92,8 @@ class SecureActionController @Inject()(
     request
       .account
       .map { account =>
-        thWithdrawForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest("Invalid request")),
-        { case deposit =>
-          ???
-        })
+        // TODO: wait for API that returns amount to withdraw from SC
+        ???
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
 
@@ -107,9 +104,12 @@ class SecureActionController @Inject()(
         depositForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case deposit  =>
-          accountService
-            .updateWithDepositCoin(account.id, deposit)
-            .map(x => if (x > 0) Created else InternalServerError)
+          val hasExistingTx = akka.SystemSchedulerActor.walletTransactions.filter(_._2.account_id == Some(account.id))
+          if (hasExistingTx.isEmpty)
+            accountService
+              .updateWithDepositCoin(account.id, deposit)
+              .map(x => if (x > 0) Created else InternalServerError)
+          else Future(Conflict)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -121,9 +121,12 @@ class SecureActionController @Inject()(
         withdrawForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case withdraw  =>
-          accountService
-            .updateWithWithdrawCoin(account.id, withdraw)
-            .map(x => if (x > 0) Created else InternalServerError)
+          val hasExistingTx = akka.SystemSchedulerActor.walletTransactions.filter(_._2.account_id == Some(account.id))
+          if (hasExistingTx.isEmpty)
+            accountService
+              .updateWithWithdrawCoin(account.id, withdraw)
+              .map(x => if (x > 0) Created else InternalServerError)
+          else Future(Conflict)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
