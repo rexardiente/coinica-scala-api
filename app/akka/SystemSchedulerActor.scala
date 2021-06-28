@@ -138,8 +138,9 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
               // validate instance of data/Event object..
               data._2 match {
                 case w: ETHUSDCWithdrawEvent =>
+                  val accountID: UUID = w.account_id.getOrElse(UUID.randomUUID)
                   for {
-                    wallet <- userAccountService.getUserAccountWallet(w.account_id)
+                    wallet <- userAccountService.getUserAccountWallet(accountID)
                     processWithdraw <- {
                       wallet.map { account =>
                         w.currency match {
@@ -159,7 +160,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                       val maxTxFeeLimit: BigDecimal = 500000
                                       (((maxTxFeeLimit * detail.result.gasPrice) * weiAmount) + initialAmount)
                                   }
-                                  userAccountService.deductBalanceByCurrency(w.account_id, w.currency, totalAmount)
+                                  userAccountService.deductBalanceByCurrency(accountID, w.currency, totalAmount)
                                 }
                                 .getOrElse(Future(0))
                               }
@@ -173,7 +174,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
-                                                                w.account_id,
+                                                                accountID,
                                                                 w.currency,
                                                                 w.tx_type,
                                                                 txDetails.map(_.result).getOrElse(null),
@@ -189,8 +190,9 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                   } yield (processWithdraw)
 
                 case d: DepositEvent =>
+                  val accountID: UUID = d.account_id.getOrElse(UUID.randomUUID)
                   for {
-                    wallet <- userAccountService.getUserAccountWallet(d.account_id)
+                    wallet <- userAccountService.getUserAccountWallet(accountID)
                     processDeposit <- {
                       wallet.map { account =>
                         d.currency match {
@@ -203,9 +205,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                     val result: ETHJsonRpcResult = detail.result
 
                                     if (result.from == d.issuer && result.to == d.receiver) {
-                                      userAccountService.addBalanceByCurrency(d.account_id,
-                                                                              d.currency,
-                                                                              result.value.toDouble)
+                                      userAccountService.addBalanceByCurrency(accountID, d.currency, result.value.toDouble)
 
                                     }
                                     else Future(0)
@@ -222,7 +222,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
-                                                                d.account_id,
+                                                                accountID,
                                                                 d.currency,
                                                                 d.tx_type,
                                                                 txDetails.map(_.result).getOrElse(null),

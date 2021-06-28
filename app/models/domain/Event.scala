@@ -60,11 +60,12 @@ object ConnectionAlive extends utils.CommonImplicits
 
 sealed trait Event {
   def toJson(): JsValue = Json.toJson(this)
+  def account_id: Option[UUID]
 }
-case class ETHUSDCWithdrawEvent(account_id: UUID, tx_hash: String, tx_type: String, currency: String) extends Event {
+case class ETHUSDCWithdrawEvent(account_id: Option[UUID], tx_hash: String, tx_type: String, currency: String) extends Event {
 	require(tx_type == "WITHDRAW", "invalid transaction type")
 }
-case class DepositEvent(account_id: UUID,
+case class DepositEvent(account_id: Option[UUID],
 												tx_hash: String,
 												tx_type: String,
 												issuer: String,
@@ -74,11 +75,17 @@ case class DepositEvent(account_id: UUID,
 	require(tx_type == "DEPOSIT", "invalid transaction type")
 	require(amount > 0, "amount must not equal to 0.")
 }
-case class InEvent(id: JsValue, input: InEventMessage) extends Event
-case class OutEvent(id: JsValue, response: JsValue) extends Event
+case class InEvent(id: JsValue, input: InEventMessage) extends Event {
+	val account_id: Option[UUID] = None
+}
+case class OutEvent(id: JsValue, response: JsValue) extends Event {
+	val account_id: Option[UUID] = None
+}
 case class Subscribe(id: UUID, message: String) extends Event {
+	val account_id: Option[UUID] = None
 	require(message == "subscribe", "Subscribe: Invalid message received")
 }
 case class ConnectionAlive(message: String) extends Event {
 	require(message == "connection_reset", "Connection Alive: Invalid message received")
+	val account_id: Option[UUID] = None
 }
