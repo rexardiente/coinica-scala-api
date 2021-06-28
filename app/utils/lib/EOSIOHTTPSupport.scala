@@ -15,6 +15,102 @@ import models.domain.eosio.TableRowsRequest
 class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
 
+  def treasureHuntAutoPlay(id: Int, username: String, sets: Seq[Int]): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/autoplay")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "username" -> username, "panelset" -> sets))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
+  }
+  def treasureHuntOpenTile(id: Int, username: String, index: Int): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/opentile")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "username" -> username, "index" -> index))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
+  }
+  def treasureHuntSetEnemy(id: Int, username: String, count: Int): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/setenemy")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "username" -> username, "enemy_count" -> count))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
+  }
+  def treasureHuntSetDestination(id: Int, username: String, destination: Int): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/destination")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "username" -> username, "destination" -> destination))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
+  }
+  def treasureHuntSetGamePanel(id: Int, username: String): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/setpanel")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "username" -> username))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
+  }
+  def treasureHuntQuit(id: Int, username: String): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/end")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "username" -> username))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
+  }
+  def treasureHuntInitialize(id: Int, username: String): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/initialize")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "username" -> username))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
+  }
+  def treasureHuntGetUserData(id: Int): Future[JsValue] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/gamestart")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) v.json
+        else JsNull
+      }.recover { case e: Exception => JsNull }
+  }
   def treasureHuntGameStart(id: Int, quantity: Int): Future[Boolean] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/gamestart")
     val complexRequest: WSRequest = request
