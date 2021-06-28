@@ -138,9 +138,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
               // validate instance of data/Event object..
               data._2 match {
                 case w: ETHUSDCWithdrawEvent =>
-                  val accountID: UUID = w.account_id.getOrElse(UUID.randomUUID)
                   for {
-                    wallet <- userAccountService.getUserAccountWallet(accountID)
+                    wallet <- userAccountService.getUserAccountWallet(w.account_id.getOrElse(UUID.randomUUID))
                     processWithdraw <- {
                       wallet.map { account =>
                         w.currency match {
@@ -160,7 +159,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                       val maxTxFeeLimit: BigDecimal = 500000
                                       (((maxTxFeeLimit * detail.result.gasPrice) * weiAmount) + initialAmount)
                                   }
-                                  userAccountService.deductBalanceByCurrency(accountID, w.currency, totalAmount)
+                                  userAccountService.deductBalanceByCurrency(account.id, w.currency, totalAmount)
                                 }
                                 .getOrElse(Future(0))
                               }
@@ -174,7 +173,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
-                                                                accountID,
+                                                                account.id,
                                                                 w.currency,
                                                                 w.tx_type,
                                                                 txDetails.map(_.result).getOrElse(null),
@@ -190,9 +189,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                   } yield (processWithdraw)
 
                 case d: DepositEvent =>
-                  val accountID: UUID = d.account_id.getOrElse(UUID.randomUUID)
                   for {
-                    wallet <- userAccountService.getUserAccountWallet(accountID)
+                    wallet <- userAccountService.getUserAccountWallet(d.account_id.getOrElse(UUID.randomUUID))
                     processDeposit <- {
                       wallet.map { account =>
                         d.currency match {
@@ -205,7 +203,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                     val result: ETHJsonRpcResult = detail.result
 
                                     if (result.from == d.issuer && result.to == d.receiver) {
-                                      userAccountService.addBalanceByCurrency(accountID, d.currency, result.value.toDouble)
+                                      userAccountService.addBalanceByCurrency(account.id, d.currency, result.value.toDouble)
 
                                     }
                                     else Future(0)
@@ -222,7 +220,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                   // save to history
                                   userAccountService.saveUserWalletHistory(
                                     new UserAccountWalletHistory(txHash,
-                                                                accountID,
+                                                                account.id,
                                                                 d.currency,
                                                                 d.tx_type,
                                                                 txDetails.map(_.result).getOrElse(null),
