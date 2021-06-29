@@ -76,16 +76,16 @@ case class DepositEvent(account_id: Option[UUID],
 	require(amount > 0, "amount must not equal to 0.")
 }
 case class InEvent(id: JsValue, input: InEventMessage) extends Event {
-	val account_id: Option[UUID] = None
+	def account_id: Option[UUID] = None
 }
 case class OutEvent(id: JsValue, response: JsValue) extends Event {
-	val account_id: Option[UUID] = None
+	def account_id: Option[UUID] = None
 }
 case class Subscribe(id: UUID, message: String) extends Event {
-	val account_id: Option[UUID] = None
+	def account_id: Option[UUID] = None
 	require(message == "subscribe", "Subscribe: Invalid message received")
 }
 case class ConnectionAlive(message: String) extends Event {
 	require(message == "connection_reset", "Connection Alive: Invalid message received")
-	val account_id: Option[UUID] = None
+	def account_id: Option[UUID] = None
 }
