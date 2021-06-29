@@ -23,7 +23,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "panelset" -> sets))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
       }.recover { case e: Exception => false }
   }
@@ -35,7 +35,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "index" -> index))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
       }.recover { case e: Exception => false }
   }
@@ -47,7 +47,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "enemy_count" -> count))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
       }.recover { case e: Exception => false }
   }
@@ -59,7 +59,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "destination" -> destination))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
       }.recover { case e: Exception => false }
   }
@@ -71,7 +71,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
       }.recover { case e: Exception => false }
   }
@@ -83,7 +83,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
       }.recover { case e: Exception => false }
   }
@@ -95,21 +95,22 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) true
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
       }.recover { case e: Exception => false }
   }
-  def treasureHuntGetUserData(id: Int): Future[JsValue] =  {
-    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/gamestart")
+  def treasureHuntGetUserData(id: Int): Future[Option[JsValue]] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/get_data")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "status").asOpt[Int].getOrElse(0) == 200) v.json
-        else JsNull
-      }.recover { case e: Exception => JsNull }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          Some(v.json)
+        else None
+      }.recover { case e: Exception => None }
   }
   def treasureHuntGameStart(id: Int, quantity: Int): Future[Boolean] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/gamestart")

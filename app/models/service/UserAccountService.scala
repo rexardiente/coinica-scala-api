@@ -164,30 +164,6 @@ class UserAccountService @Inject()(
       }
     } yield (process)
   }
-
-  def thGameStart(id: UUID, gameID: Int, currency: String, quantity: Int): Future[Int] = {
-    for {
-      hasWallet <- getUserAccountWallet(id)
-      currentValue <- getGameQuantityAmount(currency, quantity)
-      // check if has enough balance..
-      hasEnoughBalance <- Future.successful {
-        hasWallet
-          .map(v => hasEnoughBalanceByCurrency(v, currency, currentValue))
-          .getOrElse(false)
-      }
-      // if has enough balance proceed, else do nothing..
-      // send tx on smartcontract
-      initGame <- {
-        if (hasEnoughBalance) eosioSupport.treasureHuntGameStart(gameID, quantity)
-        else Future(false)
-      }
-      // deduct balance on the account
-      updateBalance <- {
-        if (initGame) deductBalanceByCurrency(id, currency, currentValue)
-        else Future(0)
-      }
-    } yield (updateBalance)
-  }
   // 1 quantity = 1 game token
   def getGameQuantityAmount(currency: String, quantity: Int): Future[BigDecimal] = {
     httpSupport.getCurrentPriceBasedOnMainCurrency(currency).map(_ * quantity)

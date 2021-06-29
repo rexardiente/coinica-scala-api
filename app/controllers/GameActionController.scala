@@ -17,41 +17,127 @@ import models.service._
 import utils.auth.SecureUserAction
 import utils.Config
 
+case class SeqIntForms(sets: Seq[Int])
+
 @Singleton
 class GameActionController @Inject()(
                           accountService: UserAccountService,
                           allGameHistoryService: OverAllHistoryService,
+                          treasureHuntGameService: TreasureHuntGameService,
                           ghostQuestService: GQGameService,
-                          multiCurrencySupport: utils.lib.MultiCurrencyHTTPSupport,
+                          eosioHTTPSupport: utils.lib.EOSIOHTTPSupport,
                           cc: ControllerComponents,
                           SecureUserAction: SecureUserAction) extends AbstractController(cc) {
   private val thGameStartForm = Form(tuple(
     "quantity" -> number,
     "currency" -> nonEmptyText))
   private val thWithdrawForm = Form(single("id" -> number))
+  private val thAutoPlayForm = Form(single("sets" -> list(number)))
+  private val thOpenTileForm = Form(single("tile" -> number))
+  private val thSetEnemyForm = Form(single("enemy" -> number))
+  private val thDestinationForm = Form(single("destination" -> number))
 
-  def thGameStart() = SecureUserAction.async { implicit request =>
+  def treasureHuntInitialize() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        treasureHuntGameService
+          .initialize(account.userGameID, account.username)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def treasureHuntQuit() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        treasureHuntGameService
+          .quit(account.userGameID, account.username)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def treasureHuntSetGamePanel() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        treasureHuntGameService
+          .setGamePanel(account.userGameID, account.username)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def treasureHuntSetDestination() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        thDestinationForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (destination)  =>
+          treasureHuntGameService
+            .setDestination(account.userGameID, account.username, destination)
+            .map(x => Ok(JsBoolean(x)))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def treasureHuntSetEnemy() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        thSetEnemyForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (enemyCount)  =>
+          treasureHuntGameService
+            .setEnemy(account.userGameID, account.username, enemyCount)
+            .map(x => Ok(JsBoolean(x)))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def treasureHuntOpenTile() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        thOpenTileForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (tile)  =>
+          treasureHuntGameService
+            .openTile(account.userGameID, account.username, tile)
+            .map(x => Ok(JsBoolean(x)))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def treasureHuntAutoPlay() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        thAutoPlayForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (sets)  =>
+          treasureHuntGameService
+            .autoPlay(account.userGameID, account.username, sets)
+            .map(x => Ok(JsBoolean(x)))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def treasureHuntGameStart() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
         thGameStartForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (quantity, symbol)  =>
-          accountService
-            .thGameStart(account.id, account.userGameID, symbol, quantity)
+          treasureHuntGameService
+            .gameStart(account.id, account.userGameID, symbol, quantity)
             .map(x => if (x > 0) Created else InternalServerError)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def thWithdraw() = SecureUserAction.async { implicit request =>
+  def treasureHuntWithdraw() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
         // TODO: wait for API that returns amount to withdraw from SC
-        ???
+        treasureHuntGameService.withdraw(account.userGameID).map(x => Ok(JsBoolean(x)))
+        // .map(x => Ok(x.getOrElse(null)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
   def getAllGQGameHistory() = SecureUserAction.async { implicit request =>
     request
       .account
