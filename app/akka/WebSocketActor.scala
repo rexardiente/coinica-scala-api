@@ -86,6 +86,7 @@ class WebSocketActor@Inject()(
 
   def receive: Receive = {
     case ev: Event =>
+      println("Event", ev)
       try {
         ev match {
           case withdraw: ETHUSDCWithdrawEvent =>
