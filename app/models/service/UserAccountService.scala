@@ -173,8 +173,8 @@ class UserAccountService @Inject()(
     val baseAmount: BigDecimal = currency match {
       case "ETH" => wallet.eth.amount
       case "USDC" => wallet.usdc.amount
+      case _ => 0 // unknown currency
     }
-
     if (baseAmount >= amount) true else false
   }
 

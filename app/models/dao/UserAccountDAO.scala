@@ -59,10 +59,10 @@ final class UserAccountDAO @Inject()(
     def id = column[UUID]("ID", O.PrimaryKey)
     def token = column[Option[String]]("TOKEN")
     def login = column[Option[Long]]("LOGIN")
-    def email = column[Option[Long]]("EMAIL")
-    def password = column[Option[Long]]("PASSWORD")
+    def emailLimit = column[Option[Long]]("EMAIL")
+    def passwordLimit = column[Option[Long]]("PASSWORD")
 
-    def * = (id, token, login, email, password) <> (UserToken.tupled, UserToken.unapply)
+    def * = (id, token, login, emailLimit, passwordLimit) <> (UserToken.tupled, UserToken.unapply)
     def fk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id)
     // def userTokenFk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id, onDelete = ForeignKeyAction.Cascade)
   }

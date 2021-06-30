@@ -27,9 +27,9 @@ class UserTokenRepo @Inject()(
   def hasValidLoginToken(id: UUID, token: String, limit: Long): Future[Boolean] =
     db.run(dao.UserTokenQuery.filter(x => x.id === id && x.token === token && x.login >= limit).exists.result)
   def hasValidEmailToken(id: UUID, token: String, limit: Long): Future[Boolean] =
-    db.run(dao.UserTokenQuery.filter(x => x.id === id && x.token === token && x.email >= limit).exists.result)
+    db.run(dao.UserTokenQuery.filter(x => x.id === id && x.token === token && x.emailLimit >= limit).exists.result)
   def hasValidPasswordToken(id: UUID, token: String, limit: Long): Future[Boolean] =
-    db.run(dao.UserTokenQuery.filter(x => x.id === id && x.token === token && x.password >= limit).exists.result)
+    db.run(dao.UserTokenQuery.filter(x => x.id === id && x.token === token && x.passwordLimit >= limit).exists.result)
   def hasSession(id: UUID): Future[Boolean] =
     db.run(dao.UserTokenQuery.filter(x => x.id === id && x.token.isEmpty.?).exists.result)
   // def hasValidSession(id: UUID, token: String, currentTime: Long): Future[Boolean] =

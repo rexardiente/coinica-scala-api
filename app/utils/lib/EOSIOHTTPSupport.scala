@@ -120,8 +120,10 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest
       .post(Json.obj("id" -> id, "quantity" -> quantity))
-      .map(v => (v.json \ "error").asOpt[Boolean].getOrElse(false))
-      .recover { case e: Exception => false }
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
   }
   def treasureHuntWithdraw(id: Int): Future[Boolean] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/withdraw")
@@ -131,8 +133,10 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest
       .post(Json.obj("id" -> id))
-      .map(v => (v.json \ "error").asOpt[Boolean].getOrElse(false))
-      .recover { case e: Exception => false }
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
   }
 
   def getGhostQuestTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
