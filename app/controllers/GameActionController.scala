@@ -31,7 +31,6 @@ class GameActionController @Inject()(
   private val thGameStartForm = Form(tuple(
     "quantity" -> number,
     "currency" -> nonEmptyText))
-  private val thWithdrawForm = Form(single("id" -> number))
   private val thAutoPlayForm = Form(single("sets" -> list(number)))
   private val thOpenTileForm = Form(single("tile" -> number))
   private val thSetEnemyForm = Form(single("enemy" -> number))
@@ -133,9 +132,9 @@ class GameActionController @Inject()(
     request
       .account
       .map { account =>
-        // TODO: wait for API that returns amount to withdraw from SC
-        treasureHuntGameService.withdraw(account.userGameID).map(x => Ok(JsBoolean(x)))
-        // .map(x => Ok(x.getOrElse(null)))
+        treasureHuntGameService
+          .withdraw(account.id, account.userGameID)
+          .map(x => if (x > 0) Created else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def getAllGQGameHistory() = SecureUserAction.async { implicit request =>

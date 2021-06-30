@@ -6,6 +6,7 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json._
+import utils.Config.SUPPORTED_SYMBOLS
 // import models.domain.eosio._
 // import models.repo.eosio._
 
@@ -59,7 +60,24 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.EOSIOHTTPSupport,
       }
     } yield (updateBalance)
 	}
-	def withdraw(gameID: Int) = {
-		contract.treasureHuntWithdraw(gameID)
+	def withdraw(id: UUID, gameID: Int): Future[Int] = {
+		for {
+      hasWallet <- userAccountService.getUserAccountWallet(id)
+      gameData <- contract.treasureHuntGetUserData(gameID)
+      // get prize amount from smartcontract
+      getPrize <- Future.successful {
+      	gameData.map(js => (js \ "data" \ "game_data" \ "prize").as[BigDecimal])
+      	.getOrElse(BigDecimal(0))
+      }
+      processWithdraw <- {
+      	if (getPrize > 0) contract.treasureHuntWithdraw(gameID)
+      	else Future(false)
+      }
+      // if successful, add new balance to account..
+      updateBalance <- {
+      	if (processWithdraw) userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize)
+      	else Future(0)
+      }
+    } yield (updateBalance)
 	}
 }
