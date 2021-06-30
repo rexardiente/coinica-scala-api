@@ -110,7 +110,15 @@ class SecureActionController @Inject()(
           .map(x => Ok(x.map(_.toJson).getOrElse(JsNull)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
+  def getUserAccountWalletHistory() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        accountService
+          .getUserAccountWalletHistory(account.id)
+          .map(x => Ok(Json.toJson(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def signOut() = SecureUserAction.async { implicit request =>
     request
       .account
@@ -128,7 +136,6 @@ class SecureActionController @Inject()(
         } yield (process)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
   def updateEmailAccount() = SecureUserAction.async { implicit request =>
     request
       .account
@@ -150,7 +157,6 @@ class SecureActionController @Inject()(
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
   def addEmailAccount() = SecureUserAction.async { implicit request =>
     request
       .account

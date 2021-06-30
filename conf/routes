@@ -104,8 +104,9 @@ GET   /donut/api/v1/account/code/:code 					controllers.SecureActionController.g
 GET   /donut/api/v1/account/id/:id 							controllers.SecureActionController.getAccountByID(id: UUID)
 # User Account Wallet
 GET  	/donut/api/v1/account/wallets 						controllers.SecureActionController.getUserAccountWallet()
+GET  	/donut/api/v1/account/wallet/history 			controllers.SecureActionController.getUserAccountWalletHistory()
 POST  /donut/api/v1/account/coin/deposit 				controllers.SecureActionController.coinDeposit()
-POST  /donut/api/v1/account/coin/withdraw 				controllers.SecureActionController.coinWithdraw()
+POST  /donut/api/v1/account/coin/withdraw 			controllers.SecureActionController.coinWithdraw()
 
 # coincap assets
 GET  	/donut/api/v1/coincap/asset 							controllers.HomeController.getCoinCapAsset()

@@ -118,6 +118,8 @@ class UserAccountService @Inject()(
   def addUserWallet(wallet: UserAccountWallet): Future[Int] = userWalletRepo.add(wallet)
   def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
   def getUserAccountWallet(id: UUID): Future[Option[UserAccountWallet]] = userWalletRepo.getByID(id)
+  def getUserAccountWalletHistory(id: UUID): Future[Seq[UserAccountWalletHistory]] =
+    userWalletHistoryRepo.getByAccountID(id)
 
   def addBalanceByCurrency(id: UUID, currency: String, totalAmount: BigDecimal): Future[Int] = {
     for {

@@ -21,6 +21,8 @@ class UserAccountWalletHistoryRepo @Inject()(
     db.run(dao.Query(txHash).exists.result)
   def existByTxHashAndID(hash: String, id: UUID): Future[Boolean] =
     db.run(dao.Query.filter(x => x.txHash === hash && x.id === id).exists.result)
+  def getByAccountID(id: UUID): Future[Seq[UserAccountWalletHistory]] =
+    db.run(dao.Query.filter(_.id === id).result)
   def all(): Future[Seq[UserAccountWalletHistory]] =
     db.run(dao.Query.result)
 }
