@@ -47,7 +47,7 @@ object Config {
 	private val serverAllowedProtocols: List[String] = config.getStringList("play.filters.hosts.protocol").asScala.toList
 
 	val MAILER_HOST: String = serverAllowedURLs(2)
-	val MAILER_PORT: Int = serverAllPorts(1)
+	val MAILER_PORT: Int = serverAllPorts(0)
 	val MAILER_PROTOCOL: String = serverAllowedProtocols(0)
 
 	val EGS_WEB_HOST = serverAllowedURLs(3)
