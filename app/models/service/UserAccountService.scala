@@ -155,11 +155,9 @@ class UserAccountService @Inject()(
         hasWallet.map { wallet =>
           val updatedBalance: UserAccountWallet = currency match {
             case "ETH" =>
-              val newBalance: BigDecimal = wallet.eth.amount - totalAmount
-              wallet.copy(eth=Coin("ETH", newBalance))
+              wallet.copy(eth=Coin("ETH", wallet.eth.amount - totalAmount))
             case "USDC" =>
-              val newBalance: BigDecimal = wallet.usdc.amount - totalAmount
-              wallet.copy(usdc=Coin("USDC", newBalance))
+              wallet.copy(usdc=Coin("USDC", wallet.usdc.amount - totalAmount))
           }
           userWalletRepo.update(updatedBalance)
         }.getOrElse(Future(0))

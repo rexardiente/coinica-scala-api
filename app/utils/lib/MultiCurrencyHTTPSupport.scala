@@ -32,8 +32,10 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     for {
       coinCap <- getCoinCapAssets()
       process <- Future.successful {
+        val mainCurency: Seq[CoinCapAsset] = coinCap.filter(_.symbol == SUPPORTED_SYMBOLS(0))
         val selectedCurrency: Seq[CoinCapAsset] = coinCap.filter(_.symbol == currency)
-        if (!selectedCurrency.isEmpty) selectedCurrency(0).priceUsd / coinCap(0).priceUsd
+        if (!selectedCurrency.isEmpty && !mainCurency.isEmpty)
+          mainCurency(0).priceUsd / selectedCurrency(0).priceUsd
         else BigDecimal(0)
       }
     } yield (process)
