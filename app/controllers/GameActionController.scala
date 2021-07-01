@@ -14,6 +14,7 @@ import models.domain._
 import models.domain.wallet.support.{ Coin, CoinDeposit, CoinWithdraw }
 import models.repo._
 import models.service._
+import models.domain.eosio.{ TreasureHuntGameData, TreasureHuntGameDataPanelSet }
 import utils.auth.SecureUserAction
 import utils.Config
 
@@ -105,9 +106,27 @@ class GameActionController @Inject()(
         thOpenTileForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (tile)  =>
-          treasureHuntGameService
-            .openTile(account.userGameID, account.username, tile)
-            .map(x => Ok(JsBoolean(x)))
+          val gameID: Int = account.userGameID
+          for {
+            isOpened <- treasureHuntGameService.openTile(gameID, account.username, tile)
+            process <- {
+              if (isOpened) {
+                // return true=win or false=lose
+                for {
+                  gameData <- treasureHuntGameService.userData(gameID)
+                  isWin <- Future.successful {
+                    gameData.map { data =>
+                      val panelSet: TreasureHuntGameDataPanelSet = data.panel_set(tile)
+                      // check tile status and tile result...
+                      if (panelSet.iswin == 1 && panelSet.isopen == 1) true
+                      else false
+                    }.getOrElse(false)
+                  }
+                } yield (Ok(JsBoolean(isWin)))
+              }
+              else Future(InternalServerError)
+            }
+          } yield (process)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
