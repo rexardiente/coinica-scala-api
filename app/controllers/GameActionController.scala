@@ -17,6 +17,7 @@ import models.service._
 import models.domain.eosio.{ TreasureHuntGameData, TreasureHuntGameDataPanelSet }
 import utils.auth.SecureUserAction
 import utils.Config
+import utils.lib.EOSIOHTTPSupport
 
 case class SeqIntForms(sets: Seq[Int])
 
@@ -26,7 +27,8 @@ class GameActionController @Inject()(
                           allGameHistoryService: OverAllHistoryService,
                           treasureHuntGameService: TreasureHuntGameService,
                           ghostQuestService: GQGameService,
-                          eosioHTTPSupport: utils.lib.EOSIOHTTPSupport,
+                          mjHiloGameService: MahjongHiloGameService,
+                          eosioHTTPSupport: EOSIOHTTPSupport,
                           cc: ControllerComponents,
                           SecureUserAction: SecureUserAction) extends AbstractController(cc) {
   private val thGameStartForm = Form(tuple(
@@ -36,6 +38,135 @@ class GameActionController @Inject()(
   private val thOpenTileForm = Form(single("tile" -> number))
   private val thSetEnemyForm = Form(single("enemy" -> number))
   private val thDestinationForm = Form(single("destination" -> number))
+  private val mjHiloDeclareKongForm = Form(single("sets" -> list(number)))
+  private val mjHiloDiscardTileForm = Form(single("tile" -> number))
+  private val mjHiloPlayHiloForm = Form(single("option" -> number))
+  private val mjHiloAddBetForm = Form(single("quantity" -> number))
+
+  def mahjongHiloDeclareWinHand = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .declareWinHand(account.userGameID)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloDeclareKong = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloDeclareKongForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (sets)  =>
+          mjHiloGameService
+            .declareKong(account.userGameID, sets)
+            .map(x => Ok(JsBoolean(x)))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloDiscardTile = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloDiscardTileForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (tile)  =>
+          mjHiloGameService
+            .discardTile(account.userGameID, tile)
+            .map(x => Ok(JsBoolean(x)))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloPlayHilo = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloPlayHiloForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (option)  =>
+          mjHiloGameService
+            .playHilo(account.userGameID, option)
+            .map(x => Ok(JsBoolean(x)))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloInitialize = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .initialize(account.userGameID)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloReset = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .reset(account.userGameID)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloQuit = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .quit(account.userGameID)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloAddBet = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloAddBetForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (quantity)  =>
+          mjHiloGameService
+            .addBet(account.userGameID, quantity)
+            .map(x => Ok(JsBoolean(x)))
+        })
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloStart = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .start(account.userGameID)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloTransfer = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .transfer(account.userGameID)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloWithdraw = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .withdraw(account.userGameID)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloGetUserData = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .getUserData(account.userGameID)
+          .map(x => Ok(x.getOrElse(JsNull)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
 
   def treasureHuntGameData() = SecureUserAction.async { implicit request =>
     request

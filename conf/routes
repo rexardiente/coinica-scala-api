@@ -91,6 +91,20 @@ POST  /donut/api/v1/game/treasurehunt/autoplay 		controllers.GameActionControlle
 POST  /donut/api/v1/game/treasurehunt/start 			controllers.GameActionController.treasureHuntGameStart
 GET  	/donut/api/v1/game/treasurehunt/withdraw  	controllers.GameActionController.treasureHuntWithdraw
 
+# Mahjong Hilo
+GET  	/donut/api/v1/game/mahjong-hilo/declare/win-hand 	controllers.GameActionController.mahjongHiloDeclareWinHand
+POST  /donut/api/v1/game/mahjong-hilo/declare/kong 		controllers.GameActionController.mahjongHiloDeclareKong
+POST  /donut/api/v1/game/mahjong-hilo/discard-tile 		controllers.GameActionController.mahjongHiloDiscardTile
+POST  /donut/api/v1/game/mahjong-hilo/play-hilo 		controllers.GameActionController.mahjongHiloPlayHilo
+GET  	/donut/api/v1/game/mahjong-hilo/init 		controllers.GameActionController.mahjongHiloInitialize
+GET  	/donut/api/v1/game/mahjong-hilo/reset 		controllers.GameActionController.mahjongHiloReset
+GET  	/donut/api/v1/game/mahjong-hilo/quit 		controllers.GameActionController.mahjongHiloQuit
+POST  /donut/api/v1/game/mahjong-hilo/add/bet 		controllers.GameActionController.mahjongHiloAddBet
+GET  	/donut/api/v1/game/mahjong-hilo/start-game 		controllers.GameActionController.mahjongHiloStart
+GET  	/donut/api/v1/game/mahjong-hilo/transfer 		controllers.GameActionController.mahjongHiloTransfer
+GET  	/donut/api/v1/game/mahjong-hilo/withdraw 		controllers.GameActionController.mahjongHiloWithdraw
+GET  	/donut/api/v1/game/mahjong-hilo/game/data 		controllers.GameActionController.mahjongHiloGetUserData
+
 # Overall History
 #GET   /donut/api/v1/game/all/history controllers.SecureActionController.overAllHistory(limit: Int ?= 10)
 GET   /donut/api/v1/game/all/history/:game controllers.SecureActionController.overAllHistoryByGameID(game: UUID)
