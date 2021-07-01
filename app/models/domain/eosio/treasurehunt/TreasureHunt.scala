@@ -9,7 +9,8 @@ object TreasureHuntGameDataPanelSet extends utils.CommonImplicits
 object TreasureHuntGameData extends utils.CommonImplicits
 
 case class TreasureHuntGameDataPanelSet(key: Int, isopen: Int, iswin: Int)
-case class TreasureHuntGameData(panel_set: Seq[TreasureHuntGameDataPanelSet],
+case class TreasureHuntGameData(game_id: String,
+                                panel_set: Seq[TreasureHuntGameDataPanelSet],
                                 unopentile: Int,
                                 win_count: Int,
                                 destination: Int,
