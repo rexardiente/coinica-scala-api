@@ -535,7 +535,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implicitOverAllGameHistoryWrites = new Writes[OverAllGameHistory] {
 	  def writes(tx: OverAllGameHistory): JsValue = Json.obj(
 		"id" -> tx.id,
-		"tx_hash" -> tx.tx_hash,
+		"tx_hash" -> tx.txHash,
 		"game_id" -> tx.gameID,
 		"game" -> tx.game,
 		"info" -> tx.info,

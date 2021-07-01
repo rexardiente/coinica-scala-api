@@ -75,7 +75,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.EOSIOHTTPSupport,
       }
       // if successful, add new balance to account..
       updateBalance <- {
-      	hasWallet.map { wallet =>
+      	hasWallet.map { _ =>
       		if (processWithdraw) userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize)
       		else Future(0)
       	}

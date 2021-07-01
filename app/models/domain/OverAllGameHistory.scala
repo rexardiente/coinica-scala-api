@@ -9,7 +9,7 @@ object PaymentType
 object GQGameHistory
 object THGameHistory
 object TransactionType extends utils.CommonImplicits
-object OverAllGameHistory { implicit def implOverAllGameHistory = Json.format[OverAllGameHistory] }
+object OverAllGameHistory extends utils.CommonImplicits
 
 sealed trait TransactionType {
 	def user: String
@@ -24,19 +24,6 @@ case class GQGameHistory(user: String, prediction: String, result: Boolean, bet:
 case class THGameHistory(user: String, prediction: List[Int], result: List[Int], bet: Double, amount: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
-// case class THGameHistory(user: String,
-// 												destination: Int,
-// 												enemy_count: Int,
-// 												maxprize: Double,
-// 												nextprize: Double,
-// 												bet: Double,
-// 												panel_set: Seq[THPanelSet],
-// 												prize: Double,
-// 												status: Int,
-// 												unopentile: Int,
-// 												win_count: Int) extends TransactionType {
-// 	override def toJson(): JsValue = Json.toJson(this)
-// }
 // case class MJGameHistory(user: String, bet: Double, amount: Double) extends TransactionType
 case class GameType(user: String, isWin: Boolean, bet: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
@@ -46,7 +33,7 @@ case class PaymentType(user: String, data: String, bet: Double) extends Transact
 	override def toJson(): JsValue = Json.toJson(this)
 }
 case class OverAllGameHistory(id: UUID,
-															tx_hash: String,
+															txHash: String,
 															gameID: String, // name or ID
 															game: String, // name or ID
 															info: TransactionType,
@@ -54,25 +41,3 @@ case class OverAllGameHistory(id: UUID,
 															createdAt: Long) {
 	def toJson(): JsValue = Json.toJson(this)
 }
-// GAME TRANSACTION
-// 	- TRANSACTION TYPE
-// 		- GAME
-// 		- PAYMENT AS TRANSFER (FROM TO ACCOUNT)
-
-// - GAME
-// 	- ACCOUNT/USERNAME
-// 	- IS_WIN
-// 	- AMOUNT
-
-// - PAYMENT AS TRANSFER (FROM TO ACCOUNT)
-// 	- ACCOUNT/USERNAME
-// 	- TRANSFER OR RECEIVED
-// 	- AMOUNT
-
-
-// TX ID | GAME 	  | TYPE 		| PLAYER| RESULT 	 | AMOUNT
-// 1 		| MJ		  | GAME 		| user1 | WIN 		 | 3.23
-// 2 		| TH		  | GAME 		| user2 | LOSE		 | 2.34
-// 3 		| TH  		| PAYMENT | user1 | TRANSFER | 1.00
-// 4 		| MJ 		  | PAYMENT | user3 | RECEIVED | 0.90
-
