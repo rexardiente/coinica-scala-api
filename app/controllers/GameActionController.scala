@@ -118,11 +118,14 @@ class GameActionController @Inject()(
                     gameData.map { data =>
                       val panelSet: TreasureHuntGameDataPanelSet = data.panel_set(tile)
                       // check tile status and tile result...
-                      if (panelSet.iswin == 1 && panelSet.isopen == 1) true
-                      else false
-                    }.getOrElse(false)
+                      if (panelSet.iswin == 1 && panelSet.isopen == 1)
+                        Ok(Json.obj("is_win" -> true, "status" -> data.status))
+                      else
+                        Ok(Json.obj("is_win" -> false, "status" -> data.status))
+                    }
+                    .getOrElse(InternalServerError)
                   }
-                } yield (Ok(JsBoolean(isWin)))
+                } yield (isWin)
               }
               else Future(InternalServerError)
             }
