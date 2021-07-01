@@ -845,4 +845,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 			"changePercent24Hr" -> v.changePercent24Hr,
 			"vwap24Hr" -> v.vwap24Hr)
 	}
+
+	implicit def implicitTreasureHuntGameDataPanelSet = Json.format[TreasureHuntGameDataPanelSet]
+	implicit def implicitTreasureHuntGameData = Json.format[TreasureHuntGameData]
 }

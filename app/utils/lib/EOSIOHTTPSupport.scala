@@ -9,6 +9,7 @@ import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
 import models.domain.eosio.GQ.v2._
+import models.domain.eosio.TreasureHuntGameData
 import models.domain.eosio.TableRowsRequest
 
 @Singleton
@@ -99,7 +100,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else false
       }.recover { case e: Exception => false }
   }
-  def treasureHuntGetUserData(id: Int): Future[Option[JsValue]] =  {
+  def treasureHuntGetUserData(id: Int): Future[Option[TreasureHuntGameData]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/get_data")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -108,7 +109,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some(v.json)
+          (v.json \ "data" \ "game_data").asOpt[TreasureHuntGameData]
         else None
       }.recover { case e: Exception => None }
   }

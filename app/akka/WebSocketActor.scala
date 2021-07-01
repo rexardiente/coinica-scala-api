@@ -162,12 +162,16 @@ class WebSocketActor@Inject()(
                   val betAmount: Double = th.data.destination
                   val prize: Double = th.data.prize
                   val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-                                                      txHash,
-                                                      gameID,
-                                                      Config.TH_CODE,
-                                                      THGameHistory(user, prediction, result, betAmount, prize),
-                                                      true,
-                                                      Instant.now.getEpochSecond)
+                                                                          txHash,
+                                                                          gameID,
+                                                                          Config.TH_CODE,
+                                                                          THGameHistory(user,
+                                                                                        prediction,
+                                                                                        result,
+                                                                                        betAmount,
+                                                                                        prize),
+                                                                          true,
+                                                                          Instant.now.getEpochSecond)
 
                   // save into DB overAllGameHistory
                   // if success then broadcast into users

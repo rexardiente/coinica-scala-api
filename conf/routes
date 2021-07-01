@@ -80,6 +80,7 @@ GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily 		controll
 GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime 	controllers.GameActionController.winStreakLifeTime
 
 # Treasurehunt API
+GET  	/donut/api/v1/game/treasurehunt/game/data 				controllers.GameActionController.treasureHuntGameData
 GET  	/donut/api/v1/game/treasurehunt/init 				controllers.GameActionController.treasureHuntInitialize
 GET  	/donut/api/v1/game/treasurehunt/quit 				controllers.GameActionController.treasureHuntQuit
 GET  	/donut/api/v1/game/treasurehunt/set/gamepanel 	controllers.GameActionController.treasureHuntSetGamePanel

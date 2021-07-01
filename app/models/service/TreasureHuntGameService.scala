@@ -7,37 +7,29 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json._
 import utils.Config.SUPPORTED_SYMBOLS
-// import models.domain.eosio._
+import models.domain.eosio.TreasureHuntGameData
 // import models.repo.eosio._
 
 @Singleton
 class TreasureHuntGameService @Inject()(contract: utils.lib.EOSIOHTTPSupport,
 																				userAccountService: UserAccountService,
 																				overAllHistory: OverAllHistoryService) {
-	def userData(gameID: Int): Future[Option[JsValue]] = {
+	def userData(gameID: Int): Future[Option[TreasureHuntGameData]] =
 		contract.treasureHuntGetUserData(gameID)
-	}
-	def autoPlay(gameID: Int, username: String, sets: Seq[Int]) = {
+	def autoPlay(gameID: Int, username: String, sets: Seq[Int]): Future[Boolean] =
 		contract.treasureHuntAutoPlay(gameID, username, sets)
-	}
-	def openTile(gameID: Int, username: String, index: Int) = {
+	def openTile(gameID: Int, username: String, index: Int): Future[Boolean] =
 		contract.treasureHuntOpenTile(gameID, username, index)
-	}
-	def setEnemy(gameID: Int, username: String, count: Int) = {
+	def setEnemy(gameID: Int, username: String, count: Int): Future[Boolean] =
 		contract.treasureHuntSetEnemy(gameID, username, count)
-	}
-	def setDestination(gameID: Int, username: String, destination: Int) = {
+	def setDestination(gameID: Int, username: String, destination: Int): Future[Boolean] =
 		contract.treasureHuntSetDestination(gameID, username, destination)
-	}
-	def setGamePanel(gameID: Int, username: String) = {
+	def setGamePanel(gameID: Int, username: String): Future[Boolean] =
 		contract.treasureHuntSetGamePanel(gameID, username)
-	}
-	def quit(gameID: Int, username: String) = {
+	def quit(gameID: Int, username: String): Future[Boolean] =
 		contract.treasureHuntQuit(gameID, username)
-	}
-	def initialize(gameID: Int, username: String) = {
+	def initialize(gameID: Int, username: String): Future[Boolean] =
 		contract.treasureHuntInitialize(gameID, username)
-	}
 	def gameStart(id: UUID, gameID: Int, currency: String, quantity: Int): Future[Int] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
@@ -65,10 +57,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.EOSIOHTTPSupport,
       hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- contract.treasureHuntGetUserData(gameID)
       // get prize amount from smartcontract
-      getPrize <- Future.successful {
-      	gameData.map(js => (js \ "data" \ "game_data" \ "prize").as[BigDecimal])
-      	.getOrElse(BigDecimal(0))
-      }
+      getPrize <- Future.successful(gameData.map(_.prize).getOrElse(BigDecimal(0)))
       processWithdraw <- {
       	if (getPrize > 0) contract.treasureHuntWithdraw(gameID)
       	else Future(false)

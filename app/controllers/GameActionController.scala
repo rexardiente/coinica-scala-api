@@ -36,6 +36,15 @@ class GameActionController @Inject()(
   private val thSetEnemyForm = Form(single("enemy" -> number))
   private val thDestinationForm = Form(single("destination" -> number))
 
+  def treasureHuntGameData() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        treasureHuntGameService
+          .userData(account.userGameID)
+          .map(x => Ok(Json.toJson(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def treasureHuntInitialize() = SecureUserAction.async { implicit request =>
     request
       .account
