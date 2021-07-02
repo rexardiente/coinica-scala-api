@@ -41,7 +41,7 @@ class GameActionController @Inject()(
   private val mjHiloDeclareKongForm = Form(single("sets" -> list(number)))
   private val mjHiloDiscardTileForm = Form(single("tile" -> number))
   private val mjHiloPlayHiloForm = Form(single("option" -> number))
-  private val mjHiloAddBetForm = Form(single("quantity" -> number))
+  private val mjHiloAddBetForm = Form(tuple("currency" -> nonEmptyText, "quantity" -> number))
 
   def mahjongHiloDeclareWinHand = SecureUserAction.async { implicit request =>
     request
@@ -124,10 +124,10 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloAddBetForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
-        { case (quantity)  =>
+        { case (currency, quantity)  =>
           mjHiloGameService
-            .addBet(account.userGameID, quantity)
-            .map(x => Ok(JsBoolean(x)))
+            .addBet(account.id, account.userGameID, currency, quantity)
+            .map(x => if (x > 0) Created else InternalServerError)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -154,8 +154,8 @@ class GameActionController @Inject()(
       .account
       .map { account =>
         mjHiloGameService
-          .withdraw(account.userGameID)
-          .map(x => Ok(JsBoolean(x)))
+          .withdraw(account.id, account.userGameID)
+          .map(x => if (x > 0) Created else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloGetUserData = SecureUserAction.async { implicit request =>

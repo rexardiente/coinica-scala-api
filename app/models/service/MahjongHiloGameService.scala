@@ -11,40 +11,80 @@ import utils.Config.SUPPORTED_SYMBOLS
 class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 																			userAccountService: UserAccountService,
 																			overAllHistory: OverAllHistoryService) {
-	def declareWinHand(id: Int): Future[Boolean] =
-		contract.declareWinHand(id)
+	def declareWinHand(gameID: Int): Future[Boolean] =
+		contract.declareWinHand(gameID)
 
-	def declareKong(id: Int, sets: Seq[Int]): Future[Boolean] =
-		contract.declareKong(id, sets)
+	def declareKong(gameID: Int, sets: Seq[Int]): Future[Boolean] =
+		contract.declareKong(gameID, sets)
 
-	def discardTile(id: Int, index: Int): Future[Boolean] =
-		contract.discardTile(id, index)
+	def discardTile(gameID: Int, index: Int): Future[Boolean] =
+		contract.discardTile(gameID, index)
 
-	def playHilo(id: Int, option: Int): Future[Boolean] =
-		contract.playHilo(id, option)
+	def playHilo(gameID: Int, option: Int): Future[Boolean] =
+		contract.playHilo(gameID, option)
 
-	def initialize(id: Int): Future[Boolean] =
-		contract.initialize(id)
+	def initialize(gameID: Int): Future[Boolean] =
+		contract.initialize(gameID)
 
-	def reset(id: Int): Future[Boolean] =
-		contract.reset(id)
+	def reset(gameID: Int): Future[Boolean] =
+		contract.reset(gameID)
 
-	def quit(id: Int): Future[Boolean] =
-		contract.quit(id)
+	def quit(gameID: Int): Future[Boolean] =
+		contract.quit(gameID)
 
-	def addBet(id: Int, quantity: Int): Future[Boolean] =
-		contract.addBet(id, quantity)
+	def addBet(id: UUID, gameID: Int, currency: String, quantity: Int): Future[Int] = {
+		for {
+      hasWallet <- userAccountService.getUserAccountWallet(id)
+      currentValue <- userAccountService.getGameQuantityAmount(currency, quantity)
+      // check if has enough balance..
+      hasEnoughBalance <- Future.successful {
+        hasWallet
+          .map(v => userAccountService.hasEnoughBalanceByCurrency(v, currency, currentValue))
+          .getOrElse(false)
+      }
+      // if has enough balance send tx on smartcontract, else do nothing
+      isAdded <- {
+        if (hasEnoughBalance) contract.addBet(gameID, quantity)
+        else Future(false)
+      }
+      // deduct balance on the account
+      updateBalance <- {
+        if (isAdded) userAccountService.deductBalanceByCurrency(id, currency, currentValue)
+        else Future(0)
+      }
+    } yield (updateBalance)
+	}
 
-	def start(id: Int): Future[Boolean] =
-		contract.start(id)
+	def start(gameID: Int): Future[Boolean] =
+		contract.start(gameID)
 
-	def transfer(id: Int): Future[Boolean] =
-		contract.transfer(id)
+	def transfer(gameID: Int): Future[Boolean] =
+		contract.transfer(gameID)
 
-	def withdraw(id: Int): Future[Boolean] =
-		contract.withdraw(id)
+	def withdraw(id: UUID, gameID: Int): Future[Int] = {
+		for {
+      hasWallet <- userAccountService.getUserAccountWallet(id)
+      gameData <- contract.getUserData(gameID)
+      // get prize amount from smartcontract
+      getPrize <- Future.successful {
+      	gameData.map(js => (js \ "hi_lo_balance").asOpt[BigDecimal].getOrElse(BigDecimal(0))).getOrElse(BigDecimal(0))
+      }
+      processWithdraw <- {
+      	if (getPrize > 0) contract.withdraw(gameID)
+      	else Future(false)
+      }
+      // if successful, add new balance to account..
+      updateBalance <- {
+      	hasWallet.map { _ =>
+      		if (processWithdraw) userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize)
+      		else Future(0)
+      	}
+      	.getOrElse(Future(0))
+      }
+    } yield (updateBalance)
+	}
 
-	def getUserData(id: Int): Future[Option[JsValue]] =
-		contract.getUserData(id)
+	def getUserData(gameID: Int): Future[Option[JsValue]] =
+		contract.getUserData(gameID)
 
 }
