@@ -241,12 +241,14 @@ class GameActionController @Inject()(
           for {
             isOpened <- treasureHuntGameService.openTile(gameID, account.username, tile)
             process <- {
-              if (isOpened) {
+              if (isOpened._1) {
                 // return true=win or false=lose
                 for {
                   gameData <- treasureHuntGameService.userData(gameID)
                   isWin <- Future.successful {
-                    gameData.map(data => Ok(data.toJson)).getOrElse(InternalServerError)
+                    gameData
+                      .map(data => Ok(data.toJson.as[JsObject] + ("transaction_id" -> Json.toJson(isOpened._2))))
+                      .getOrElse(InternalServerError)
                   }
                 } yield (isWin)
               }
@@ -288,7 +290,7 @@ class GameActionController @Inject()(
       .map { account =>
         treasureHuntGameService
           .withdraw(account.id, account.userGameID)
-          .map(x => if (x > 0) Created else InternalServerError)
+          .map(x => if (x._1 > 0) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def getAllGQGameHistory() = SecureUserAction.async { implicit request =>

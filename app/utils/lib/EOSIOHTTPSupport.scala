@@ -28,7 +28,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else false
       }.recover { case e: Exception => false }
   }
-  def treasureHuntOpenTile(id: Int, username: String, index: Int): Future[Boolean] =  {
+  def treasureHuntOpenTile(id: Int, username: String, index: Int): Future[(Boolean, String)] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/opentile")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -36,9 +36,11 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "index" -> index))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (true, transactionID)
+        else (false, null)
+      }.recover { case e: Exception => (false, null) }
   }
   def treasureHuntSetEnemy(id: Int, username: String, count: Int): Future[Boolean] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/setenemy")
@@ -126,7 +128,7 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else false
       }.recover { case e: Exception => false }
   }
-  def treasureHuntWithdraw(id: Int): Future[Boolean] =  {
+  def treasureHuntWithdraw(id: Int): Future[(Boolean, String)] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/withdraw")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -135,9 +137,11 @@ class EOSIOHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest
       .post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (true, transactionID)
+        else (false, null)
+      }.recover { case e: Exception => (false, null) }
   }
 
   def getGhostQuestTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {

@@ -18,7 +18,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.EOSIOHTTPSupport,
 		contract.treasureHuntGetUserData(gameID)
 	def autoPlay(gameID: Int, username: String, sets: Seq[Int]): Future[Boolean] =
 		contract.treasureHuntAutoPlay(gameID, username, sets)
-	def openTile(gameID: Int, username: String, index: Int): Future[Boolean] =
+	def openTile(gameID: Int, username: String, index: Int): Future[(Boolean, String)] =
 		contract.treasureHuntOpenTile(gameID, username, index)
 	def setEnemy(gameID: Int, username: String, count: Int): Future[Boolean] =
 		contract.treasureHuntSetEnemy(gameID, username, count)
@@ -52,7 +52,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.EOSIOHTTPSupport,
       }
     } yield (updateBalance)
 	}
-	def withdraw(id: UUID, gameID: Int): Future[Int] = {
+	def withdraw(id: UUID, gameID: Int): Future[(Int, String)] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- contract.treasureHuntGetUserData(gameID)
@@ -60,16 +60,16 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.EOSIOHTTPSupport,
       getPrize <- Future.successful(gameData.map(_.prize).getOrElse(BigDecimal(0)))
       processWithdraw <- {
       	if (getPrize > 0) contract.treasureHuntWithdraw(gameID)
-      	else Future(false)
+      	else Future((false, null))
       }
       // if successful, add new balance to account..
       updateBalance <- {
       	hasWallet.map { _ =>
-      		if (processWithdraw) userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize)
+      		if (processWithdraw._1) userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize)
       		else Future(0)
       	}
       	.getOrElse(Future(0))
       }
-    } yield (updateBalance)
+    } yield ((updateBalance, processWithdraw._2))
 	}
 }
