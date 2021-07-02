@@ -26,6 +26,9 @@ class UserAccountService @Inject()(
   def getAccountByID(id: UUID): Future[Option[UserAccount]] =
   	userAccountRepo.getByID(id)
 
+  def getAccountByGameID(id: Int): Future[Option[UserAccount]] =
+    userAccountRepo.getByGameID(id)
+
   def getAccountByName(name: String): Future[Option[UserAccount]] =
   	userAccountRepo.getByName(name)
 

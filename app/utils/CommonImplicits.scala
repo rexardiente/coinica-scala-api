@@ -358,32 +358,39 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 					JsSuccess(THGameData(
 						(json \ "destination").as[Int],
 						(json \ "enemy_count").as[Int],
-						try {
-							(json \ "maxprize").as[String].reverse.splitAt(4)._2.reverse.toDouble
-						} catch {
-							case _: Throwable => 0D
-						},
-						try {
-							(json \ "nextprize").as[String].reverse.splitAt(4)._2.reverse.toDouble
-						} catch {
-							case _: Throwable => 0D
-						},
-						try {
-							(json \ "odds").as[String].toDouble
-						} catch {
-							case _: Throwable => 0D
-						},
+						(json \ "maxprize").as[BigDecimal],
+						(json \ "nextprize").as[BigDecimal],
+						(json \ "odds").as[BigDecimal],
 						(json \ "panel_set").as[Seq[THPanelSet]],
-						try {
-							(json \ "prize").as[String].reverse.splitAt(4)._2.reverse.toDouble
-						} catch {
-							case _: Throwable => 0D
-						},
+						(json \ "prize").as[BigDecimal],
+						// try {
+						// 	(json \ "maxprize").as[String].reverse.splitAt(4)._2.reverse.toDouble
+						// } catch {
+						// 	case _: Throwable => 0D
+						// },
+						// try {
+						// 	(json \ "nextprize").as[String].reverse.splitAt(4)._2.reverse.toDouble
+						// } catch {
+						// 	case _: Throwable => 0D
+						// },
+						// try {
+						// 	(json \ "odds").as[String].toDouble
+						// } catch {
+						// 	case _: Throwable => 0D
+						// },
+						// (json \ "panel_set").as[Seq[THPanelSet]],
+						// try {
+						// 	(json \ "prize").as[String].reverse.splitAt(4)._2.reverse.toDouble
+						// } catch {
+						// 	case _: Throwable => 0D
+						// },
 						(json \ "status").as[Int],
 						(json \ "unopentile").as[Int],
 						(json \ "win_count").as[Int]))
 				} catch {
-					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+					case e: Throwable =>
+						println(e)
+						JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
 			}
 			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))

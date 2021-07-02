@@ -28,11 +28,11 @@ case class EOSNotifyTransaction(EOS_NET_TRANSACTION: JsValue) extends InEventMes
 case class THPanelSet(key: Int, isopen: Int, iswin: Int) extends utils.CommonImplicits
 case class THGameData(destination: Int,
 											enemy_count: Int,
-											maxprize: Double,
-											nextprize: Double,
-											odds: Double,
+											maxprize: BigDecimal,
+											nextprize: BigDecimal,
+											odds: BigDecimal,
 											panel_set: Seq[THPanelSet],
-											prize: Double,
+											prize: BigDecimal,
 											status: Int,
 											unopentile: Int,
 											win_count: Int) extends utils.CommonImplicits

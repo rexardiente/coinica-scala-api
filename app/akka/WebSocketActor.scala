@@ -97,10 +97,11 @@ class WebSocketActor@Inject()(
             out ! OutEvent(JsNull, JsString("received"))
 
           case in: InEvent =>
-            val user: String = in.id.as[String]
+            val user: UUID = in.id.asOpt[UUID].getOrElse(UUID.randomUUID)
+            // .as[String]
             // check if id/user is subscribed else do not allow
             WebSocketActor.subscribers.exists(x => x._1 == user) match {
-              case false => out ! OutEvent(JsString(user), JsString("unauthorized"))
+              case false => out ! OutEvent(JsString(user.toString), JsString("unauthorized"))
               case true => in.input match {
                 // if server got a WS message for newly created character
                 // try to update character DB
@@ -160,7 +161,7 @@ class WebSocketActor@Inject()(
                   val prediction: List[Int] = th.data.panel_set.map(_.isopen).toList
                   val result: List[Int] = th.data.panel_set.map(_.iswin).toList
                   val betAmount: Double = th.data.destination
-                  val prize: Double = th.data.prize
+                  val prize: Double = th.data.prize.toDouble
                   val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
                                                                           txHash,
                                                                           gameID,
@@ -182,7 +183,7 @@ class WebSocketActor@Inject()(
                           out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> false))
                           dynamicBroadcast ! Array(gameHistory)
 
-                          userAccountService.getAccountByName(user).map {
+                          userAccountService.getAccountByID(user).map {
                             case Some(v) =>
                               dynamicProcessor ! DailyTask(v.id, Config.TH_GAME_ID, 1)
                               dynamicProcessor ! ChallengeTracker(v.id, betAmount, prize, 1, if (prize == 0) 0 else 1)
