@@ -9,7 +9,7 @@ object GQCharacterCreated
 object GQGetNextBattle
 object VIPWSRequest
 object EOSNotifyTransaction
-object THGameResult
+// object THGameResult
 
 sealed trait InEventMessage {
   def toJson(): JsValue = Json.toJson(this)
@@ -36,7 +36,7 @@ case class THGameData(destination: Int,
 											status: Int,
 											unopentile: Int,
 											win_count: Int) extends utils.CommonImplicits
-case class THGameResult(tx_hash: String, game_id: String, data: THGameData) extends InEventMessage
+// case class THGameResult(tx_hash: String, game_id: String, data: THGameData) extends InEventMessage
 // VIP objects
 case class VIPWSRequest(user: String, command: String, request: String) extends InEventMessage {
 	require(command == "vip", "VIP Command: invalid request")

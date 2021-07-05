@@ -153,49 +153,6 @@ class WebSocketActor@Inject()(
                   else
                     out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
 
-                case th: THGameResult =>
-                  // TODO: Save overall game data into TH history
-                  // default constructors..
-                  val txHash: String = th.tx_hash
-                  val gameID: String = th.game_id
-                  val prediction: List[Int] = th.data.panel_set.map(_.isopen).toList
-                  val result: List[Int] = th.data.panel_set.map(_.iswin).toList
-                  val betAmount: Double = th.data.destination
-                  val prize: Double = th.data.prize.toDouble
-                  val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-                                                                          txHash,
-                                                                          gameID,
-                                                                          Config.TH_CODE,
-                                                                          THGameHistory(user,
-                                                                                        prediction,
-                                                                                        result,
-                                                                                        betAmount,
-                                                                                        prize),
-                                                                          true,
-                                                                          Instant.now.getEpochSecond)
-
-                  // save into DB overAllGameHistory
-                  // if success then broadcast into users
-                  overAllGameHistory.isExistsByTxHash(txHash).map { isExists =>
-                    if (!isExists) {
-                      overAllGameHistory.add(gameHistory).map { x =>
-                        if(x > 0) {
-                          out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> false))
-                          dynamicBroadcast ! Array(gameHistory)
-
-                          userAccountService.getAccountByID(user).map {
-                            case Some(v) =>
-                              dynamicProcessor ! DailyTask(v.id, Config.TH_GAME_ID, 1)
-                              dynamicProcessor ! ChallengeTracker(v.id, betAmount, prize, 1, if (prize == 0) 0 else 1)
-                            case _ => ()
-                          }
-                        }
-                        else out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> true))
-                      }
-                    }
-                    else out ! OutEvent(JsString(Config.TH_GAME_CODE), Json.obj("tx" -> txHash, "is_error" -> true))
-                  }
-
                 case e: EOSNotifyTransaction =>
                   // Check if notification relates to TH
                   // save into DB if found..
@@ -244,21 +201,6 @@ class WebSocketActor@Inject()(
       case "payout" =>
       case "point" =>
     }
-    //TODO: save new users into DB users and create VIP profile
-    // case Connect(user) =>
-      // for {
-      //   isExist <- userAccountService.isExist(user)
-      //   hasVIP <- vipUserRepo.getBenefitByID(VIP.BRONZE)
-      //   _ <- Future.successful {
-      //     if (!isExist && hasVIP != None) {
-      //       val vip: VIPBenefit = hasVIP.get
-      //       val acc: UserAccount = UserAccount(user, vip.referral_rate)
-      //       userAccountService
-      //         .newUserAcc(acc)
-      //         .map(_ => userAccountService.newVIPAcc(VIPUser(acc.id, vip.id, vip.id, 0, 0, 0, acc.created_at)))
-      //     }
-      //   }
-      // } yield ()
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))
   }

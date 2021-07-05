@@ -411,15 +411,12 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	}
 
 	// implicit val implTHGameData = Json.format[THGameData]
-	implicit val implTHGameResult = Json.format[THGameResult]
 	implicit val implEOSNotifyTransaction = Json.format[EOSNotifyTransaction]
-
 	implicit val implicitInEventMessageReads: Reads[InEventMessage] = {
     Json.format[GQCharacterCreated].map(x => x: InEventMessage) or
     Json.format[GQBattleTime].map(x => x: InEventMessage) or
     Json.format[GQGetNextBattle].map(x => x: InEventMessage) or
     Json.format[VIPWSRequest].map(x => x: InEventMessage) or
-    Json.format[THGameResult].map(x => x: InEventMessage) or
     Json.format[EOSNotifyTransaction].map(x => x: InEventMessage)
   }
 
@@ -430,7 +427,6 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
         case m: GQBattleTime => Json.toJson(m)
         case m: GQGetNextBattle => Json.toJson(m)
         case m: VIPWSRequest => Json.toJson(m)
-        case m: THGameResult => Json.toJson(m)
         case m: EOSNotifyTransaction => Json.toJson(m)
         case _ => Json.obj("error" -> "wrong Json")
       }
