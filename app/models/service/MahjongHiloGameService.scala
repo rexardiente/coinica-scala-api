@@ -20,7 +20,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	def discardTile(gameID: Int, index: Int): Future[Boolean] =
 		contract.discardTile(gameID, index)
 
-	def playHilo(gameID: Int, option: Int): Future[Boolean] =
+	def playHilo(gameID: Int, option: Int): Future[(Boolean, String)] =
 		contract.playHilo(gameID, option)
 
 	def initialize(gameID: Int): Future[Boolean] =
@@ -71,12 +71,12 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       }
       processWithdraw <- {
       	if (getPrize > 0) contract.withdraw(gameID)
-      	else Future(false)
+      	else Future(false, null)
       }
       // if successful, add new balance to account..
       updateBalance <- {
       	hasWallet.map { _ =>
-      		if (processWithdraw) userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize)
+      		if (processWithdraw._1) userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize)
       		else Future(0)
       	}
       	.getOrElse(Future(0))

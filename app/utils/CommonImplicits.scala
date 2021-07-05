@@ -349,67 +349,6 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implGQBattleTime = Json.format[GQBattleTime]
 	implicit val implVIPWSRequest = Json.format[VIPWSRequest]
 	implicit val implGQGetNextBattle = Json.format[GQGetNextBattle]
-	implicit val implTHPanelSet = Json.format[THPanelSet]
-
-	implicit val implicitTHGameDataReads: Reads[THGameData] = new Reads[THGameData] {
-		override def reads(js: JsValue): JsResult[THGameData] = js match {
-			case json: JsValue => {
-				try {
-					JsSuccess(THGameData(
-						(json \ "destination").as[Int],
-						(json \ "enemy_count").as[Int],
-						(json \ "maxprize").as[BigDecimal],
-						(json \ "nextprize").as[BigDecimal],
-						(json \ "odds").as[BigDecimal],
-						(json \ "panel_set").as[Seq[THPanelSet]],
-						(json \ "prize").as[BigDecimal],
-						// try {
-						// 	(json \ "maxprize").as[String].reverse.splitAt(4)._2.reverse.toDouble
-						// } catch {
-						// 	case _: Throwable => 0D
-						// },
-						// try {
-						// 	(json \ "nextprize").as[String].reverse.splitAt(4)._2.reverse.toDouble
-						// } catch {
-						// 	case _: Throwable => 0D
-						// },
-						// try {
-						// 	(json \ "odds").as[String].toDouble
-						// } catch {
-						// 	case _: Throwable => 0D
-						// },
-						// (json \ "panel_set").as[Seq[THPanelSet]],
-						// try {
-						// 	(json \ "prize").as[String].reverse.splitAt(4)._2.reverse.toDouble
-						// } catch {
-						// 	case _: Throwable => 0D
-						// },
-						(json \ "status").as[Int],
-						(json \ "unopentile").as[Int],
-						(json \ "win_count").as[Int]))
-				} catch {
-					case e: Throwable =>
-						println(e)
-						JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
-				}
-			}
-			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
-		}
-	}
-	implicit val implicitTHGameDataWrites = new Writes[THGameData] {
-	  def writes(tx: THGameData): JsValue = Json.obj(
-		"destination" -> tx.destination,
-		"enemy_count" -> tx.enemy_count,
-		"maxprize" -> tx.maxprize,
-		"nextprize" -> tx.nextprize,
-		"odds" -> tx.odds,
-		"panel_set" -> tx.panel_set,
-		"prize" -> tx.prize,
-		"status" -> tx.status,
-		"unopentile" -> tx.unopentile,
-		"win_count" -> tx.win_count)
-	}
-
 	// implicit val implTHGameData = Json.format[THGameData]
 	implicit val implEOSNotifyTransaction = Json.format[EOSNotifyTransaction]
 	implicit val implicitInEventMessageReads: Reads[InEventMessage] = {
@@ -496,12 +435,12 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
   implicit def implGameType = Json.format[GameType]
 	implicit def implPaymentType = Json.format[PaymentType]
 	implicit def implGQGameHistory = Json.format[GQGameHistory]
-	implicit def implTHGameHistory = Json.format[THGameHistory]
+	implicit def implListOfIntPredictions = Json.format[ListOfIntPredictions]
 	implicit val implicitTransactionTypeReads: Reads[TransactionType] = {
 	  Json.format[GameType].map(x => x: TransactionType) or
 	  Json.format[PaymentType].map(x => x: TransactionType) or
 	  Json.format[GQGameHistory].map(x => x: TransactionType) or
-	  Json.format[THGameHistory].map(x => x: TransactionType)
+	  Json.format[ListOfIntPredictions].map(x => x: TransactionType)
 	}
 
 	implicit val implicitTransactionTypeWrites = new Writes[TransactionType] {
@@ -510,7 +449,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	      case m: GameType => Json.toJson(m)
 	      case m: PaymentType => Json.toJson(m)
 	      case m: GQGameHistory => Json.toJson(m)
-	      case m: THGameHistory => Json.toJson(m)
+	      case m: ListOfIntPredictions => Json.toJson(m)
 	      case _ => Json.obj("error" -> "wrong Json")
 	    }
 	  }

@@ -387,7 +387,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
               history.info match {
                 case GQGameHistory(name, prediction, result, bet) =>
                   if (result) (bet, 1) else (bet, 0)
-                case THGameHistory(name, prediction, result, bet, amount) =>
+                case ListOfIntPredictions(name, prediction, result, bet, amount) =>
                   if (prediction == result) (bet, amount) else (bet, amount)
                 case e => (e.bet, 0)
               }

@@ -87,7 +87,7 @@ class GameActionController @Inject()(
         { case (option)  =>
           mjHiloGameService
             .playHilo(account.userGameID, option)
-            .map(x => Ok(JsBoolean(x)))
+            .map(x => Ok(JsBoolean(x._1)))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -241,18 +241,21 @@ class GameActionController @Inject()(
           for {
             isOpened <- treasureHuntGameService.openTile(account.id, gameID, account.username, tile)
             process <- {
-              if (isOpened._1) {
-                // return true=win or false=lose
-                for {
-                  gameData <- treasureHuntGameService.userData(gameID)
-                  isWin <- Future.successful {
-                    gameData
-                      .map(data => Ok(data.toJson.as[JsObject] + ("transaction_id" -> Json.toJson(isOpened._2))))
-                      .getOrElse(InternalServerError)
-                  }
-                } yield (isWin)
+              isOpened.map { opened =>
+                if (opened._1) {
+                  // return true=win or false=lose
+                  for {
+                    gameData <- treasureHuntGameService.userData(gameID)
+                    isWin <- Future.successful {
+                      gameData
+                        .map(data => Ok(data.toJson.as[JsObject] + ("transaction_id" -> Json.toJson(opened._2))))
+                        .getOrElse(InternalServerError)
+                    }
+                  } yield (isWin)
+                }
+                else Future(InternalServerError)
               }
-              else Future(InternalServerError)
+              .getOrElse(Future(Conflict))
             }
           } yield (process)
         })

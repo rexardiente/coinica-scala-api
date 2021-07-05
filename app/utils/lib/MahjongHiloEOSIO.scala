@@ -52,7 +52,7 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else false
       }.recover { case e: Exception => false }
   }
-  def playHilo(id: Int, option: Int): Future[Boolean] =  {
+  def playHilo(id: Int, option: Int): Future[(Boolean, String)] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/play-hilo")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -60,9 +60,11 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "option" -> option))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (true, transactionID)
+        else (false, null)
+      }.recover { case e: Exception => (false, null) }
   }
   def initialize(id: Int): Future[Boolean] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/start")
@@ -136,7 +138,7 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else false
       }.recover { case e: Exception => false }
   }
-  def withdraw(id: Int): Future[Boolean] =  {
+  def withdraw(id: Int): Future[(Boolean, String)] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/withdraw-token")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -144,9 +146,11 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (true, transactionID)
+        else (false, null)
+      }.recover { case e: Exception => (false, null) }
   }
   def getUserData(id: Int): Future[Option[JsValue]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/get-table")

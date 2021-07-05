@@ -24,18 +24,6 @@ case class GQGetNextBattle(GQ_NEXT_BATTLE: String) extends InEventMessage {
 case class EOSNotifyTransaction(EOS_NET_TRANSACTION: JsValue) extends InEventMessage {
 	// require(GQ_NEXT_BATTLE == "get", "GQ Next Battle: invalid request")
 }
-
-case class THPanelSet(key: Int, isopen: Int, iswin: Int) extends utils.CommonImplicits
-case class THGameData(destination: Int,
-											enemy_count: Int,
-											maxprize: BigDecimal,
-											nextprize: BigDecimal,
-											odds: BigDecimal,
-											panel_set: Seq[THPanelSet],
-											prize: BigDecimal,
-											status: Int,
-											unopentile: Int,
-											win_count: Int) extends utils.CommonImplicits
 // case class THGameResult(tx_hash: String, game_id: String, data: THGameData) extends InEventMessage
 // VIP objects
 case class VIPWSRequest(user: String, command: String, request: String) extends InEventMessage {
