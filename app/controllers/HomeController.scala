@@ -162,31 +162,25 @@ class HomeController @Inject()(
           hasReferralCode <- accountService.getAccountByCode(code.getOrElse(null))
           processed <- {
             if (isAccountAlreadyExists == None) {
-              if (hasReferralCode.map(_.referralCode) == code) {
-                try {
-                  // encrypt account password into SHA256 algorithm...
-                  val userAccount: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
-                  // generate User Account, VIP Account and User Wallet..
-                  for {
-                    addAccount <- accountService.newUserAcc(userAccount)
-                    addAccountToken <- accountService.addUpdateUserToken(UserToken(userAccount.id))
-                    addVip <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
-                    // apply code if has value
-                    _ <- Future.successful {
-                      Thread.sleep(500) // add small delay
-                      if (hasReferralCode.map(_.referralCode) != None) {
-                        referralHistoryService.applyReferralCode(userAccount.id, code.getOrElse(null))
-                      }
-                    }
-                    _ <- Future.successful {
-                      accountService.addUserWallet(new UserAccountWallet(userAccount.id, Coin("BTC"), Coin("ETH"), Coin("USDC")))
-                    }
-                  } yield (Created)
-                } catch {
-                  case _: Throwable => Future(InternalServerError)
+              hasReferralCode.map { hasCode =>
+                if (hasCode.referralCode == code.getOrElse(null)) {
+                  try {
+                    // encrypt account password into SHA256 algorithm...
+                    val userAccount: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
+                    // generate User Account, VIP Account and User Wallet..
+                    for {
+                      _ <- accountService.newUserAcc(userAccount)
+                      _ <- accountService.addUpdateUserToken(UserToken(userAccount.id))
+                      _ <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
+                      _ <- accountService.addUserWallet(new UserAccountWallet(userAccount.id, Coin("BTC"), Coin("ETH"), Coin("USDC")))
+                      _ <- referralHistoryService.applyReferralCode(userAccount.id, code.getOrElse(null))
+                    } yield (Created)
+                  }
+                  catch { case _: Throwable => Future(InternalServerError) }
                 }
+                else Future(InternalServerError)
               }
-              else Future(InternalServerError)
+              .getOrElse(Future(InternalServerError))
             }
             else Future(Conflict)
           }
