@@ -52,7 +52,7 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else false
       }.recover { case e: Exception => false }
   }
-  def playHilo(id: Int, option: Int): Future[(Boolean, String)] =  {
+  def playHilo(id: Int, option: Int): Future[Option[(Boolean, String)]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/play-hilo")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -62,9 +62,9 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .map { v =>
         val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          (true, transactionID)
-        else (false, null)
-      }.recover { case e: Exception => (false, null) }
+          Some((true, transactionID))
+        else Some((false, null))
+      }.recover { case e: Exception => None }
   }
   def initialize(id: Int): Future[Boolean] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/start")

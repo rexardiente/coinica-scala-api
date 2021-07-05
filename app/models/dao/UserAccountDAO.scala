@@ -5,7 +5,7 @@ import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.{ UserAccount, UserToken, VIPUser, UserAccountWallet }
-import models.domain.wallet.support.Coin
+import models.domain.wallet.support.{ Coin, FailedCoinDeposit }
 import models.domain.enum._
 
 @Singleton
@@ -76,6 +76,17 @@ final class UserAccountDAO @Inject()(
     def fk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id)
   }
 
+  protected class FailedCoinDepositTable(tag: Tag) extends Table[FailedCoinDeposit](tag, "FAILED_COIN_DEPOSIT") {
+    def txHash = column[String] ("TX_HASH", O.PrimaryKey)
+    def id = column[UUID] ("ACCOUNT_ID")
+    def issuer = column[Coin] ("ISSUER")
+    def receiver = column[Coin] ("RECEIVER")
+    def createdAt = column[Instant] ("CREATED_AT")
+
+    def * = (txHash, id, issuer, receiver, createdAt) <> (FailedCoinDeposit.tupled, FailedCoinDeposit.unapply)
+    def fk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id)
+  }
+
   object UserAccountQuery extends TableQuery(new UserAccountTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
     def apply(username: String) = this.withFilter(_.username === username)
@@ -88,6 +99,10 @@ final class UserAccountDAO @Inject()(
   }
   object UserWalletQuery extends TableQuery(new UserAccountWalletTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
+  }
+  object FailedCoinDepositQuery extends TableQuery(new FailedCoinDepositTable(_)) {
+    def apply(txHash: String) = this.withFilter(_.txHash === txHash)
+    def apply(createdAt: Instant) = this.withFilter(_.createdAt === createdAt)
   }
 }
 

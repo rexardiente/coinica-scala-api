@@ -8,7 +8,13 @@ import scala.concurrent.Future
 import play.api.libs.json._
 import models.domain.{ PaginatedResult, UserAccount, VIPUser, UserToken, UserAccountWallet }
 import models.domain.wallet.support._
-import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokenRepo, UserAccountWalletRepo, UserAccountWalletHistoryRepo }
+import models.repo.{
+                UserAccountRepo,
+                VIPUserRepo,
+                UserTokenRepo,
+                UserAccountWalletRepo,
+                UserAccountWalletHistoryRepo,
+                FailedCoinDepositRepo }
 import utils.lib.MultiCurrencyHTTPSupport
 
 @Singleton
@@ -18,6 +24,7 @@ class UserAccountService @Inject()(
       userTokenRepo: UserTokenRepo,
       userWalletRepo: UserAccountWalletRepo,
       userWalletHistoryRepo: UserAccountWalletHistoryRepo,
+      failedCoinDepositRepo: FailedCoinDepositRepo,
       httpSupport: MultiCurrencyHTTPSupport) {
   def isExist(name: String): Future[Boolean] =
   	userAccountRepo.exist(name)
@@ -232,6 +239,11 @@ class UserAccountService @Inject()(
                                     coin.receiver.amount)
                     .map(_.getOrElse(0))
         else Future(0)
+      }
+      // if tx has failed for unknown reason
+      // apply(tx_hash: String, id: UUID, issuer: Coin, receiver: Coin)
+      _ <- Future.successful {
+        if (!isTxHashExists) failedCoinDepositRepo.add(FailedCoinDeposit(coin.txHash, id, coin.issuer, coin.receiver))
       }
     } yield (process)
   }

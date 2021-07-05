@@ -37,6 +37,7 @@ class Generator @Inject()(
       user.UserTokenQuery.schema ++
       user.VIPUserQuery.schema ++
       user.UserWalletQuery.schema ++
+      user.FailedCoinDepositQuery.schema ++
       game.Query.schema ++
       genre.Query.schema ++
       task.Query.schema ++

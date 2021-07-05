@@ -643,7 +643,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit val implWalletSupportCoinWithdrawWrites = new Writes[CoinWithdraw] {
 	  def writes(tx: CoinWithdraw): JsValue = Json.obj("receiver" -> tx.receiver, "gasPrice" -> tx.gasPrice)
 	}
-
+	implicit def implicitFailedCoinDeposit = Json.format[FailedCoinDeposit]
 	implicit val implETHJsonRpcResultReads: Reads[ETHJsonRpcResult] = new Reads[ETHJsonRpcResult] {
 		override def reads(js: JsValue): JsResult[ETHJsonRpcResult] = js match {
 			case json: JsValue => {

@@ -10,6 +10,8 @@ create table "USER_ACCOUNT_VIP" ("ID" UUID NOT NULL PRIMARY KEY,"RANK" VARCHAR N
 
 create table "USER_ACCOUNT_WALLET" ("ID" UUID NOT NULL PRIMARY KEY,"BTC" VARCHAR NOT NULL,"ETH" VARCHAR NOT NULL,"USDC" VARCHAR NOT NULL);
 
+create table "FAILED_COIN_DEPOSIT" ("TX_HASH" VARCHAR NOT NULL PRIMARY KEY,"ACCOUNT_ID" UUID NOT NULL,"ISSUER" VARCHAR NOT NULL,"RECEIVER" VARCHAR NOT NULL,"CREATED_AT" timestamp NOT NULL);
+
 create table "GAME" ("ID" UUID NOT NULL PRIMARY KEY,"NAME" VARCHAR NOT NULL,"IMG_URL" VARCHAR NOT NULL,"PATH" VARCHAR NOT NULL,"GENRE" UUID NOT NULL,"DESCRIPTION" VARCHAR);
 
 create table "GENRE" ("ID" UUID NOT NULL PRIMARY KEY,"NAME" VARCHAR NOT NULL,"DESCRIPTION" VARCHAR);
@@ -50,10 +52,13 @@ alter table "USER_ACCOUNT_VIP" add constraint "USER_ACCOUNT_INFO" foreign key("I
 
 alter table "USER_ACCOUNT_WALLET" add constraint "USER_ACCOUNT_INFO" foreign key("ID") references "USER_ACCOUNT_INFO"("ID") on update NO ACTION on delete NO ACTION;
 
+alter table "FAILED_COIN_DEPOSIT" add constraint "USER_ACCOUNT_INFO" foreign key("ACCOUNT_ID") references "USER_ACCOUNT_INFO"("ID") on update NO ACTION on delete NO ACTION;
+
 
 
 # --- !Downs
 
+alter table "FAILED_COIN_DEPOSIT" drop constraint "USER_ACCOUNT_INFO";
 alter table "USER_ACCOUNT_WALLET" drop constraint "USER_ACCOUNT_INFO";
 alter table "USER_ACCOUNT_VIP" drop constraint "USER_ACCOUNT_INFO";
 alter table "USER_ACCOUNT_TOKEN" drop constraint "USER_ACCOUNT_INFO";
@@ -74,6 +79,7 @@ drop table "TASK_TRACKER";
 drop table "TASK";
 drop table "GENRE";
 drop table "GAME";
+drop table "FAILED_COIN_DEPOSIT";
 drop table "USER_ACCOUNT_WALLET";
 drop table "USER_ACCOUNT_VIP";
 drop table "USER_ACCOUNT_TOKEN";
