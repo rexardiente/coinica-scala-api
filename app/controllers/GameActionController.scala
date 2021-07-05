@@ -239,7 +239,7 @@ class GameActionController @Inject()(
         { case (tile)  =>
           val gameID: Int = account.userGameID
           for {
-            isOpened <- treasureHuntGameService.openTile(gameID, account.username, tile)
+            isOpened <- treasureHuntGameService.openTile(account.id, gameID, account.username, tile)
             process <- {
               if (isOpened._1) {
                 // return true=win or false=lose
