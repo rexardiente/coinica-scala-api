@@ -11,7 +11,7 @@ import models.domain.eosio.TreasureHuntGameData
 // import models.repo.eosio._
 
 @Singleton
-class TreasureHuntGameService @Inject()(contract: utils.lib.EOSIOHTTPSupport,
+class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 																				userAccountService: UserAccountService,
 																				overAllHistory: OverAllHistoryService) {
 	def userData(gameID: Int): Future[Option[TreasureHuntGameData]] =

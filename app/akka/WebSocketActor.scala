@@ -20,7 +20,7 @@ import models.repo.{ OverAllGameHistoryRepo, VIPUserRepo }
 import models.service.UserAccountService
 import akka.common.objects.{ Connect, GQBattleScheduler }
 import models.domain.wallet.support.UserAccountWalletHistory
-import utils.lib.EOSIOHTTPSupport
+import utils.lib.GhostQuestEOSIO
 import utils.Config
 
 object WebSocketActor {
@@ -31,7 +31,7 @@ object WebSocketActor {
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
       vipUserRepo: VIPUserRepo,
-      eosioHTTPSupport: EOSIOHTTPSupport,
+      ghostQuestEOSIO: GhostQuestEOSIO,
       dynamicBroadcast: ActorRef,
       dynamicProcessor: ActorRef)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor],
@@ -41,7 +41,7 @@ object WebSocketActor {
           historyRepo,
           overAllGameHistory,
           vipUserRepo,
-          eosioHTTPSupport,
+          ghostQuestEOSIO,
           dynamicBroadcast,
           dynamicProcessor,
           system)
@@ -58,7 +58,7 @@ class WebSocketActor@Inject()(
       historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
       vipUserRepo: VIPUserRepo,
-      eosioHTTPSupport: EOSIOHTTPSupport,
+      ghostQuestEOSIO: GhostQuestEOSIO,
       dynamicBroadcast: ActorRef,
       dynamicProcessor: ActorRef)(implicit system: ActorSystem) extends Actor {
   private val code: Int = out.hashCode
@@ -267,7 +267,7 @@ class WebSocketActor@Inject()(
     var hasNextKey: Option[String] = None
     var hasRows: Seq[GQTable] = Seq.empty
     do {
-      Await.ready(eosioHTTPSupport.getGhostQuestTableRows(new TableRowsRequest(Config.GQ_CODE,
+      Await.ready(ghostQuestEOSIO.getGhostQuestTableRows(new TableRowsRequest(Config.GQ_CODE,
                                                                     Config.GQ_TABLE,
                                                                     Config.GQ_SCOPE,
                                                                     None,

@@ -15,7 +15,7 @@ import models.domain._
 import models.domain.eosio.{ TableRowsRequest, GQCharacterGameHistory, GQBattleResult }
 import models.repo.{ OverAllGameHistoryRepo, DailyTaskRepo, TaskRepo, UserAccountRepo }
 import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
-import utils.lib.{ EOSIOHTTPSupport, GQBattleCalculation }
+import utils.lib.{ GhostQuestEOSIO, GQBattleCalculation }
 import models.domain.eosio.GQ.v2._
 import akka.common.objects._
 import utils.Config
@@ -39,7 +39,7 @@ object GQSchedulerActorV2 {
             accountRepo: UserAccountRepo,
             taskRepo: TaskRepo,
             dailyTaskRepo: DailyTaskRepo,
-            eosioHTTPSupport: EOSIOHTTPSupport)(implicit system: ActorSystem) =
+            ghostQuestEOSIO: GhostQuestEOSIO)(implicit system: ActorSystem) =
     Props(classOf[GQSchedulerActorV2],
           characterRepo,
           historyRepo,
@@ -47,7 +47,7 @@ object GQSchedulerActorV2 {
           accountRepo,
           taskRepo,
           dailyTaskRepo,
-          eosioHTTPSupport,
+          ghostQuestEOSIO,
           system)
 }
 
@@ -59,7 +59,7 @@ class GQSchedulerActorV2 @Inject()(
       accountRepo: UserAccountRepo,
       taskRepo: TaskRepo,
       dailyTaskRepo: DailyTaskRepo,
-      eosioHTTPSupport: EOSIOHTTPSupport,
+      ghostQuestEOSIO: GhostQuestEOSIO,
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
     )(implicit system: ActorSystem ) extends Actor with ActorLogging {
@@ -116,7 +116,7 @@ class GQSchedulerActorV2 @Inject()(
               p1 <- accountRepo.getByID(winner._2._1)
               p2 <- accountRepo.getByID(loser._2._1)
               _ <- Await.ready({
-                eosioHTTPSupport.ghostQuestBattleResult(counter._1.toString, (winner._1, p1.get.username), (loser._1, p2.get.username)).map {
+                ghostQuestEOSIO.ghostQuestBattleResult(counter._1.toString, (winner._1, p1.get.username), (loser._1, p2.get.username)).map {
                   case Some(e) => scBattleCounter.addOne(e, counter)
                   case e => null
                 }
@@ -211,7 +211,7 @@ class GQSchedulerActorV2 @Inject()(
               if (account != None) {
                 val acc: UserAccount =  account.get
 
-                eosioHTTPSupport.ghostQuestEliminate(acc.username, id).map {
+                ghostQuestEOSIO.ghostQuestEliminate(acc.userGameID, id).map {
                   case Some(txHash) => GQBattleScheduler.toRemovedCharacters.addOne(id, data)
                   case None => ()
                 }
@@ -427,7 +427,7 @@ class GQSchedulerActorV2 @Inject()(
   }
 
   private def requestGhostQuestTableRow(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =
-    eosioHTTPSupport.getGhostQuestTableRows(req, sender)
+    ghostQuestEOSIO.getGhostQuestTableRows(req, sender)
   private def systemBattleScheduler(timer: FiniteDuration): Unit = {
     system.scheduler.scheduleOnce(timer) {
       println("GQ BattleScheduler Starting")

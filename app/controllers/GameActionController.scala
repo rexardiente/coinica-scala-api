@@ -17,7 +17,7 @@ import models.service._
 import models.domain.eosio.{ TreasureHuntGameData, TreasureHuntGameDataPanelSet }
 import utils.auth.SecureUserAction
 import utils.Config
-import utils.lib.EOSIOHTTPSupport
+import utils.lib.GhostQuestEOSIO
 
 case class SeqIntForms(sets: Seq[Int])
 
@@ -28,7 +28,7 @@ class GameActionController @Inject()(
                           treasureHuntGameService: TreasureHuntGameService,
                           ghostQuestService: GQGameService,
                           mjHiloGameService: MahjongHiloGameService,
-                          eosioHTTPSupport: EOSIOHTTPSupport,
+                          ghostQuestEOSIO: GhostQuestEOSIO,
                           cc: ControllerComponents,
                           SecureUserAction: SecureUserAction) extends AbstractController(cc) {
   private val thGameStartForm = Form(tuple(

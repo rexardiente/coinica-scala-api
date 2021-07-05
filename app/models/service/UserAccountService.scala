@@ -9,7 +9,7 @@ import play.api.libs.json._
 import models.domain.{ PaginatedResult, UserAccount, VIPUser, UserToken, UserAccountWallet }
 import models.domain.wallet.support._
 import models.repo.{ UserAccountRepo, VIPUserRepo, UserTokenRepo, UserAccountWalletRepo, UserAccountWalletHistoryRepo }
-import utils.lib.{ MultiCurrencyHTTPSupport, EOSIOHTTPSupport }
+import utils.lib.MultiCurrencyHTTPSupport
 
 @Singleton
 class UserAccountService @Inject()(
@@ -18,8 +18,7 @@ class UserAccountService @Inject()(
       userTokenRepo: UserTokenRepo,
       userWalletRepo: UserAccountWalletRepo,
       userWalletHistoryRepo: UserAccountWalletHistoryRepo,
-      httpSupport: MultiCurrencyHTTPSupport,
-      eosioSupport: EOSIOHTTPSupport) {
+      httpSupport: MultiCurrencyHTTPSupport) {
   def isExist(name: String): Future[Boolean] =
   	userAccountRepo.exist(name)
 

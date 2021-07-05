@@ -28,5 +28,4 @@ object GQBattleScheduler {
   val toRemovedCharacters = HashMap.empty[String, GQCharacterData] // character ID and user
   val battleCounter = HashMap.empty[UUID, GQBattleResult]
   val noEnemy = HashMap.empty[String, UUID] // character ID and username
-  var REQUEST_BATTLE_STATUS = ""
 }

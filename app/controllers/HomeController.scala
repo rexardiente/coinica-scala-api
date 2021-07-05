@@ -45,7 +45,7 @@ class HomeController @Inject()(
       overAllGameHistoryRepo: OverAllGameHistoryRepo,
       overAllHistoryService: OverAllHistoryService,
       gqGameService: GQGameService,
-      eosioHTTPSupport: utils.lib.EOSIOHTTPSupport,
+      ghostQuestEOSIO: utils.lib.GhostQuestEOSIO,
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
       mat: akka.stream.Materializer,
@@ -112,7 +112,7 @@ class HomeController @Inject()(
                           gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
                           vipUserRepo,
-                          eosioHTTPSupport,
+                          ghostQuestEOSIO,
                           dynamicBroadcast,
                           dynamicProcessor)
     }
