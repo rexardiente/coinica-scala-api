@@ -16,7 +16,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/autoplay")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "panelset" -> sets))
       .map { v =>
@@ -28,11 +28,11 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/opentile")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "index" -> index))
       .map { v =>
-        val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
+        val transactionID: String = (v.json \ "data" \ "transaction_id").asOpt[String].getOrElse("")
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
           Some((true, transactionID))
         else Some((false, null))
@@ -42,7 +42,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/setenemy")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "enemy_count" -> count))
       .map { v =>
@@ -54,7 +54,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/destination")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "destination" -> destination))
       .map { v =>
@@ -66,7 +66,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/setpanel")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
@@ -78,7 +78,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/end")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
@@ -90,7 +90,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/initialize")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
@@ -102,7 +102,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/get_data")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
@@ -115,7 +115,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/gamestart")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest
       .post(Json.obj("id" -> id, "quantity" -> quantity))
@@ -128,12 +128,12 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/withdraw")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+      // .withRequestTimeout(10000.millis)
 
     complexRequest
       .post(Json.obj("id" -> id))
       .map { v =>
-        val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
+        val transactionID: String = (v.json \ "data" \ "transaction_id").asOpt[String].getOrElse("")
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
           (true, transactionID)
         else (false, null)
