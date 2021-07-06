@@ -90,11 +90,11 @@ class WebSocketActor@Inject()(
         ev match {
           case withdraw: ETHUSDCWithdrawEvent =>
             SystemSchedulerActor.walletTransactions.addOne(withdraw.tx_hash, withdraw)
-            out ! OutEvent(JsNull, JsString("received"))
+            out ! OutEvent.apply
 
           case deposit: DepositEvent =>
             SystemSchedulerActor.walletTransactions.addOne(deposit.tx_hash, deposit)
-            out ! OutEvent(JsNull, JsString("received"))
+            out ! OutEvent.apply
 
           case in: InEvent =>
             val user: UUID = in.id.asOpt[UUID].getOrElse(UUID.randomUUID)
@@ -140,8 +140,7 @@ class WebSocketActor@Inject()(
                         }
                         // update remaining characters that are still on battle
                         _ <- Future.sequence(seq.filter(x => x.life > 0).map(characterRepo.updateOrInsertAsSeq))
-                      } yield ()
-                      out ! OutEvent(JsNull, JsString("characters updated"))
+                      } yield (out ! OutEvent.apply)
                     }
                     WebSocketActor.isUpdatedCharacters.clear
                     WebSocketActor.hasPrevUpdateCharacter = false
@@ -167,7 +166,6 @@ class WebSocketActor@Inject()(
             log.info(oe.toJson.toString)
 
           case ca: ConnectionAlive =>
-            log.info(s"${code} ~> Connection Reset")
             out ! OutEvent(JsNull, JsString("connection reset"))
 
           case Subscribe(id, msg) =>

@@ -42,7 +42,9 @@ object Event extends utils.CommonImplicits
 object ETHUSDCWithdrawEvent extends utils.CommonImplicits
 object DepositEvent extends utils.CommonImplicits
 object InEvent extends utils.CommonImplicits
-object OutEvent extends utils.CommonImplicits
+object OutEvent extends utils.CommonImplicits {
+	def apply(): OutEvent = new OutEvent(JsNull, JsString("success"))
+}
 object Subscribe extends utils.CommonImplicits
 object ConnectionAlive extends utils.CommonImplicits
 

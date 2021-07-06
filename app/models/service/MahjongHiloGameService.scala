@@ -20,8 +20,9 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	def discardTile(gameID: Int, index: Int): Future[Boolean] =
 		contract.discardTile(gameID, index)
 
-	def playHilo(gameID: Int, option: Int): Future[(Boolean, String)] =
+	def playHilo(gameID: Int, option: Int): Future[(Boolean, String)] = {
 		contract.playHilo(gameID, option).map(_.getOrElse((false, null)))
+	}
 
 	def initialize(gameID: Int): Future[Boolean] =
 		contract.initialize(gameID)
