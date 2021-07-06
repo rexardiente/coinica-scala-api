@@ -7,6 +7,7 @@ import play.api.libs.json._
 object GameType
 object PaymentType
 object BooleanPredictions
+object IntPredictions
 object ListOfIntPredictions
 object TransactionType extends utils.CommonImplicits
 object OverAllGameHistory extends utils.CommonImplicits
@@ -17,7 +18,10 @@ sealed trait TransactionType {
 	def toJson(): JsValue = Json.toJson(this)
 }
 // prediction default to WIN and after battle check if who wins to true else false for lose..
-case class BooleanPredictions(user: UUID, prediction: String, result: Boolean, bet: Double) extends TransactionType {
+case class BooleanPredictions(user: UUID, prediction: Boolean, result: Boolean, bet: Double) extends TransactionType {
+	override def toJson(): JsValue = Json.toJson(this)
+}
+case class IntPredictions(user: UUID, prediction: Int, result: Int, bet: Double, amount: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
 // prediction equals list of panels selected and check if `result == prediction` is win else lose

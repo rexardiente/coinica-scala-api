@@ -85,9 +85,17 @@ class GameActionController @Inject()(
         mjHiloPlayHiloForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (option)  =>
-          mjHiloGameService
-            .playHilo(account.userGameID, option)
-            .map(x => Ok(JsBoolean(x._1)))
+          for {
+            (isWin, hash, gameData) <- mjHiloGameService.playHilo(account.id, account.userGameID, option)
+            process <- Future.successful {
+              if (isWin <= 2) {
+                gameData
+                  .map(v => Ok(v.toJson.as[JsObject] + ("transaction_id" -> JsString(hash))))
+                  .getOrElse(InternalServerError)
+              }
+              else InternalServerError
+            }
+          } yield (process)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -126,7 +134,7 @@ class GameActionController @Inject()(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (currency, quantity)  =>
           mjHiloGameService
-            .addBet(account.id, account.userGameID, currency, quantity)
+            .addBet(account.id, account.userGameID, currency.toUpperCase, quantity)
             .map(x => if (x > 0) Created else InternalServerError)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
@@ -155,7 +163,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .withdraw(account.id, account.userGameID)
-          .map(x => if (x > 0) Created else InternalServerError)
+          .map(x => if (x._1 > 0) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloGetUserData = SecureUserAction.async { implicit request =>
@@ -164,7 +172,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .getUserData(account.userGameID)
-          .map(x => Ok(x.getOrElse(JsNull)))
+          .map(x => Ok(Json.toJson(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
 
@@ -246,7 +254,7 @@ class GameActionController @Inject()(
               // return true=win or false=lose
               if (isWin <= 2) {
                 gameData
-                  .map(v => Ok(v.toJson.as[JsObject] + ("transaction_id" -> Json.toJson(hash))))
+                  .map(v => Ok(v.toJson.as[JsObject] + ("transaction_id" -> JsString(hash))))
                   .getOrElse(InternalServerError)
               }
               // isWin = 3 server error

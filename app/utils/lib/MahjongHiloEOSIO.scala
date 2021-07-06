@@ -8,9 +8,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
-import models.domain.eosio.GQ.v2._
-import models.domain.eosio.TreasureHuntGameData
-import models.domain.eosio.TableRowsRequest
+import models.domain.eosio.MahjongHiloGameData
 
 @Singleton
 class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
@@ -60,7 +58,7 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "option" -> option))
       .map { v =>
-        val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
+        val transactionID: String = (v.json \ "data" \ "transaction_id").asOpt[String].getOrElse("")
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
           Some((true, transactionID))
         else Some((false, null))
@@ -146,13 +144,13 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        val transactionID: String = (v.json \ "data" \ "transaction_id").as[String]
+        val transactionID: String = (v.json \ "data" \ "transaction_id").asOpt[String].getOrElse("")
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
           (true, transactionID)
         else (false, null)
       }.recover { case e: Exception => (false, null) }
   }
-  def getUserData(id: Int): Future[Option[JsValue]] =  {
+  def getUserData(id: Int): Future[Option[MahjongHiloGameData]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/get-table")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -161,7 +159,7 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          (v.json \ "data" \ "game_data").asOpt[JsValue]
+          (v.json \ "data" \ "game_data").asOpt[MahjongHiloGameData]
         else None
       }.recover { case e: Exception => None }
   }

@@ -5,12 +5,11 @@ import java.util.UUID
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import akka.actor._
+import akka.actor.ActorRef
 import play.api.libs.json._
 import utils.Config.{ SUPPORTED_SYMBOLS, TH_CODE, TH_GAME_ID }
 import models.domain.eosio.TreasureHuntGameData
 import models.domain._
-// import models.repo.eosio._
 
 @Singleton
 class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
@@ -48,7 +47,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 										val prediction: List[Int] = data.panel_set.map(_.isopen).toList
 			              val result: List[Int] = data.panel_set.map(_.iswin).toList
 			              val betAmount: Double = data.destination
-			              val prize: Double = data.prize.toDouble
+			              val prize: Double = 0
 										// create OverAllGameHistory object..
 										val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 			                                                                      hash,
@@ -62,13 +61,12 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 			                                                                      true,
 			                                                                      Instant.now.getEpochSecond)
 
-										overAllHistory.gameAdd(gameHistory).map { x =>
-							        if(x > 0) {
+										overAllHistory.gameAdd(gameHistory)
+											.map { _ =>
 							          dynamicBroadcast ! Array(gameHistory)
 							          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
-												dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, if (prize == 0) 0 else 1)
-							        }
-							      }
+												dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 0)
+								      }
 									}
 								}
 							} yield ()
@@ -166,15 +164,13 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 	                                                                      true,
 	                                                                      Instant.now.getEpochSecond)
 
-								overAllHistory.gameAdd(gameHistory).map { x =>
-					        if(x > 0) {
+								overAllHistory.gameAdd(gameHistory)
+									.map { _ =>
 					          dynamicBroadcast ! Array(gameHistory)
 					          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
-										dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, if (prize == 0) 0 else 1)
-										true
-					        }
-					        else false
-					      }
+										dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 1)
+						        true
+						      }
 							}
 							else Future(false)
 						}

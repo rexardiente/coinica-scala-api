@@ -436,11 +436,13 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	implicit def implPaymentType = Json.format[PaymentType]
 	implicit def implBooleanPredictions = Json.format[BooleanPredictions]
 	implicit def implListOfIntPredictions = Json.format[ListOfIntPredictions]
+	implicit def implIntPredictions = Json.format[IntPredictions]
 	implicit val implicitTransactionTypeReads: Reads[TransactionType] = {
 	  Json.format[GameType].map(x => x: TransactionType) or
 	  Json.format[PaymentType].map(x => x: TransactionType) or
 	  Json.format[BooleanPredictions].map(x => x: TransactionType) or
-	  Json.format[ListOfIntPredictions].map(x => x: TransactionType)
+	  Json.format[ListOfIntPredictions].map(x => x: TransactionType) or
+	  Json.format[IntPredictions].map(x => x: TransactionType)
 	}
 
 	implicit val implicitTransactionTypeWrites = new Writes[TransactionType] {
@@ -450,6 +452,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	      case m: PaymentType => Json.toJson(m)
 	      case m: BooleanPredictions => Json.toJson(m)
 	      case m: ListOfIntPredictions => Json.toJson(m)
+	      case m: IntPredictions => Json.toJson(m)
 	      case _ => Json.obj("error" -> "wrong Json")
 	    }
 	  }
@@ -790,4 +793,83 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 
 	implicit def implicitTreasureHuntGameDataPanelSet = Json.format[TreasureHuntGameDataPanelSet]
 	implicit def implicitTreasureHuntGameData = Json.format[TreasureHuntGameData]
+	implicit val implMahjongHiloGameDataReads: Reads[MahjongHiloGameData] = new Reads[MahjongHiloGameData] {
+		override def reads(js: JsValue): JsResult[MahjongHiloGameData] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(MahjongHiloGameData(
+						(json \ "game_id").as[String],
+						(json \ "deck_player").as[Seq[Int]],
+						(json \ "status").as[Int],
+						try { BigDecimal((json \ "hi_lo_balance").as[String]) } catch { case _: Throwable => 0 },
+						(json \ "hi_lo_result").as[Int],
+						try { BigDecimal((json \ "hi_lo_bet").as[String]) } catch { case _: Throwable => 0 },
+						try { BigDecimal((json \ "hi_lo_stake").as[String]) } catch { case _: Throwable => 0 },
+						try { BigDecimal((json \ "low_odds").as[String]) } catch { case _: Throwable => 0 },
+						try { BigDecimal((json \ "draw_odds").as[String]) } catch { case _: Throwable => 0 },
+						try { BigDecimal((json \ "high_odds").as[String]) } catch { case _: Throwable => 0 },
+						(json \ "bet_status").as[Int],
+						(json \ "option_status").as[Int],
+						(json \ "prediction").as[Int],
+						(json \ "sumofvalue").as[Seq[Int]],
+						(json \ "prevalent_wind").as[Int],
+						(json \ "seat_wind").as[Int],
+						(json \ "current_tile").as[Int],
+						(json \ "standard_tile").as[Int],
+						(json \ "eye_idx").as[Int],
+						(json \ "winnable").as[Int],
+						(json \ "pair_count").as[Int],
+						(json \ "pung_count").as[Int],
+						(json \ "chow_count").as[Int],
+						(json \ "kong_count").as[Int],
+						(json \ "draw_count").as[Int],
+						(json \ "hand_player").as[Seq[Int]],
+						(json \ "discarded_tiles").as[Seq[Int]],
+						(json \ "reveal_kong").as[Seq[Int]],
+						(json \ "winning_hand").as[Seq[Int]],
+						(json \ "score_check").as[Seq[Int]],
+						(json \ "score_type").as[Seq[Int]],
+						(json \ "final_score").as[Int]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implMahjongHiloGameDataWrites = new Writes[MahjongHiloGameData] {
+	  def writes(v: MahjongHiloGameData): JsValue = Json.obj(
+			"game_id" -> v.game_id,
+			"deck_player" -> v.deck_player,
+			"status" -> v.status,
+			"hi_lo_balance" -> v.hi_lo_balance,
+			"hi_lo_result" -> v.hi_lo_result,
+			"hi_lo_bet" -> v.hi_lo_bet,
+			"hi_lo_stake" -> v.hi_lo_stake,
+			"low_odds" -> v.low_odds,
+			"draw_odds" -> v.draw_odds,
+			"high_odds" -> v.high_odds,
+			"bet_status" -> v.bet_status,
+			"option_status" -> v.option_status,
+			"prediction" -> v.prediction,
+			"sumofvalue" -> v.sumofvalue,
+			"prevalent_wind" -> v.prevalent_wind,
+			"seat_wind" -> v.seat_wind,
+			"current_tile" -> v.current_tile,
+			"standard_tile" -> v.standard_tile,
+			"eye_idx" -> v.eye_idx,
+			"winnable" -> v.winnable,
+			"pair_count" -> v.pair_count,
+			"pung_count" -> v.pung_count,
+			"chow_count" -> v.chow_count,
+			"kong_count" -> v.kong_count,
+			"draw_count" -> v.draw_count,
+			"hand_player" -> v.hand_player,
+			"discarded_tiles" -> v.discarded_tiles,
+			"reveal_kong" -> v.reveal_kong,
+			"winning_hand" -> v.winning_hand,
+			"score_check" -> v.score_check,
+			"score_type" -> v.score_type,
+			"final_score" -> v.final_score)
+	}
 }

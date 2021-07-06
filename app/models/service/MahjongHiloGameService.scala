@@ -1,16 +1,22 @@
 package models.service
 
-import javax.inject.{ Inject, Singleton }
+import javax.inject.{ Inject, Named, Singleton }
 import java.util.UUID
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import akka.actor.ActorRef
 import play.api.libs.json._
-import utils.Config.SUPPORTED_SYMBOLS
+import utils.Config.{ SUPPORTED_SYMBOLS, MJHilo_CODE, MJHilo_GAME_ID }
+import models.domain.eosio.MahjongHiloGameData
+import models.domain._
 
 @Singleton
 class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 																			userAccountService: UserAccountService,
-																			overAllHistory: OverAllHistoryService) {
+																			overAllHistory: OverAllHistoryService,
+																			@Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
+																			@Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
 	def declareWinHand(gameID: Int): Future[Boolean] =
 		contract.declareWinHand(gameID)
 
@@ -20,8 +26,71 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	def discardTile(gameID: Int, index: Int): Future[Boolean] =
 		contract.discardTile(gameID, index)
 
-	def playHilo(gameID: Int, option: Int): Future[(Boolean, String)] = {
-		contract.playHilo(gameID, option).map(_.getOrElse((false, null)))
+	def playHilo(accID: UUID, gameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
+		for {
+			onPlay <- contract.playHilo(gameID, option)
+			gameData <- getUserData(gameID)
+			_ <- Future.successful {
+				onPlay
+					.map { v =>
+						val (isWin, hash): (Boolean, String) = v
+						// if lost, get game data..
+						if (!isWin) {
+							for {
+								// check if tx_hash already exists to DB history..
+								isExists <- overAllHistory.gameIsExistsByTxHash(hash)
+								// return true if successful adding to DB else false
+								_ <- Future.successful {
+									// check if not exists and has game data...
+									if (!isExists && gameData != None) {
+										val data: MahjongHiloGameData = gameData.get
+										val gameID: String = data.game_id
+										val prediction: Int = option
+			              val result: Int = data.prediction
+			              val betAmount: Double = data.hi_lo_stake.toDouble
+			              val prize: Double = 0
+										// create OverAllGameHistory object..
+										val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
+			                                                                      hash,
+			                                                                      gameID,
+			                                                                      MJHilo_CODE,
+			                                                                      IntPredictions(accID,
+			                                                                                    prediction,
+			                                                                                    result,
+			                                                                                    betAmount,
+			                                                                                  	prize),
+			                                                                      true,
+			                                                                      Instant.now.getEpochSecond)
+
+										overAllHistory.gameAdd(gameHistory).map { x =>
+							        if(x > 0) {
+							          dynamicBroadcast ! Array(gameHistory)
+							          dynamicProcessor ! DailyTask(accID, MJHilo_GAME_ID, 1)
+												dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, if (prize == 0) 0 else 1)
+							        }
+							      }
+									}
+
+								}
+							} yield ()
+						}
+					}
+					.getOrElse(3)
+			}
+
+			// if win or lost return (code int and hash string)
+			// else return (code int = 3 and hash null)
+			(isWin, hash, gameData) <- Future.successful {
+				onPlay
+					.map { v =>
+						val (isWin, hash): (Boolean, String) = v
+						if (isWin) (1, hash, gameData)
+						else (2, hash, gameData)
+					}
+					.getOrElse(3, null, None)
+			}
+
+		} yield ((isWin, hash, gameData))
 	}
 
 	def initialize(gameID: Int): Future[Boolean] =
@@ -62,14 +131,12 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	def transfer(gameID: Int): Future[Boolean] =
 		contract.transfer(gameID)
 
-	def withdraw(id: UUID, gameID: Int): Future[Int] = {
+	def withdraw(id: UUID, gameID: Int): Future[(Int, String)] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- contract.getUserData(gameID)
       // get prize amount from smartcontract
-      getPrize <- Future.successful {
-      	gameData.map(js => (js \ "hi_lo_balance").asOpt[BigDecimal].getOrElse(BigDecimal(0))).getOrElse(BigDecimal(0))
-      }
+      getPrize <- Future.successful(gameData.map(_.hi_lo_balance).getOrElse(BigDecimal(0)))
       processWithdraw <- {
       	if (getPrize > 0) contract.withdraw(gameID)
       	else Future(false, null)
@@ -82,10 +149,52 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       	}
       	.getOrElse(Future(0))
       }
-    } yield (updateBalance)
+      isSaveHistory <- {
+      	if (updateBalance > 0) {
+					val txHash: String = processWithdraw._2
+					val accID: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
+
+					for {
+						isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
+						processedHistory <- {
+							if (!isExists && gameData != None) {
+								val data: MahjongHiloGameData = gameData.get
+								val gameID: String = data.game_id
+								val prediction: Int = data.prediction
+	              val result: Int = data.prediction
+	              val betAmount: Double = data.hi_lo_stake.toDouble
+	              val prize: Double = data.hi_lo_balance.toDouble
+								// create OverAllGameHistory object..
+								val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
+	                                                                      txHash,
+	                                                                      gameID,
+	                                                                      MJHilo_CODE,
+	                                                                      IntPredictions(accID,
+	                                                                                    prediction,
+	                                                                                    result,
+	                                                                                    betAmount,
+	                                                                                    prize),
+	                                                                      true,
+	                                                                      Instant.now.getEpochSecond)
+
+								overAllHistory.gameAdd(gameHistory)
+									.map { _ =>
+					          dynamicBroadcast ! Array(gameHistory)
+					          dynamicProcessor ! DailyTask(accID, MJHilo_GAME_ID, 1)
+										dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 1)
+						        true
+						      }
+							}
+							else Future(false)
+						}
+					} yield (processedHistory)
+				}
+				else Future(false)
+      }
+    } yield ((if (isSaveHistory) 1 else 0, processWithdraw._2))
 	}
 
-	def getUserData(gameID: Int): Future[Option[JsValue]] =
+	def getUserData(gameID: Int): Future[Option[MahjongHiloGameData]] =
 		contract.getUserData(gameID)
 
 }
