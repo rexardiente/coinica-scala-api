@@ -22,70 +22,71 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 		contract.treasureHuntGetUserData(gameID)
 	def autoPlay(gameID: Int, username: String, sets: Seq[Int]): Future[Boolean] =
 		contract.treasureHuntAutoPlay(gameID, username, sets)
-	def openTile(accID: UUID, gameID: Int, username: String, index: Int): Future[(Boolean, String)] = {
+	def openTile(accID: UUID, gameID: Int, username: String, index: Int): Future[(Int, String, Option[TreasureHuntGameData])] = {
 		for {
-			openTile <- contract.treasureHuntOpenTile(gameID, username, index)
+			// return None if failed tx, Option[(Boolean, String)] if success:
+			// true = win and false = lose
+			isOpenTile <- contract.treasureHuntOpenTile(gameID, username, index)
+			gameData <- userData(gameID)
 			// if lost then save to DB, else do nothing
-			onLoseProcess <- {
-				openTile.map { tile =>
-					if (!tile._1) {
-						val txHash: String = tile._2
+			_ <- Future.successful {
+				isOpenTile
+					.map { v =>
+						val (isWin, hash): (Boolean, String) = v
+						// check if the user lost the game and ready to save DB
+						if (!isWin) {
+							// process add to history after few validations..
+							for {
+								// check if tx_hash already exists to DB history..
+								isExists <- overAllHistory.gameIsExistsByTxHash(hash)
+								// return true if successful adding to DB else false
+								_ <- Future.successful {
+									// check if not exists and has game data...
+									if (!isExists && gameData != None) {
+										val data: TreasureHuntGameData = gameData.get
+										val gameID: String = data.game_id
+										val prediction: List[Int] = data.panel_set.map(_.isopen).toList
+			              val result: List[Int] = data.panel_set.map(_.iswin).toList
+			              val betAmount: Double = data.destination
+			              val prize: Double = data.prize.toDouble
+										// create OverAllGameHistory object..
+										val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
+			                                                                      hash,
+			                                                                      gameID,
+			                                                                      TH_CODE,
+			                                                                      ListOfIntPredictions(accID,
+						                                                                                    prediction,
+						                                                                                    result,
+						                                                                                    betAmount,
+						                                                                                    prize),
+			                                                                      true,
+			                                                                      Instant.now.getEpochSecond)
 
-						for {
-							isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
-							gameData <- userData(gameID)
-							processedHistory <- {
-								if (!isExists && gameData != None) {
-									val data: TreasureHuntGameData = gameData.getOrElse(null)
-									val gameID: String = data.game_id
-									val prediction: List[Int] = data.panel_set.map(_.isopen).toList
-		              val result: List[Int] = data.panel_set.map(_.iswin).toList
-		              val betAmount: Double = data.destination
-		              val prize: Double = data.prize.toDouble
-									// create OverAllGameHistory object..
-									val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-		                                                                      txHash,
-		                                                                      gameID,
-		                                                                      TH_CODE,
-		                                                                      ListOfIntPredictions(accID,
-					                                                                                    prediction,
-					                                                                                    result,
-					                                                                                    betAmount,
-					                                                                                    prize),
-		                                                                      true,
-		                                                                      Instant.now.getEpochSecond)
-
-									overAllHistory.gameAdd(gameHistory).map { x =>
-						        if(x > 0) {
-						          dynamicBroadcast ! Array(gameHistory)
-						          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
-											dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, if (prize == 0) 0 else 1)
-											true
-						        }
-						        else false
-						      }
+										overAllHistory.gameAdd(gameHistory).map { x =>
+							        if(x > 0) {
+							          dynamicBroadcast ! Array(gameHistory)
+							          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
+												dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, if (prize == 0) 0 else 1)
+							        }
+							      }
+									}
 								}
-								else Future(false)
-							}
-						} yield (processedHistory)
+							} yield ()
+						}
 					}
-					else Future(false)
-
-				}
-				.getOrElse(Future(false))
 			}
-			// isWin Process
-			isWin <- Future {
-				openTile.map { tile =>
-					if (tile._1) true
-					// if game lost and lose process is successful
-					else if (!tile._1 && onLoseProcess) true
-					// else game lost but failed to process history...
-					else false
-				}
-				.getOrElse(false)
+			// if win or lost return (code int and hash string)
+			// else return (code int = 3 and hash null)
+			(isWin, hash, gameData) <- Future.successful {
+				isOpenTile
+					.map { v =>
+						val (isWin, hash): (Boolean, String) = v
+						if (isWin) (1, hash, gameData)
+						else (2, hash, gameData)
+					}
+					.getOrElse(3, null, None)
 			}
-		} yield ((isWin, openTile.map(_._2).getOrElse(null)))
+		} yield ((isWin, hash, gameData))
 	}
 	def setEnemy(gameID: Int, username: String, count: Int): Future[Boolean] =
 		contract.treasureHuntSetEnemy(gameID, username, count)

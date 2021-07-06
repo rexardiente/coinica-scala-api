@@ -239,20 +239,18 @@ class GameActionController @Inject()(
         { case (tile)  =>
           val gameID: Int = account.userGameID
           for {
-            isOpened <- treasureHuntGameService.openTile(account.id, gameID, account.username, tile)
-            process <- {
-              if (isOpened._1) {
-                // return true=win or false=lose
-                for {
-                  gameData <- treasureHuntGameService.userData(gameID)
-                  isWin <- Future.successful {
-                    gameData
-                      .map(data => Ok(data.toJson.as[JsObject] + ("transaction_id" -> Json.toJson(isOpened._2))))
-                      .getOrElse(InternalServerError)
-                  }
-                } yield (isWin)
+            (isWin, hash, gameData) <- treasureHuntGameService.openTile(account.id, gameID, account.username, tile)
+            process <- Future.successful {
+              // isWin = 1 is win
+              // isWin = 2 is lost
+              // return true=win or false=lose
+              if (isWin <= 2) {
+                gameData
+                  .map(v => Ok(v.toJson.as[JsObject] + ("transaction_id" -> Json.toJson(hash))))
+                  .getOrElse(InternalServerError)
               }
-              else Future(InternalServerError)
+              // isWin = 3 server error
+              else InternalServerError
             }
           } yield (process)
         })
