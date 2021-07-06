@@ -385,7 +385,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           grouped.map { case (user, histories) =>
             val bets: Seq[(Double, Double)] = histories.map { history =>
               history.info match {
-                case GQGameHistory(name, prediction, result, bet) =>
+                case BooleanPredictions(name, prediction, result, bet) =>
                   if (result) (bet, 1) else (bet, 0)
                 case ListOfIntPredictions(name, prediction, result, bet, amount) =>
                   if (prediction == result) (bet, amount) else (bet, amount)

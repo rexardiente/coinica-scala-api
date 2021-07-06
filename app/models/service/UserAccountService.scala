@@ -230,20 +230,20 @@ class UserAccountService @Inject()(
       isTxHashExists <- userWalletHistoryRepo.existByTxHash(coin.txHash)
       // check transaction details using tx_hash
       process <- {
-        if (!isTxHashExists)
+        if (!isTxHashExists) {
           httpSupport.walletDeposit(id,
                                     coin.txHash,
                                     coin.issuer.address.getOrElse(""),
                                     coin.receiver.address.getOrElse(""),
                                     coin.receiver.currency,
                                     coin.receiver.amount)
-                    .map(_.getOrElse(0))
+          // if tx has failed for unknown reason
+                      .map(_.getOrElse({
+                        failedCoinDepositRepo.add(FailedCoinDeposit(coin.txHash, id, coin.issuer, coin.receiver))
+                        0
+                      }))
+        }
         else Future(0)
-      }
-      // if tx has failed for unknown reason
-      // apply(tx_hash: String, id: UUID, issuer: Coin, receiver: Coin)
-      _ <- Future.successful {
-        if (!isTxHashExists) failedCoinDepositRepo.add(FailedCoinDeposit(coin.txHash, id, coin.issuer, coin.receiver))
       }
     } yield (process)
   }

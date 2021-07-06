@@ -246,7 +246,7 @@ class GQSchedulerActorV2 @Inject()(
                               txHash,
                               gameID.toString,
                               Config.GQ_CODE,
-                              GQGameHistory(winnerAcc.map(_.id).getOrElse(UUID.randomUUID), "WIN", true, 1),
+                              BooleanPredictions(winnerAcc.map(_.id).getOrElse(UUID.randomUUID), "WIN", true, 1),
                               true,
                               time),
           new OverAllGameHistory(
@@ -254,7 +254,7 @@ class GQSchedulerActorV2 @Inject()(
                               txHash,
                               gameID.toString,
                               Config.GQ_CODE,
-                              GQGameHistory(loserAcc.map(_.id).getOrElse(UUID.randomUUID), "WIN", false, 1),
+                              BooleanPredictions(loserAcc.map(_.id).getOrElse(UUID.randomUUID), "WIN", false, 1),
                               true,
                               time)),
           new GQCharacterGameHistory(

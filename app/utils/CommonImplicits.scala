@@ -434,12 +434,12 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 
   implicit def implGameType = Json.format[GameType]
 	implicit def implPaymentType = Json.format[PaymentType]
-	implicit def implGQGameHistory = Json.format[GQGameHistory]
+	implicit def implBooleanPredictions = Json.format[BooleanPredictions]
 	implicit def implListOfIntPredictions = Json.format[ListOfIntPredictions]
 	implicit val implicitTransactionTypeReads: Reads[TransactionType] = {
 	  Json.format[GameType].map(x => x: TransactionType) or
 	  Json.format[PaymentType].map(x => x: TransactionType) or
-	  Json.format[GQGameHistory].map(x => x: TransactionType) or
+	  Json.format[BooleanPredictions].map(x => x: TransactionType) or
 	  Json.format[ListOfIntPredictions].map(x => x: TransactionType)
 	}
 
@@ -448,7 +448,7 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 	    event match {
 	      case m: GameType => Json.toJson(m)
 	      case m: PaymentType => Json.toJson(m)
-	      case m: GQGameHistory => Json.toJson(m)
+	      case m: BooleanPredictions => Json.toJson(m)
 	      case m: ListOfIntPredictions => Json.toJson(m)
 	      case _ => Json.obj("error" -> "wrong Json")
 	    }
