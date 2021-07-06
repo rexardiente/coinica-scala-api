@@ -231,17 +231,20 @@ class UserAccountService @Inject()(
       // check transaction details using tx_hash
       process <- {
         if (!isTxHashExists) {
-          httpSupport.walletDeposit(id,
-                                    coin.txHash,
-                                    coin.issuer.address.getOrElse(""),
-                                    coin.receiver.address.getOrElse(""),
-                                    coin.receiver.currency,
-                                    coin.receiver.amount)
-          // if tx has failed for unknown reason
-                      .map(_.getOrElse({
-                        failedCoinDepositRepo.add(FailedCoinDeposit(coin.txHash, id, coin.issuer, coin.receiver))
-                        0
-                      }))
+          for {
+            isDeposited <- httpSupport.walletDeposit(id,
+                                                    coin.txHash,
+                                                    coin.issuer.address.getOrElse(""),
+                                                    coin.receiver.address.getOrElse(""),
+                                                    coin.receiver.currency,
+                                                    coin.receiver.amount)
+            // if tx has failed for unknown reason
+            _ <- {
+              if (isDeposited.getOrElse(0) == 0)
+                failedCoinDepositRepo.add(FailedCoinDeposit(coin.txHash, id, coin.issuer, coin.receiver))
+              else Future.successful(())
+            }
+          } yield (isDeposited.getOrElse(0))
         }
         else Future(0)
       }
