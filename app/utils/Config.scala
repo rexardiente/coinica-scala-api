@@ -26,7 +26,7 @@ object Config {
 	val TH_GAME_ID: UUID = UUID.fromString(TH(3))
 	val TH_GAME_CODE: String = TH(4)
 	// Mahjong Hilo
-	val MJHilo: List[String] = config.getStringList("platform.games.contracts.treasurehunt").asScala.toList
+	val MJHilo: List[String] = config.getStringList("platform.games.contracts.mahjonghilo").asScala.toList
 	val MJHilo_CODE: String = MJHilo(0)
 	val MJHilo_TABLE: String = MJHilo(1)
 	val MJHilo_SCOPE: String = MJHilo(2)
