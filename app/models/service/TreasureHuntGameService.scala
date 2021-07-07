@@ -123,58 +123,64 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       getPrize <- Future.successful(gameData.map(_.prize).getOrElse(BigDecimal(0)))
       processWithdraw <- {
       	if (getPrize > 0) contract.treasureHuntWithdraw(gameID)
-      	else Future((false, null))
+      	else Future(None)
       }
       // if successful, add new balance to account..
       updateBalance <- {
       	hasWallet.map { _ =>
-      		if (processWithdraw._1) userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize)
-      		else Future(0)
+      		processWithdraw
+      			.map(_ => userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize))
+      			.getOrElse(Future(0))
       	}
       	.getOrElse(Future(0))
       }
       isSaveHistory <- {
       	if (updateBalance > 0) {
-					val txHash: String = processWithdraw._2
-					val accID: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
+      		processWithdraw
+      			.map { txHash =>
+      				gameData
+      					.map { data =>
+      						val accID: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
+      						for {
+										isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
+										processedHistory <- {
+											if (!isExists) {
+												val gameID: String = data.game_id
+												val prediction: List[Int] = data.panel_set.map(_.isopen).toList
+					              val result: List[Int] = data.panel_set.map(_.iswin).toList
+					              val betAmount: Double = data.destination
+					              val prize: Double = data.prize.toDouble
+												// create OverAllGameHistory object..
+												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
+					                                                                      txHash,
+					                                                                      gameID,
+					                                                                      TH_CODE,
+					                                                                      ListOfIntPredictions(accID,
+								                                                                                    prediction,
+								                                                                                    result,
+								                                                                                    betAmount,
+								                                                                                    prize),
+					                                                                      true,
+					                                                                      Instant.now.getEpochSecond)
 
-					for {
-						isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
-						processedHistory <- {
-							if (!isExists && gameData != None) {
-								val data: TreasureHuntGameData = gameData.getOrElse(null)
-								val gameID: String = data.game_id
-								val prediction: List[Int] = data.panel_set.map(_.isopen).toList
-	              val result: List[Int] = data.panel_set.map(_.iswin).toList
-	              val betAmount: Double = data.destination
-	              val prize: Double = data.prize.toDouble
-								// create OverAllGameHistory object..
-								val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-	                                                                      txHash,
-	                                                                      gameID,
-	                                                                      TH_CODE,
-	                                                                      ListOfIntPredictions(accID,
-				                                                                                    prediction,
-				                                                                                    result,
-				                                                                                    betAmount,
-				                                                                                    prize),
-	                                                                      true,
-	                                                                      Instant.now.getEpochSecond)
-
-								overAllHistory.gameAdd(gameHistory)
-									.map { _ =>
-					          dynamicBroadcast ! Array(gameHistory)
-					          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
-										dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 1)
-						        true
-						      }
-							}
-							else Future(false)
-						}
-					} yield (processedHistory)
+												overAllHistory.gameAdd(gameHistory)
+													.map { _ =>
+									          dynamicBroadcast ! Array(gameHistory)
+									          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
+														dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 1)
+										        true
+										      }
+											}
+											else Future(false)
+										}
+									} yield (processedHistory)
+      					}
+      					.getOrElse(Future(false))
+      			}
+      			.getOrElse(Future(false))
 				}
 				else Future(false)
       }
-    } yield ((if (isSaveHistory) 1 else 0, processWithdraw._2))
+    } yield ((if (isSaveHistory) 1 else 0, processWithdraw.getOrElse(null)))
 	}
 }

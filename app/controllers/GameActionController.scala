@@ -163,7 +163,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .withdraw(account.id, account.userGameID)
-          .map(x => if (x._1 > 0) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
+          .map(x => if (x._1) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloGetUserData = SecureUserAction.async { implicit request =>
