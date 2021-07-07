@@ -24,7 +24,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else false
       }.recover { case e: Exception => false }
   }
-  def treasureHuntOpenTile(id: Int, username: String, index: Int): Future[Option[(Boolean, String)]] =  {
+  def treasureHuntOpenTile(id: Int, username: String, index: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/opentile")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -32,10 +32,9 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "username" -> username, "index" -> index))
       .map { v =>
-        val transactionID: String = (v.json \ "data" \ "transaction_id").asOpt[String].getOrElse("")
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((true, transactionID))
-        else Some((false, null))
+          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(""))
+        else None
       }.recover { case e: Exception => None }
   }
   def treasureHuntSetEnemy(id: Int, username: String, count: Int): Future[Boolean] =  {

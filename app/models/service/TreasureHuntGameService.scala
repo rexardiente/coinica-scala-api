@@ -28,63 +28,60 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 			isOpenTile <- contract.treasureHuntOpenTile(gameID, username, index)
 			gameData <- userData(gameID)
 			// if lost then save to DB, else do nothing
-			_ <- Future.successful {
+			onProcess <- {
 				isOpenTile
-					.map { v =>
-						val (isWin, hash): (Boolean, String) = v
-						// check if the user lost the game and ready to save DB
-						if (!isWin) {
-							// process add to history after few validations..
-							for {
-								// check if tx_hash already exists to DB history..
-								isExists <- overAllHistory.gameIsExistsByTxHash(hash)
-								// return true if successful adding to DB else false
-								_ <- Future.successful {
-									// check if not exists and has game data...
-									if (!isExists && gameData != None) {
-										val data: TreasureHuntGameData = gameData.get
-										val gameID: String = data.game_id
-										val prediction: List[Int] = data.panel_set.map(_.isopen).toList
-			              val result: List[Int] = data.panel_set.map(_.iswin).toList
-			              val betAmount: Double = data.destination
-			              val prize: Double = 0
-										// create OverAllGameHistory object..
-										val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-			                                                                      hash,
-			                                                                      gameID,
-			                                                                      TH_CODE,
-			                                                                      ListOfIntPredictions(accID,
-						                                                                                    prediction,
-						                                                                                    result,
-						                                                                                    betAmount,
-						                                                                                    prize),
-			                                                                      true,
-			                                                                      Instant.now.getEpochSecond)
+					.map { hash =>
+						// if process succesful then proceed checking if win or lose
+						gameData
+							.map { data =>
+								// check if the status is DONE, then save to DB
+								if (data.status == 2) {
+									for {
+										// check if tx_hash already exists to DB history
+										isExists <- overAllHistory.gameIsExistsByTxHash(hash)
+										// return true if successful adding to DB else false
+										onSaveHistory <- {
+											if (!isExists) {
+												val gameID: String = data.game_id
+												val prediction: List[Int] = data.panel_set.map(_.isopen).toList
+					              val result: List[Int] = data.panel_set.map(_.iswin).toList
+					              val betAmount: Double = data.destination
+					              val prize: Double = 0
+												// create OverAllGameHistory object..
+												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
+					                                                                      hash,
+					                                                                      gameID,
+					                                                                      TH_CODE,
+					                                                                      ListOfIntPredictions(accID,
+								                                                                                    prediction,
+								                                                                                    result,
+								                                                                                    betAmount,
+								                                                                                    prize),
+					                                                                      true,
+					                                                                      Instant.now.getEpochSecond)
 
-										overAllHistory.gameAdd(gameHistory)
-											.map { _ =>
-							          dynamicBroadcast ! Array(gameHistory)
-							          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
-												dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 0)
-								      }
-									}
+												overAllHistory.gameAdd(gameHistory)
+													.map { isAdded =>
+									          if (isAdded > 0) {
+									          	dynamicBroadcast ! Array(gameHistory)
+										          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
+															dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 0)
+															(2)
+									          }
+									          else (3)
+										      }
+											}
+											else Future(3)
+										}
+									} yield (onSaveHistory)
 								}
-							} yield ()
-						}
+								else Future(1) // return 1 if WIN
+							}
+							.getOrElse(Future(3))
 					}
+					.getOrElse(Future(3))
 			}
-			// if win or lost return (code int and hash string)
-			// else return (code int = 3 and hash null)
-			(isWin, hash, gameData) <- Future.successful {
-				isOpenTile
-					.map { v =>
-						val (isWin, hash): (Boolean, String) = v
-						if (isWin) (1, hash, gameData)
-						else (2, hash, gameData)
-					}
-					.getOrElse(3, null, None)
-			}
-		} yield ((isWin, hash, gameData))
+		} yield (onProcess, isOpenTile.getOrElse(null), gameData)
 	}
 	def setEnemy(gameID: Int, username: String, count: Int): Future[Boolean] =
 		contract.treasureHuntSetEnemy(gameID, username, count)
