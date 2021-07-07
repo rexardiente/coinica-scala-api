@@ -115,7 +115,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       }
     } yield (updateBalance)
 	}
-	def withdraw(id: UUID, gameID: Int): Future[(Int, String)] = {
+	def withdraw(id: UUID, gameID: Int): Future[(Boolean, String)] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- contract.treasureHuntGetUserData(gameID)
@@ -181,6 +181,6 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 				}
 				else Future(false)
       }
-    } yield ((if (isSaveHistory) 1 else 0, processWithdraw.getOrElse(null)))
+    } yield ((isSaveHistory, processWithdraw.getOrElse(null)))
 	}
 }

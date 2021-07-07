@@ -93,6 +93,7 @@ GET  	/donut/api/v1/game/treasurehunt/withdraw  	controllers.GameActionControlle
 
 # Mahjong Hilo
 GET  	/donut/api/v1/game/mahjong-hilo/declare/win-hand 	controllers.GameActionController.mahjongHiloDeclareWinHand
+GET  	/donut/api/v1/game/mahjong-hilo/reset-bet 			controllers.GameActionController.mahjongHiloResetBet
 POST  /donut/api/v1/game/mahjong-hilo/declare/kong 		controllers.GameActionController.mahjongHiloDeclareKong
 POST  /donut/api/v1/game/mahjong-hilo/discard-tile 		controllers.GameActionController.mahjongHiloDiscardTile
 POST  /donut/api/v1/game/mahjong-hilo/play-hilo 		controllers.GameActionController.mahjongHiloPlayHilo

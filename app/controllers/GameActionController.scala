@@ -43,6 +43,15 @@ class GameActionController @Inject()(
   private val mjHiloPlayHiloForm = Form(single("option" -> number))
   private val mjHiloAddBetForm = Form(tuple("currency" -> nonEmptyText, "quantity" -> number))
 
+  def mahjongHiloResetBet = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .resetBet(account.userGameID)
+          .map(x => Ok(JsBoolean(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def mahjongHiloDeclareWinHand = SecureUserAction.async { implicit request =>
     request
       .account
@@ -296,7 +305,7 @@ class GameActionController @Inject()(
       .map { account =>
         treasureHuntGameService
           .withdraw(account.id, account.userGameID)
-          .map(x => if (x._1 > 0) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
+          .map(x => if (x._1) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def getAllGQGameHistory() = SecureUserAction.async { implicit request =>

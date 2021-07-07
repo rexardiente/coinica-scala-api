@@ -19,13 +19,12 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 																			@Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
 	def declareWinHand(gameID: Int): Future[Boolean] =
 		contract.declareWinHand(gameID)
-
+	def resetBet(gameID: Int): Future[Boolean] =
+		contract.resetBet(gameID)
 	def declareKong(gameID: Int, sets: Seq[Int]): Future[Boolean] =
 		contract.declareKong(gameID, sets)
-
 	def discardTile(gameID: Int, index: Int): Future[Boolean] =
 		contract.discardTile(gameID, index)
-
 	def playHilo(accID: UUID, gameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
 		for {
 			onPlay <- contract.playHilo(gameID, option)
@@ -88,13 +87,10 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 
 	def initialize(gameID: Int): Future[Boolean] =
 		contract.initialize(gameID)
-
 	def reset(gameID: Int): Future[Boolean] =
 		contract.reset(gameID)
-
 	def quit(gameID: Int): Future[Boolean] =
 		contract.quit(gameID)
-
 	def addBet(id: UUID, gameID: Int, currency: String, quantity: Int): Future[Int] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
@@ -120,10 +116,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 
 	def start(gameID: Int): Future[Boolean] =
 		contract.start(gameID)
-
 	def transfer(gameID: Int): Future[Boolean] =
 		contract.transfer(gameID)
-
 	def withdraw(id: UUID, gameID: Int): Future[(Boolean, String)] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)

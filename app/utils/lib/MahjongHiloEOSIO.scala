@@ -26,6 +26,18 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else false
       }.recover { case e: Exception => false }
   }
+  def resetBet(id: Int): Future[Boolean] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/reset-bet")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
+        else false
+      }.recover { case e: Exception => false }
+  }
   def declareKong(id: Int, sets: Seq[Int]): Future[Boolean] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/declare-kong")
     val complexRequest: WSRequest = request
