@@ -19,8 +19,6 @@ import utils.auth.SecureUserAction
 import utils.Config
 import utils.lib.GhostQuestEOSIO
 
-case class SeqIntForms(sets: Seq[Int])
-
 @Singleton
 class GameActionController @Inject()(
                           accountService: UserAccountService,
@@ -42,6 +40,8 @@ class GameActionController @Inject()(
   private val mjHiloDiscardTileForm = Form(single("tile" -> number))
   private val mjHiloPlayHiloForm = Form(single("option" -> number))
   private val mjHiloAddBetForm = Form(tuple("currency" -> nonEmptyText, "quantity" -> number))
+  private val ghostQuestGenerateCharacterForm = Form(tuple("quantity" -> number, "limit" -> number))
+  private val ghostQuestKeyForm = Form(single("key" -> nonEmptyText))
 
   def mahjongHiloResetBet = SecureUserAction.async { implicit request =>
     request
@@ -308,13 +308,13 @@ class GameActionController @Inject()(
           .map(x => if (x._1) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getAllGQGameHistory() = SecureUserAction.async { implicit request =>
+  def ghostQuestGetAllGQGameHistory() = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.getAllGameHistory().map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getGQGameHistoryByUser(id: UUID) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetGQGameHistoryByUser(id: UUID) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -325,7 +325,7 @@ class GameActionController @Inject()(
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getGQGameHistoryByUserAndCharacterID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetGQGameHistoryByUserAndCharacterID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -336,20 +336,20 @@ class GameActionController @Inject()(
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getGQGameHistoryByGameID(id: String) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetGQGameHistoryByGameID(id: String) = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.filteredGameHistoryByID(id).map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   // Ghost Quest Game
-  // def getAllCharacters() = SecureUserAction.async { implicit request =>
+  // def ghostQuestGetAllCharacters() = SecureUserAction.async { implicit request =>
   //   request
   //     .account
   //     .map(_ => gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x))))
   //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   // }
-  def getAllCharactersByUser(id: UUID) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetAllCharactersByUser(id: UUID) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -360,7 +360,7 @@ class GameActionController @Inject()(
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getCharactersByUser(id: UUID) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetCharactersByUser(id: UUID) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -371,13 +371,13 @@ class GameActionController @Inject()(
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getCharacterByID(id: String) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetCharacterByID(id: String) = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.getCharacterDataByID(id).map(Ok(_)))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getCharacterByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetCharacterByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -388,7 +388,7 @@ class GameActionController @Inject()(
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getCharacterHistoryByUser(id: UUID) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetCharacterHistoryByUser(id: UUID) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -399,7 +399,7 @@ class GameActionController @Inject()(
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getCharacterHistoryByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
+  def ghostQuestGetCharacterHistoryByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -410,42 +410,112 @@ class GameActionController @Inject()(
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def highEarnCharactersAllTime() = SecureUserAction.async { implicit request =>
+  def ghostQuestHighEarnCharactersAllTime() = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.highEarnCharactersAllTime().map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def highEarnCharactersDaily() = SecureUserAction.async { implicit request =>
+  def ghostQuestHighEarnCharactersDaily() = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.highEarnCharactersDaily().map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def highEarnCharactersWeekly() = SecureUserAction.async { implicit request =>
+  def ghostQuestHighEarnCharactersWeekly() = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.highEarnCharactersWeekly().map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
-  def winStreakPerDay() = SecureUserAction.async { implicit request =>
+  def ghostQuestWinStreakPerDay() = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.winStreakPerDay().map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def winStreakPerWeekly() = SecureUserAction.async { implicit request =>
+  def ghostQuestWinStreakPerWeekly() = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.winStreakPerWeekly().map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def winStreakLifeTime() = SecureUserAction.async { implicit request =>
+  def ghostQuestWinStreakLifeTime() = SecureUserAction.async { implicit request =>
     request
       .account
       .map(_ => ghostQuestService.winStreakLifeTime().map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
+  def ghostQuestGetUserData() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(account => ghostQuestService.getUserData(account.userGameID).map(Ok(_)))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestInitialize() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        ghostQuestService
+          .initialize(account.userGameID, account.username)
+          .map(x => Ok(JsString(x.getOrElse(null))))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestGenerateCharacter() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        ghostQuestGenerateCharacterForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (quantity, limit)  =>
+          ghostQuestService
+            .generateCharacter(account.userGameID, account.username, quantity, limit)
+            .map(x => Ok(JsString(x.getOrElse(null))))
+        })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestAddLife() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        ghostQuestKeyForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (key)  =>
+          ghostQuestService
+            .addLife(account.userGameID, key)
+            .map(x => Ok(JsString(x.getOrElse(null))))
+        })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestWithdraw() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        ghostQuestKeyForm.bindFromRequest.fold(
+        formErr => Future.successful(BadRequest("Invalid request")),
+        { case (key)  =>
+          ghostQuestService
+            .withdraw(account.userGameID, key)
+            .map(x => Ok(JsString(x.getOrElse(null))))
+        })
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  // def ghostQuestEliminate() = SecureUserAction.async { implicit request =>
+  //   request
+  //     .account
+  //     .map { account =>
+  //       ghostQuestKeyForm.bindFromRequest.fold(
+  //       formErr => Future.successful(BadRequest("Invalid request")),
+  //       { case (key)  =>
+  //         ghostQuestService
+  //           .eliminate(account.userGameID, key)
+  //           .map(x => Ok(JsString(x.getOrElse(null))))
+  //       })
+  //     }
+  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  // }
 }

@@ -11,11 +11,111 @@ import play.api.libs.json._
 import models.domain.eosio.GQ.v2._
 import models.domain.eosio.TableRowsRequest
 
+// https://github.com/DonutFactory/eosjs-node-server/blob/master/docs/GHOSTQUEST_V2_API.md
 @Singleton
 class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
+  def getUserData(id: Int): Future[JsValue] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
 
-  def getGhostQuestTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] =  {
+    complexRequest.post(Json.obj("id" -> id))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data").asOpt[JsValue].getOrElse(JsNull)
+        else JsNull
+      }.recover { case e: Exception => JsNull }
+  }
+  def initialize(id: Int, username: String): Future[Option[String]] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/initialize")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "username" -> username))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+        else None
+      }.recover { case e: Exception => None }
+  }
+  def generateCharacter(id: Int, username: String, quantity: Int, limit: Int): Future[Option[String]] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/summon_ghost")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id,
+                                "username" -> username,
+                                "quantity" -> quantity,
+                                "limit" -> limit))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+        else None
+      }.recover { case e: Exception => None }
+  }
+  def addLife(id: Int, key: String): Future[Option[String]] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/add_life")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "key" -> key))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+        else None
+      }.recover { case e: Exception => None }
+  }
+  def eliminate(id: Int, key: String): Future[Option[String]] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/eliminate")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "key" -> key))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+        else None
+      }.recover { case e: Exception => None }
+  }
+  def withdraw(id: Int, key: String): Future[Option[String]] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/withdraw")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("id" -> id, "key" -> key))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+        else None
+      }.recover { case e: Exception => None }
+  }
+  def battleResult(gameid: String, winner: (String, Int), loser: (String, Int)): Future[Option[String]] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/battle_result")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest
+      .post(Json.obj(
+        "gameid" -> gameid,
+        "winner" -> Json.obj("first" -> winner._1, "second" -> winner._2),
+        "loser" -> Json.obj("first" -> loser._1, "second" -> loser._2)
+      ))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+        else None
+      }.recover { case e: Exception => None }
+  }
+
+  def getGhostQuestTableRows(req: TableRowsRequest, sender: Option[String]): Future[Option[GQRowsResponse]] = {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -45,34 +145,34 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .recover { case e: Exception => None }
   }
 
-  def ghostQuestBattleResult(gameid: String, winner: (String, String), loser: (String, String)): Future[Option[String]] =  {
-    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/battle_result")
-    val complexRequest: WSRequest = request
-      .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+  // def ghostQuestBattleResult(gameid: String, winner: (String, String), loser: (String, String)): Future[Option[String]] =  {
+  //   val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/battle_result")
+  //   val complexRequest: WSRequest = request
+  //     .addHttpHeaders("Accept" -> "application/json")
+  //     .withRequestTimeout(10000.millis)
 
-    complexRequest
-      .post(Json.obj(
-        "gameid" -> gameid,
-        "winner" -> Json.obj("first" -> winner._1, "second" -> winner._2),
-        "loser" -> Json.obj("first" -> loser._1, "second" -> loser._2)
-      ))
-      .map(v => (v.json \ "data" \ "transaction").asOpt[String])
-      .recover { case e: Exception => None }
-  }
+  //   complexRequest
+  //     .post(Json.obj(
+  //       "gameid" -> gameid,
+  //       "winner" -> Json.obj("first" -> winner._1, "second" -> winner._2),
+  //       "loser" -> Json.obj("first" -> loser._1, "second" -> loser._2)
+  //     ))
+  //     .map(v => (v.json \ "data" \ "transaction").asOpt[String])
+  //     .recover { case e: Exception => None }
+  // }
 
-  def ghostQuestEliminate(id: Int, characterID: String): Future[Option[String]] = {
-    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/eliminate")
-    val complexRequest: WSRequest = request
-      .addHttpHeaders("Accept" -> "application/json")
-      .withRequestTimeout(10000.millis)
+  // def ghostQuestEliminate(id: Int, characterID: String): Future[Option[String]] = {
+  //   val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/eliminate")
+  //   val complexRequest: WSRequest = request
+  //     .addHttpHeaders("Accept" -> "application/json")
+  //     .withRequestTimeout(10000.millis)
 
-    complexRequest
-      .post(Json.obj(
-        "username" -> id,
-        "ghost_id" -> characterID
-      ))
-      .map(v => (v.json \ "data" \ "transaction").asOpt[String])
-      .recover { case e: Exception => None }
-  }
+  //   complexRequest
+  //     .post(Json.obj(
+  //       "username" -> id,
+  //       "ghost_id" -> characterID
+  //     ))
+  //     .map(v => (v.json \ "data" \ "transaction").asOpt[String])
+  //     .recover { case e: Exception => None }
+  // }
 }

@@ -49,16 +49,9 @@ class OverAllHistoryService @Inject()(
       user <- userAccountRepo.getByID(account)
       txs <- {
         if (game != None && user != None) {
-          // fetch only range of 1 month of txs
-          val now = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
-          val lastSevenDays: Instant = now.plusDays(-30).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
-          // fetch only range of 1 week of txs
           overallGameHistory
-            .getByDateRangeAndGame(
-                game.get.name.replaceAll(" ", "").toLowerCase,
-                lastSevenDays.getEpochSecond,
-                now.toInstant(ZoneOffset.UTC).getEpochSecond)
-            .map(_.filter(_.info.user == user.get.username))
+            .getByGameName(game.get.name.replaceAll(" ", "").toLowerCase)
+            .map(_.filter(_.info.user == user.get.id))
             .map(_.sortBy(- _.createdAt).take(10))
         }
         else Future(Seq.empty)

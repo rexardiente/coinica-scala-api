@@ -13,8 +13,25 @@ import models.domain.eosio.GQ.v2.{ GQCharacterData, GQCharacterDataHistory }
 import models.repo.eosio._
 
 @Singleton
-class GQGameService @Inject()(charDataRepo: GQCharacterDataRepo, gameHistoryRepo: GQCharacterGameHistoryRepo) {
+class GQGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
+                              charDataRepo: GQCharacterDataRepo,
+                              gameHistoryRepo: GQCharacterGameHistoryRepo) {
   private def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
+  def getUserData(id: Int): Future[JsValue] =
+    contract.getUserData(id)
+  def initialize(id: Int, username: String): Future[Option[String]] =
+    contract.initialize(id, username)
+  def generateCharacter(id: Int, username: String, quantity: Int, limit: Int): Future[Option[String]] =
+    contract.generateCharacter(id, username, quantity, limit)
+  def addLife(id: Int, key: String): Future[Option[String]] =
+    contract.addLife(id, key)
+  def eliminate(id: Int, key: String): Future[Option[String]] =
+    contract.eliminate(id, key)
+  def withdraw(id: Int, key: String): Future[Option[String]] =
+    contract.withdraw(id, key)
+  def battleResult(gameid: String, winner: (String, Int), loser: (String, Int)): Future[Option[String]] =
+    contract.battleResult(gameid, winner, loser)
+
   def getHistoryByCharacterID(id: String): Future[Seq[GQCharacterGameHistory]] =
     gameHistoryRepo.getGameHistoryByCharacterID(id)
   def getGQGameHistoryByUserID(id: UUID): Future[Seq[GQCharacterGameHistory]] =

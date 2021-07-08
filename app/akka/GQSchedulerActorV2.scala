@@ -116,7 +116,7 @@ class GQSchedulerActorV2 @Inject()(
               p1 <- accountRepo.getByID(winner._2._1)
               p2 <- accountRepo.getByID(loser._2._1)
               _ <- Await.ready({
-                ghostQuestEOSIO.ghostQuestBattleResult(counter._1.toString, (winner._1, p1.get.username), (loser._1, p2.get.username)).map {
+                ghostQuestEOSIO.battleResult(counter._1.toString, (winner._1, p1.get.userGameID), (loser._1, p2.get.userGameID)).map {
                   case Some(e) => scBattleCounter.addOne(e, counter)
                   case e => null
                 }
@@ -211,7 +211,7 @@ class GQSchedulerActorV2 @Inject()(
               if (account != None) {
                 val acc: UserAccount =  account.get
 
-                ghostQuestEOSIO.ghostQuestEliminate(acc.userGameID, id).map {
+                ghostQuestEOSIO.eliminate(acc.userGameID, id).map {
                   case Some(txHash) => GQBattleScheduler.toRemovedCharacters.addOne(id, data)
                   case None => ()
                 }
