@@ -95,7 +95,7 @@ class GameActionController @Inject()(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (option)  =>
           for {
-            (isWin, hash, gameData) <- mjHiloGameService.playHilo(account.id, account.userGameID, option)
+            (isWin, hash, gameData) <- mjHiloGameService.playHilo(account.id, account.username, account.userGameID, option)
             process <- Future.successful {
               if (isWin <= 2) {
                 gameData
@@ -171,7 +171,7 @@ class GameActionController @Inject()(
       .account
       .map { account =>
         mjHiloGameService
-          .withdraw(account.id, account.userGameID)
+          .withdraw(account.id, account.username, account.userGameID)
           .map(x => if (x._1) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -304,7 +304,7 @@ class GameActionController @Inject()(
       .account
       .map { account =>
         treasureHuntGameService
-          .withdraw(account.id, account.userGameID)
+          .withdraw(account.id, account.username, account.userGameID)
           .map(x => if (x._1) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }

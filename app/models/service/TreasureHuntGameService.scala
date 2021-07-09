@@ -21,7 +21,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 		contract.treasureHuntGetUserData(gameID)
 	def autoPlay(gameID: Int, username: String, sets: Seq[Int]): Future[Boolean] =
 		contract.treasureHuntAutoPlay(gameID, username, sets)
-	def openTile(accID: UUID, gameID: Int, username: String, index: Int): Future[(Int, String, Option[TreasureHuntGameData])] = {
+	def openTile(id: UUID, gameID: Int, username: String, index: Int): Future[(Int, String, Option[TreasureHuntGameData])] = {
 		for {
 			// return None if failed tx, Option[(Boolean, String)] if success:
 			// true = win and false = lose
@@ -52,7 +52,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 					                                                                      hash,
 					                                                                      gameID,
 					                                                                      TH_CODE,
-					                                                                      ListOfIntPredictions(accID,
+					                                                                      ListOfIntPredictions(username,
 								                                                                                    prediction,
 								                                                                                    result,
 								                                                                                    betAmount,
@@ -65,8 +65,8 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 													.map { isAdded =>
 									          if (isAdded > 0) {
 									          	dynamicBroadcast ! Array(gameHistory)
-										          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
-															dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 0)
+										          dynamicProcessor ! DailyTask(id, TH_GAME_ID, 1)
+															dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
 															(2)
 									          }
 									          else (3)
@@ -116,7 +116,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       }
     } yield (updateBalance)
 	}
-	def withdraw(id: UUID, gameID: Int): Future[(Boolean, String)] = {
+	def withdraw(id: UUID, username: String, gameID: Int): Future[(Boolean, String)] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- contract.treasureHuntGetUserData(gameID)
@@ -141,7 +141,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       			.map { txHash =>
       				gameData
       					.map { data =>
-      						val accID: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
+      						val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
       						for {
 										isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
 										processedHistory <- {
@@ -156,7 +156,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 					                                                                      txHash,
 					                                                                      gameID,
 					                                                                      TH_CODE,
-					                                                                      ListOfIntPredictions(accID,
+					                                                                      ListOfIntPredictions(username,
 								                                                                                    prediction,
 								                                                                                    result,
 								                                                                                    betAmount,
@@ -168,8 +168,8 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 												overAllHistory.gameAdd(gameHistory)
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
-									          dynamicProcessor ! DailyTask(accID, TH_GAME_ID, 1)
-														dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 1)
+									          dynamicProcessor ! DailyTask(id, TH_GAME_ID, 1)
+														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 1)
 										        true
 										      }
 											}

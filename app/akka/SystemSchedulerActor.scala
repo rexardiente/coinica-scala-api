@@ -402,7 +402,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByID(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null)))
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null)))
         }
         // total bet amount - total win amount
         payout <- Future.sequence {
@@ -411,7 +411,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByID(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null)))
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null)))
         }
         // total bet amount * (EOS price -> USD)
         wagered <- Future.sequence {
@@ -420,7 +420,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByID(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null)))
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null)))
         }
         // total win size
         multiplier <- Future.sequence {
@@ -429,7 +429,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByID(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null)))
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null)))
         }
         // save ranking to history..
         _ <- {
@@ -445,12 +445,12 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
   }
 
   // process overall Game History in 24hrs
-  private def processOverallHistoryPointsPerUser(txs: Seq[(UUID, Seq[(Double, Double)])]): Future[Unit] =
+  private def processOverallHistoryPointsPerUser(txs: Seq[(String, Seq[(Double, Double)])]): Future[Unit] =
     Future.successful {
       txs.map { case (user, bets) =>
         try {
           for {
-            userAcc <- userAccountRepo.getByID(user)
+            userAcc <- userAccountRepo.getByName(user)
             vipAcc <- vipUserRepo.findByID(userAcc.get.id)
             result <- {
               vipAcc.map { vip =>

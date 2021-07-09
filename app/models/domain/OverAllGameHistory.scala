@@ -13,31 +13,31 @@ object TransactionType extends utils.CommonImplicits
 object OverAllGameHistory extends utils.CommonImplicits
 
 sealed trait TransactionType {
-	def user(): UUID
+	def user(): String
 	def bet(): Double
 	def amount(): Double
 	def toJson(): JsValue = Json.toJson(this)
 }
 // prediction default to WIN and after battle check if who wins to true else false for lose..
-case class BooleanPredictions(user: UUID, prediction: Boolean, result: Boolean, bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
+case class BooleanPredictions(user: String, prediction: Boolean, result: Boolean, bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 	def isWin(): Boolean = (prediction == result)
 }
-case class IntPredictions(user: UUID, prediction: Int, result: Int, bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
+case class IntPredictions(user: String, prediction: Int, result: Int, bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 	def isWin(): Boolean = (prediction == result)
 }
 // prediction equals list of panels selected and check if `result == prediction` is win else lose
-case class ListOfIntPredictions(user: UUID, prediction: List[Int], result: List[Int], bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
+case class ListOfIntPredictions(user: String, prediction: List[Int], result: List[Int], bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 	def isWin(): Boolean = (prediction == result)
 }
 // case class MJGameHistory(user: String, bet: Double, amount: Double) extends TransactionType
-case class GameType(user: UUID, isWin: Boolean, bet: Double) extends TransactionType {
+case class GameType(user: String, isWin: Boolean, bet: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
 	def amount(): Double = 0D
 }
-case class PaymentType(user: UUID, data: String, bet: Double) extends TransactionType {
+case class PaymentType(user: String, data: String, bet: Double) extends TransactionType {
 	require(data == "transfer" || data == "receive" , "Payment Type Input: invalid request")
 	override def toJson(): JsValue = Json.toJson(this)
 	def amount(): Double = 0D

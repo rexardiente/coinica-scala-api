@@ -25,7 +25,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		contract.declareKong(gameID, sets)
 	def discardTile(gameID: Int, index: Int): Future[Boolean] =
 		contract.discardTile(gameID, index)
-	def playHilo(accID: UUID, gameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
+	def playHilo(id: UUID, username: String, gameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
 		for {
 			onPlay <- contract.playHilo(gameID, option)
 			gameData <- getUserData(gameID)
@@ -54,7 +54,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					                                                                      hash,
 					                                                                      gameID,
 					                                                                      MJHilo_CODE,
-					                                                                      IntPredictions(accID,
+					                                                                      IntPredictions(username,
 					                                                                                    prediction,
 					                                                                                    result,
 					                                                                                    betAmount,
@@ -68,8 +68,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 													.map { x =>
 										        if(x > 0) {
 										          dynamicBroadcast ! Array(gameHistory)
-										          dynamicProcessor ! DailyTask(accID, MJHilo_GAME_ID, 1)
-															dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 0)
+										          dynamicProcessor ! DailyTask(id, MJHilo_GAME_ID, 1)
+															dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
 															(2)
 										        }
 										      	else (3)
@@ -121,7 +121,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		contract.start(gameID)
 	def transfer(gameID: Int): Future[Boolean] =
 		contract.transfer(gameID)
-	def withdraw(id: UUID, gameID: Int): Future[(Boolean, String)] = {
+	def withdraw(id: UUID, username: String, gameID: Int): Future[(Boolean, String)] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- contract.getUserData(gameID)
@@ -147,7 +147,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       			.map { txHash =>
       				gameData
 	      				.map { data =>
-	      					val accID: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
+	      					val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
 									for {
 										isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
 										processedHistory <- {
@@ -164,7 +164,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					                                                                      txHash,
 					                                                                      gameID,
 					                                                                      MJHilo_CODE,
-					                                                                      IntPredictions(accID,
+					                                                                      IntPredictions(username,
 					                                                                                    prediction,
 					                                                                                    result,
 					                                                                                    betAmount,
@@ -176,8 +176,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 												overAllHistory.gameAdd(gameHistory)
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
-									          dynamicProcessor ! DailyTask(accID, MJHilo_GAME_ID, 1)
-														dynamicProcessor ! ChallengeTracker(accID, betAmount, prize, 1, 1)
+									          dynamicProcessor ! DailyTask(id, MJHilo_GAME_ID, 1)
+														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 1)
 										        true
 										      }
 											}
