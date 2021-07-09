@@ -51,7 +51,7 @@ class OverAllHistoryService @Inject()(
         if (game != None && user != None) {
           overallGameHistory
             .getByGameName(game.get.name.replaceAll(" ", "").toLowerCase)
-            .map(_.filter(_.info.user == user.get.id))
+            .map(_.filter(_.info.user == user.get.username))
             .map(_.sortBy(- _.createdAt).take(10))
         }
         else Future(Seq.empty)
