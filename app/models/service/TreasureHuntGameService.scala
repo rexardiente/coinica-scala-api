@@ -56,7 +56,8 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 								                                                                                    prediction,
 								                                                                                    result,
 								                                                                                    betAmount,
-								                                                                                    prize),
+								                                                                                    prize,
+								                                                                                  	None),
 					                                                                      true,
 					                                                                      Instant.now.getEpochSecond)
 
@@ -159,7 +160,8 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 								                                                                                    prediction,
 								                                                                                    result,
 								                                                                                    betAmount,
-								                                                                                    prize),
+								                                                                                    prize,
+								                                                                                  	None),
 					                                                                      true,
 					                                                                      Instant.now.getEpochSecond)
 

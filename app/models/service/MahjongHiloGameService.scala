@@ -43,10 +43,12 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 										onSaveHistory <- {
 											if (!isExists) {
 												val gameID: String = data.game_id
-												val prediction: Int = option
-					              val result: Int = data.prediction
+												val prediction: Int = data.prediction
+					              val result: Int = data.hi_outcome // TODO: need to know what is the exact result
 					              val betAmount: Double = data.hi_lo_stake.toDouble
 					              val prize: Double = 0
+					              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
+				              																					"standard_tile" -> data.standard_tile)
 												// create OverAllGameHistory object..
 												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 					                                                                      hash,
@@ -56,7 +58,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					                                                                                    prediction,
 					                                                                                    result,
 					                                                                                    betAmount,
-					                                                                                  	prize),
+					                                                                                  	prize,
+					                                                                                  	Some(predictionTiles)),
 					                                                                      true,
 					                                                                      Instant.now.getEpochSecond)
 
@@ -124,6 +127,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       gameData <- contract.getUserData(gameID)
       // get prize amount from smartcontract
       getPrize <- Future.successful(gameData.map(_.hi_lo_balance).getOrElse(BigDecimal(0)))
+      // save first to history before removing to smartcontract...
       processWithdraw <- {
       	if (getPrize > 0) contract.withdraw(gameID)
       	else Future(None)
@@ -153,6 +157,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					              val result: Int = data.prediction
 					              val betAmount: Double = data.hi_lo_stake.toDouble
 					              val prize: Double = data.hi_lo_balance.toDouble
+					              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
+				              																					"standard_tile" -> data.standard_tile)
 												// create OverAllGameHistory object..
 												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 					                                                                      txHash,
@@ -162,7 +168,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					                                                                                    prediction,
 					                                                                                    result,
 					                                                                                    betAmount,
-					                                                                                    prize),
+					                                                                                    prize,
+					                                                                                  	Some(predictionTiles)),
 					                                                                      true,
 					                                                                      Instant.now.getEpochSecond)
 

@@ -11,6 +11,7 @@ case class MahjongHiloGameData(game_id: String,
                               status: Int,
                               hi_lo_balance: BigDecimal,
                               hi_lo_result: Int, // Int -> 2 or 3
+                              hi_outcome: Int, // Int -> 2 or 3
                               hi_lo_bet: BigDecimal,
                               hi_lo_stake: BigDecimal,
                               low_odds: BigDecimal,

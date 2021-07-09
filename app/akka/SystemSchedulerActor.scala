@@ -383,16 +383,16 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
         // grouped history by user..
         processedBets <- Future.successful {
           grouped.map { case (user, histories) =>
-            val bets: Seq[(Double, Double)] = histories.map { history =>
-              history.info match {
-                case BooleanPredictions(name, prediction, result, bet) =>
-                  if (result) (bet, 1) else (bet, 0)
-                case ListOfIntPredictions(name, prediction, result, bet, amount) =>
-                  if (prediction == result) (bet, amount) else (bet, amount)
-                case e => (e.bet, 0)
-              }
-            }
-            (user, bets)
+            // val bets: Seq[(Double, Double)] = histories.map { history =>
+            //   history.info match {
+            //     case BooleanPredictions(name, prediction, result, bet, amount) =>
+            //       if (prediction == result) (bet, amount) else (bet, amount)
+            //     case ListOfIntPredictions(name, prediction, result, bet, amount) =>
+            //       if (prediction == result) (bet, amount) else (bet, amount)
+            //     case e => (e.bet, 0)
+            //   }
+            // }
+            (user, histories.map(x => (x.info.bet, x.info.amount)))
           }
           .toSeq
         }
