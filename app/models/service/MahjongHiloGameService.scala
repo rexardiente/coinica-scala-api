@@ -44,7 +44,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 											if (!isExists) {
 												val gameID: String = data.game_id
 												val prediction: Int = data.prediction
-					              val result: Int = data.hi_outcome // TODO: need to know what is the exact result
+					              val result: Int = data.hi_lo_outcome // TODO: need to know what is the exact result
 					              val betAmount: Double = data.hi_lo_stake.toDouble
 					              val prize: Double = 0
 					              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
