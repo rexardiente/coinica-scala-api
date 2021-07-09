@@ -254,6 +254,15 @@ class SecureActionController @Inject()(
         taskService.getTodayTaskUpdates(account.id, gameID).map(x => Ok(Json.toJson(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
+  def getAccountNameByID(id: UUID) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+          accountService
+            .getAccountByID(id)
+            .map(x => Ok(Json.toJson("username" -> x.map(_.username))))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def getAccountByName(username: String) = SecureUserAction.async { implicit request =>
     request
       .account
