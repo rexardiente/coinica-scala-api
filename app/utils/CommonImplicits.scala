@@ -874,4 +874,55 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 			"score_type" -> v.score_type,
 			"final_score" -> v.final_score)
 	}
+	implicit val implGhostQuestCharacterValueReads: Reads[GhostQuestCharacterValue] = new Reads[GhostQuestCharacterValue] {
+		override def reads(js: JsValue): JsResult[GhostQuestCharacterValue] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(GhostQuestCharacterValue(
+						(json \ "owner_id").as[Int],
+						(json \ "ghost_name").as[String],
+						(json \ "ghost_id").as[Int],
+						(json \ "rarity").as[Int],
+						(json \ "character_life").as[Int],
+						(json \ "initial_hp").as[Int],
+						(json \ "hitpoints").as[Int],
+						(json \ "status").as[Int],
+						(json \ "attack").as[Int],
+						(json \ "defense").as[Int],
+						(json \ "speed").as[Int],
+						(json \ "luck").as[Int],
+						try { BigDecimal((json \ "prize").as[String]) } catch { case _: Throwable => 0 },
+						(json \ "battle_limit").as[Int],
+						(json \ "battle_count").as[Int],
+						(json \ "last_match").as[Int],
+						(json \ "enemy_fought").as[JsValue]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implGhostQuestCharacterValueWrites = new Writes[GhostQuestCharacterValue] {
+	  def writes(v: GhostQuestCharacterValue): JsValue = Json.obj(
+			"owner_id" -> v.owner_id,
+			"ghost_name" -> v.ghost_name,
+			"ghost_id" -> v.ghost_id,
+			"rarity" -> v.rarity,
+			"character_life" -> v.character_life,
+			"initial_hp" -> v.initial_hp,
+			"hitpoints" -> v.hitpoints,
+			"status" -> v.status,
+			"attack" -> v.attack,
+			"defense" -> v.defense,
+			"speed" -> v.speed,
+			"luck" -> v.luck,
+			"prize" -> v.prize,
+			"battle_limit" -> v.battle_limit,
+			"battle_count" -> v.battle_count,
+			"last_match" -> v.last_match,
+			"enemy_fought" -> v.enemy_fought)
+	}
+	implicit def implicitGhostQuestCharacters = Json.format[GhostQuestCharacters]
+	implicit def implicitGhostQuestGameData = Json.format[GhostQuestGameData]
 }

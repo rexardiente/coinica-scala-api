@@ -9,13 +9,13 @@ import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
 import models.domain.eosio.GQ.v2._
-import models.domain.eosio.TableRowsRequest
+import models.domain.eosio._
 
 // https://github.com/DonutFactory/eosjs-node-server/blob/master/docs/GHOSTQUEST_V2_API.md
 @Singleton
 class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
-  def getUserData(id: Int): Future[JsValue] =  {
+  def getUserData(id: Int): Future[Option[GhostQuestGameData]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -24,9 +24,9 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          (v.json \ "data").asOpt[JsValue].getOrElse(JsNull)
-        else JsNull
-      }.recover { case e: Exception => JsNull }
+          (v.json \ "data" \ "game_data").asOpt[GhostQuestGameData]
+        else None
+      }.recover { case e: Exception => None }
   }
   def initialize(id: Int, username: String): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/initialize")

@@ -24,7 +24,7 @@ class GameActionController @Inject()(
                           accountService: UserAccountService,
                           allGameHistoryService: OverAllHistoryService,
                           treasureHuntGameService: TreasureHuntGameService,
-                          ghostQuestService: GQGameService,
+                          ghostQuestService: GhostQuestGameService,
                           mjHiloGameService: MahjongHiloGameService,
                           ghostQuestEOSIO: GhostQuestEOSIO,
                           cc: ControllerComponents,
@@ -449,7 +449,7 @@ class GameActionController @Inject()(
   def ghostQuestGetUserData() = SecureUserAction.async { implicit request =>
     request
       .account
-      .map(account => ghostQuestService.getUserData(account.userGameID).map(Ok(_)))
+      .map(account => ghostQuestService.getUserData(account.userGameID).map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def ghostQuestInitialize() = SecureUserAction.async { implicit request =>
@@ -498,7 +498,7 @@ class GameActionController @Inject()(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (key)  =>
           ghostQuestService
-            .withdraw(account.userGameID, key)
+            .withdraw(account.id, account.userGameID, key)
             .map(x => Ok(JsString(x.getOrElse(null))))
         })
       }
