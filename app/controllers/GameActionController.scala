@@ -40,7 +40,7 @@ class GameActionController @Inject()(
   private val mjHiloDiscardTileForm = Form(single("tile" -> number))
   private val mjHiloPlayHiloForm = Form(single("option" -> number))
   private val mjHiloAddBetForm = Form(tuple("currency" -> nonEmptyText, "quantity" -> number))
-  private val ghostQuestGenerateCharacterForm = Form(tuple("quantity" -> number, "limit" -> number))
+  private val ghostQuestGenerateCharacterForm = Form(tuple("currency" -> nonEmptyText, "quantity" -> number, "limit" -> number))
   private val ghostQuestKeyForm = Form(single("key" -> nonEmptyText))
 
   def mahjongHiloResetBet = SecureUserAction.async { implicit request =>
@@ -468,10 +468,10 @@ class GameActionController @Inject()(
       .map { account =>
         ghostQuestGenerateCharacterForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
-        { case (quantity, limit)  =>
+        { case (currency, quantity, limit)  =>
           ghostQuestService
-            .generateCharacter(account.userGameID, account.username, quantity, limit)
-            .map(x => Ok(JsString(x.getOrElse(null))))
+            .generateCharacter(account.id, account.username, account.userGameID, currency, quantity, limit)
+            .map(x => if (x > 0) Created else InternalServerError)
         })
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
@@ -498,8 +498,8 @@ class GameActionController @Inject()(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (key)  =>
           ghostQuestService
-            .withdraw(account.id, account.userGameID, key)
-            .map(x => Ok(JsString(x.getOrElse(null))))
+            .withdraw(account.id, account.username, account.userGameID, key)
+            .map(x => if (x._1) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
         })
       }
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))

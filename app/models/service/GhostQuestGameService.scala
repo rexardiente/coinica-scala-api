@@ -1,40 +1,128 @@
 package models.service
 
-import javax.inject.{ Inject, Singleton }
+import javax.inject.{ Inject, Named, Singleton }
 import java.util.UUID
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.collection.mutable.{ HashMap, ListBuffer }
+import akka.actor._
 import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
+import utils.Config.{ SUPPORTED_SYMBOLS, GQ_CODE, GQ_GAME_ID }
 import models.domain.eosio.GQ.v2.{ GQCharacterData, GQCharacterDataHistory }
 import models.repo.eosio._
+import models.domain.{ OverAllGameHistory, PaymentType }
 
 @Singleton
 class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                                       userAccountService: UserAccountService,
                                       overAllHistory: OverAllHistoryService,
                                       charDataRepo: GQCharacterDataRepo,
-                                      gameHistoryRepo: GQCharacterGameHistoryRepo) {
+                                      gameHistoryRepo: GQCharacterGameHistoryRepo,
+                                      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
+                                      @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
   private def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
   def getUserData(id: Int): Future[Option[GhostQuestGameData]] =
     contract.getUserData(id)
   def initialize(id: Int, username: String): Future[Option[String]] =
     contract.initialize(id, username)
-  def generateCharacter(id: Int, username: String, quantity: Int, limit: Int): Future[Option[String]] =
-    contract.generateCharacter(id, username, quantity, limit)
+  def generateCharacter(id: UUID, username: String, gameID: Int, currency: String, quantity: Int, limit: Int): Future[Int] = {
+    for {
+      hasWallet <- userAccountService.getUserAccountWallet(id)
+      currentValue <- userAccountService.getGameQuantityAmount(currency, quantity)
+      // check if has enough balance..
+      hasEnoughBalance <- Future.successful {
+        hasWallet
+          .map(v => userAccountService.hasEnoughBalanceByCurrency(v, currency, currentValue))
+          .getOrElse(false)
+      }
+      // if has enough balance send tx on smartcontract, else do nothing
+      initGame <- {
+        if (hasEnoughBalance) contract.generateCharacter(gameID, username, quantity, limit)
+        else Future(None)
+      }
+      // deduct balance on the account
+      updateBalance <- {
+        if (initGame != None) userAccountService.deductBalanceByCurrency(id, currency, currentValue)
+        else Future(0)
+      }
+    } yield (updateBalance)
+  }
   def addLife(id: Int, key: String): Future[Option[String]] =
     contract.addLife(id, key)
   def eliminate(id: Int, key: String): Future[Option[String]] =
     contract.eliminate(id, key)
-  def withdraw(id: UUID, gameID: Int, key: String): Future[Option[String]] = {
+  def withdraw(id: UUID, username: String, gameID: Int, key: String): Future[(Boolean, Option[String])] = {
     for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- getUserData(gameID)
-    } yield ()
-    contract.withdraw(gameID, key)
+      (character, prize) <- Future.successful {
+        gameData
+          .map { data =>
+            // val characters: Seq[GhostQuestCharacters] = data.characters
+            val selectedCharacter: Option[GhostQuestCharacters] = data.characters.filter(_.key == key).headOption
+            val prize: BigDecimal = selectedCharacter.map(_.value.prize).getOrElse(BigDecimal(0))
+            (selectedCharacter, Some(prize))
+          }
+          .getOrElse(None, None)
+      }
+      processWithdraw <- {
+        if (prize.getOrElse(BigDecimal(0)) > 0) contract.withdraw(gameID, key)
+        else Future(None)
+      }
+      // if successful, add new balance to account..
+      updateBalance <- {
+        hasWallet.map { _ =>
+          processWithdraw
+            .map(_ => userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, prize.getOrElse(0)))
+            .getOrElse(Future(0))
+        }
+        .getOrElse(Future(0))
+      }
+
+      isSaveHistory <- {
+        if (updateBalance > 0) {
+          processWithdraw
+            .map { txHash =>
+              gameData
+                .map { data =>
+                  val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
+                  for {
+                    isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
+                    processedHistory <- {
+                      if (!isExists) {
+                        val gameID: String = txHash // use tx_hash as game
+                        // val prize: Double = data.prize.toDouble
+                        // create OverAllGameHistory object..
+                        val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
+                                                                                txHash,
+                                                                                gameID,
+                                                                                GQ_CODE,
+                                                                                PaymentType(username,
+                                                                                            "WITHDRAW",
+                                                                                            prize.getOrElse(BigDecimal(0)).toDouble),
+                                                                                true,
+                                                                                Instant.now.getEpochSecond)
+
+                        overAllHistory.gameAdd(gameHistory)
+                          .map { _ =>
+                            dynamicBroadcast ! Array(gameHistory)
+                            true
+                          }
+                      }
+                      else Future(false)
+                    }
+                  } yield (processedHistory)
+                }
+                .getOrElse(Future(false))
+            }
+            .getOrElse(Future(false))
+        }
+        else Future(false)
+      }
+    } yield ((isSaveHistory, processWithdraw))
   }
   def battleResult(gameid: String, winner: (String, Int), loser: (String, Int)): Future[Option[String]] =
     contract.battleResult(gameid, winner, loser)

@@ -37,10 +37,10 @@ case class GameType(user: String, isWin: Boolean, bet: Double) extends Transacti
 	override def toJson(): JsValue = Json.toJson(this)
 	def amount(): Double = 0D
 }
-case class PaymentType(user: String, data: String, bet: Double) extends TransactionType {
-	require(data == "transfer" || data == "receive" , "Payment Type Input: invalid request")
+case class PaymentType(user: String, data: String, amount: Double) extends TransactionType {
+	require(data == "WITHDRAW" || data == "DEPOSIT", "Payment Type Input: invalid request")
 	override def toJson(): JsValue = Json.toJson(this)
-	def amount(): Double = 0D
+	def bet(): Double = 0D
 }
 case class OverAllGameHistory(id: UUID,
 															txHash: String,
