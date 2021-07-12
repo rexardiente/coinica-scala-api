@@ -59,6 +59,7 @@ GET    /donut/api/v1/txs               			 	 controllers.HomeController.transact
 GET    /donut/api/v1/tx/find              	 	 controllers.HomeController.transactionByTraceID(trace_id: String)
 
 # Ghost Quest API
+GET   /donut/api/v1/game/ghost-quest/game/data/all   									controllers.GameActionController.ghostQuestGetAllCharacters
 GET   /donut/api/v1/game/ghost-quest/game/data   									controllers.GameActionController.ghostQuestGetUserData
 GET   /donut/api/v1/game/ghost-quest/init 												controllers.GameActionController.ghostQuestInitialize
 POST  /donut/api/v1/game/ghost-quest/generate/character 					controllers.GameActionController.ghostQuestGenerateCharacter

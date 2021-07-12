@@ -6,6 +6,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object GhostQuestGameData extends utils.CommonImplicits
+object GhostQuestTableGameData extends utils.CommonImplicits
 case class GhostQuestCharacterValue(owner_id: Int,
 																		ghost_name: String,
 																		ghost_id: Int,
@@ -25,6 +26,7 @@ case class GhostQuestCharacterValue(owner_id: Int,
 																		enemy_fought: JsValue)
 case class GhostQuestCharacters(key: String, value: GhostQuestCharacterValue)
 case class GhostQuestGameData(characters: Seq[GhostQuestCharacters])
+case class GhostQuestTableGameData(id: Int,  game_data: GhostQuestGameData)
 
 // {
 //    "id":2,

@@ -452,6 +452,12 @@ class GameActionController @Inject()(
       .map(account => ghostQuestService.getUserData(account.userGameID).map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
+  def ghostQuestGetAllCharacters() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(account => ghostQuestService.getAllCharacters().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def ghostQuestInitialize() = SecureUserAction.async { implicit request =>
     request
       .account

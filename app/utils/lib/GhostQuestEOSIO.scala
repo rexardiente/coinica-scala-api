@@ -28,6 +28,19 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else None
       }.recover { case e: Exception => None }
   }
+  def getAllCharacters(): Future[Option[Seq[GhostQuestTableGameData]]] =  {
+    val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/query_table")
+    val complexRequest: WSRequest = request
+      .addHttpHeaders("Accept" -> "application/json")
+      .withRequestTimeout(10000.millis)
+
+    complexRequest.post(Json.obj("options" -> JsNull))
+      .map { v =>
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data").asOpt[Seq[GhostQuestTableGameData]]
+        else None
+      }.recover { case e: Exception => None }
+  }
   def initialize(id: Int, username: String): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/initialize")
     val complexRequest: WSRequest = request

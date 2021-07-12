@@ -26,6 +26,8 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
   private def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
   def getUserData(id: Int): Future[Option[GhostQuestGameData]] =
     contract.getUserData(id)
+  def getAllCharacters(): Future[Option[Seq[GhostQuestTableGameData]]] =
+    contract.getAllCharacters()
   def initialize(id: Int, username: String): Future[Option[String]] =
     contract.initialize(id, username)
   def generateCharacter(id: UUID, username: String, gameID: Int, currency: String, quantity: Int, limit: Int): Future[Int] = {
@@ -48,6 +50,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         if (initGame != None) userAccountService.deductBalanceByCurrency(id, currency, currentValue)
         else Future(0)
       }
+      // update Characters list for battle and broadcast to UI the newly created character
     } yield (updateBalance)
   }
   def addLife(id: Int, key: String): Future[Option[String]] =
