@@ -35,6 +35,7 @@
   <logger name="application" level="DEBUG" />
   <!-- <logger name="akka.SchedulerActor" level="INFO" /> -->
   <logger name="akka.WebSocketActor" level="TRACE" />
+  <logger name="akka.GQSchedulerActor" level="TRACE" />
   <logger name="akka.GQSchedulerActorV2" level="TRACE" />
   <logger name="akka.SystemSchedulerActor" level="TRACE" />
   <logger name="akka.DynamicBroadcastActor" level="TRACE" />

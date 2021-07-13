@@ -64,8 +64,8 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       (character, prize) <- Future.successful {
         gameData
           .map { data =>
-            // val characters: Seq[GhostQuestCharacters] = data.characters
-            val selectedCharacter: Option[GhostQuestCharacters] = data.characters.filter(_.key == key).headOption
+            // val characters: Seq[GhostQuestCharacter] = data.characters
+            val selectedCharacter: Option[GhostQuestCharacter] = data.characters.filter(_.key == key).headOption
             val prize: BigDecimal = selectedCharacter.map(_.value.prize).getOrElse(BigDecimal(0))
             (selectedCharacter, Some(prize))
           }

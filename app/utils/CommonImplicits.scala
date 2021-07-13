@@ -923,7 +923,8 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
 			"last_match" -> v.last_match,
 			"enemy_fought" -> v.enemy_fought)
 	}
-	implicit def implicitGhostQuestCharacters = Json.format[GhostQuestCharacters]
+	implicit def implicitGhostQuestCharacter = Json.format[GhostQuestCharacter]
 	implicit def implicitGhostQuestGameData = Json.format[GhostQuestGameData]
 	implicit def implicitGhostQuestTableGameData = Json.format[GhostQuestTableGameData]
+	implicit def implicitGhostQuestCharacterHistory = Json.format[GhostQuestCharacterHistory]
 }

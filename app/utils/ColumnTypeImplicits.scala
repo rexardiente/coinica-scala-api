@@ -7,7 +7,16 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus, GameLog }
+import models.domain.eosio.{
+    Act,
+    ActionTrace,
+    Data,
+    Partial,
+    Receipt,
+    Trace,
+    GQGameStatus,
+    GameLog,
+    GhostQuestCharacterValue }
 import models.domain.{ ChallengeTracker, TransactionType, RankType }
 import models.domain.wallet.support.{ Coin, CryptoJsonRpcHistory }
 import models.domain.enum._
@@ -40,6 +49,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val transactionTypeColumnMapper = MappedColumnType.base[TransactionType, JsValue](
      s => s.toJson(),
      i => i.as[TransactionType])
+  implicit val ghostQuestCharacterValueColumnMapper = MappedColumnType.base[GhostQuestCharacterValue, JsValue](
+     s => s.toJson(),
+     i => i.as[GhostQuestCharacterValue])
   implicit val walletCoinColumnMapper = MappedColumnType.base[Coin, JsValue](
      s => s.toJson(),
      i => i.as[Coin])
