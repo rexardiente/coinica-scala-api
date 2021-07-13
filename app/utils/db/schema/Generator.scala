@@ -20,9 +20,12 @@ class Generator @Inject()(
     challenge: ChallengeDAO,
     challengeHistory: ChallengeHistoryDAO,
     challengeTracker: ChallengeTrackerDAO,
-    gqCharacterData: GQCharacterDataDAO,
-    gqCharacterGameHistory: GQCharacterGameHistoryDAO,
-    gqCharacterDataHistory: GQCharacterDataHistoryDAO,
+    ghostQuestCharacterDAO: GhostQuestCharacterDAO,
+    ghostQuestCharacterHistoryDAO: GhostQuestCharacterHistoryDAO,
+    ghostQuestCharacterGameHistoryDAO: GhostQuestCharacterGameHistoryDAO,
+    // gqCharacterData: GQCharacterDataDAO,
+    // gqCharacterGameHistory: GQCharacterGameHistoryDAO,
+    // gqCharacterDataHistory: GQCharacterDataHistoryDAO,
     vipBenefit: VIPBenefitDAO,
     news: NewsDAO,
     overAllGameHistory: OverAllGameHistoryDAO,
@@ -49,9 +52,12 @@ class Generator @Inject()(
       challenge.Query.schema ++
       challengeHistory.Query.schema ++
       challengeTracker.Query.schema ++
-      gqCharacterData.Query.schema ++
-      gqCharacterGameHistory.Query.schema ++
-      gqCharacterDataHistory.Query.schema ++
+      ghostQuestCharacterDAO.Query.schema ++
+      ghostQuestCharacterHistoryDAO.Query.schema ++
+      ghostQuestCharacterGameHistoryDAO.Query.schema ++
+      // gqCharacterData.Query.schema ++
+      // gqCharacterGameHistory.Query.schema ++
+      // gqCharacterDataHistory.Query.schema ++
       vipBenefit.Query.schema ++
       news.Query.schema ++
       overAllGameHistory.Query.schema

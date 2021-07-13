@@ -14,13 +14,14 @@ final class GhostQuestCharacterDAO @Inject()(
   import profile.api._
 
   protected class GhostQuestCharacterTable(tag: Tag) extends Table[GhostQuestCharacter](tag, "GHOST_QUEST_CHARACTERS") {
-    def key = column[String] ("KEY")
+    def key = column[String] ("KEY", O.PrimaryKey)
     def value = column[GhostQuestCharacterValue] ("VALUE")
 
     def * = (key, value) <> ((GhostQuestCharacter.apply _).tupled, GhostQuestCharacter.unapply)
   }
 
   object Query extends TableQuery(new GhostQuestCharacterTable(_)) {
-    // def apply(key: String) = this.withFilter(_.key === key)
+    def apply(key: String) = this.withFilter(_.key === key)
+    def clearTbl = this.delete
   }
 }

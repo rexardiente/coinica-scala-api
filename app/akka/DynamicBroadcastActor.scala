@@ -8,6 +8,7 @@ import akka.actor._
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
 import models.domain._
+import models.domain.eosio.GhostQuestCharacterValue
 import models.repo.UserAccountRepo
 import models.domain.wallet.support.ETHJsonRpc
 import akka.common.objects._
@@ -49,12 +50,12 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
 
     case ("BROADCAST_CHARACTER_NO_ENEMY", map: Map[_, _]) =>
       try {
-        map.asInstanceOf[Map[UUID, HashMap[String, UUID]]].map {
-          case (id: UUID, characters) =>
-            userRepo.getByID(id).map {
+        map.asInstanceOf[Map[GhostQuestCharacterValue, HashMap[String, GhostQuestCharacterValue]]].map {
+          case (v: GhostQuestCharacterValue, characters) =>
+            userRepo.getByGameID(v.owner_id).map {
               case Some(v) =>
                 WebSocketActor.subscribers(v.id) !
-                OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(x => JsString(x._1)).toSeq)))
+                OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(_._2.toJson).toSeq)))
               case None => ()
             }
         }

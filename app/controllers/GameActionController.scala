@@ -476,7 +476,7 @@ class GameActionController @Inject()(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (currency, quantity, limit)  =>
           ghostQuestService
-            .generateCharacter(account.id, account.username, account.userGameID, currency, quantity, limit)
+            .generateCharacter(account.id, account.username, account.userGameID, currency.toUpperCase, quantity, limit)
             .map(x => if (x > 0) Created else InternalServerError)
         })
       }
