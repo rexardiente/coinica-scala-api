@@ -14,7 +14,7 @@ final class GhostQuestCharacterHistoryDAO @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
-  protected class GhostQuestCharacterHistoryTable(tag: Tag) extends Table[GhostQuestCharacterHistory](tag, "GHOST_QUEST_CHARACTERS") {
+  protected class GhostQuestCharacterHistoryTable(tag: Tag) extends Table[GhostQuestCharacterHistory](tag, "GHOST_QUEST_CHARACTER_HISTORY") {
     def key = column[String] ("KEY")
     def owner_id = column[Int] ("OWNER_ID")
     def ghost_name = column[String] ("GHOST_NAME")
