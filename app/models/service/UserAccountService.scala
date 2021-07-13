@@ -16,6 +16,7 @@ import models.repo.{
                 UserAccountWalletHistoryRepo,
                 FailedCoinDepositRepo }
 import utils.lib.MultiCurrencyHTTPSupport
+import utils.Config.DEFAULT_WEI_VALUE
 
 @Singleton
 class UserAccountService @Inject()(
@@ -151,10 +152,10 @@ class UserAccountService @Inject()(
   // before deduction, make sure amount is already final
   // if deposit -> (gasPrice, wei and amount) = totalAmount
   // case "USDC" =>
-  //   val newBalance: BigDecimal = account.usdc.amount - ((gasPrice * 0.000000000000000001) + totalAmount)
+  //   val newBalance: BigDecimal = account.usdc.amount - ((gasPrice * DEFAULT_WEI_VALUE) + totalAmount)
   //   userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
   // case "ETH" =>
-  //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * 0.000000000000000001) + totalAmount)
+  //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * DEFAULT_WEI_VALUE) + totalAmount)
   //   userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
   // gasPrice: Int
   def deductBalanceByCurrency(id: UUID, currency: String, totalAmount: BigDecimal): Future[Int] = {
@@ -201,7 +202,7 @@ class UserAccountService @Inject()(
 
           currency match {
             case "USDC" =>
-              val gasPrice: BigDecimal = (coin.gasPrice * 0.000000000000000001)
+              val gasPrice: BigDecimal = (coin.gasPrice * DEFAULT_WEI_VALUE)
               val toDeductAmount: BigDecimal = gasPrice + amount
               if (hasEnoughBalanceByCurrency(account, currency, toDeductAmount))
                 httpSupport
@@ -210,7 +211,7 @@ class UserAccountService @Inject()(
               else Future(0)
 
             case "ETH" =>
-              val gasPrice: BigDecimal = (coin.gasPrice * 0.000000000000000001)
+              val gasPrice: BigDecimal = (coin.gasPrice * DEFAULT_WEI_VALUE)
               val toDeductAmount: BigDecimal = gasPrice + amount
               if (hasEnoughBalanceByCurrency(account, currency, toDeductAmount))
                 httpSupport
