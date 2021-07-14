@@ -14,8 +14,6 @@ import models.domain.eosio.{
     Partial,
     Receipt,
     Trace,
-    GQGameStatus,
-    GameLog,
     GhostQuestCharacterGameLog,
     GhostQuestCharacterValue }
 import models.domain.{ ChallengeTracker, TransactionType, RankType }
@@ -62,12 +60,6 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val listTransactionTypeColumnMapper = MappedColumnType.base[List[TransactionType], JsValue](
     s => Json.toJson(s),
     i => i.as[List[TransactionType]])
-  implicit val gqListGameStatusColumnMapper = MappedColumnType.base[List[GQGameStatus], JsValue](
-    s => Json.toJson(s),
-    i => i.as[List[GQGameStatus]])
-  implicit val gqGameLogColumnMapper = MappedColumnType.base[List[GameLog], JsValue](
-    s => Json.toJson(s),
-    i => i.as[List[GameLog]])
   implicit val gqCharacterGameLogColumnMapper = MappedColumnType.base[List[GhostQuestCharacterGameLog], JsValue](
     s => Json.toJson(s),
     i => i.as[List[GhostQuestCharacterGameLog]])
