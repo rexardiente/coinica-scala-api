@@ -308,107 +308,110 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
     } yield logs
   }
 
-  // // TOD: scheduled process (Weekly for Lifetime Win Streak)
-  // // get overall history in a week, process and save it to WinStreak tbl
-  // // ghostQuestCharacterService.getGameHistoryByDateRange(from, to)
-  // def separateHistoryByCharID(seq: Seq[GhostQuestCharacterGameHistory]): HashMap[String, ListBuffer[(String, Boolean, Long)]] = {
-  //   val counter = HashMap.empty[String, ListBuffer[(String, Boolean, Long)]]
-  //   seq.foreach { history =>
-  //     val gameID = history.id
-  //     val winnerID = history.winnerID
-  //     val loserID = history.loserID
-  //     val time = history.timeExecuted
+  // TOD: scheduled process (Weekly for Lifetime Win Streak)
+  // get overall history in a week, process and save it to WinStreak tbl
+  // ghostQuestCharacterService.getGameHistoryByDateRange(from, to)
+  def separateHistoryByCharID(seq: Seq[GhostQuestCharacterGameHistory]): HashMap[String, ListBuffer[(String, Boolean, Long)]] = {
+    val counter = HashMap.empty[String, ListBuffer[(String, Boolean, Long)]]
+    seq.foreach { history =>
+      val gameID = history.id
+      val winnerID = history.winnerID
+      val loserID = history.loserID
+      val time = history.timeExecuted
 
-  //     // process winner
-  //     if (counter.exists(_._1 == winnerID))
-  //       counter.addOne(winnerID -> { counter(winnerID) += ((gameID, true, time)) })
-  //     else
-  //       counter.addOne(winnerID -> ListBuffer((gameID, true, time)))
-  //     // process loser
-  //     if (counter.exists(_._1 == loserID))
-  //       counter.addOne(loserID -> { counter(loserID) += ((gameID, false, time)) })
-  //     else
-  //       counter.addOne(loserID -> ListBuffer((gameID, false, time)))
-  //   }
-  //   // remove has less than 1 amount
-  //   counter // .filter(x => x._2.map(v => if (v._3 > 0) true else false).contains(false))
-  // }
+      // process winner
+      if (counter.exists(_._1 == winnerID))
+        counter.addOne(winnerID -> { counter(winnerID) += ((gameID, true, time)) })
+      else
+        counter.addOne(winnerID -> ListBuffer((gameID, true, time)))
+      // process loser
+      if (counter.exists(_._1 == loserID))
+        counter.addOne(loserID -> { counter(loserID) += ((gameID, false, time)) })
+      else
+        counter.addOne(loserID -> ListBuffer((gameID, false, time)))
+    }
+    // remove has less than 1 amount
+    counter // .filter(x => x._2.map(v => if (v._3 > 0) true else false).contains(false))
+  }
 
-  // def calcWinStreak(characters: HashMap[String, ListBuffer[(String, Boolean, Long)]]): HashMap[String, Int] = {
-  //   characters.map { character =>
-  //     val status       : ListBuffer[(String, Boolean, Long)] = character._2
-  //     val streakCounter: ListBuffer[Int] = ListBuffer.empty[Int]
-  //     val tempList     : ListBuffer[Int] = ListBuffer.empty[Int]
+  def calcWinStreak(characters: HashMap[String, ListBuffer[(String, Boolean, Long)]]): HashMap[String, Int] = {
+    characters.map { character =>
+      val status       : ListBuffer[(String, Boolean, Long)] = character._2
+      val streakCounter: ListBuffer[Int] = ListBuffer.empty[Int]
+      val tempList     : ListBuffer[Int] = ListBuffer.empty[Int]
 
-  //     status.zipWithIndex.map {
-  //       case (v, i) =>
-  //         if (v._2) tempList.addOne(i)
-  //         else {
-  //           val range = status.slice(tempList.headOption.getOrElse(0), tempList.lastOption.getOrElse(0))
-  //           if (!range.isEmpty) {
-  //             streakCounter += range.size
-  //             tempList.clear()
-  //           }
-  //         }
-  //         // check if it is the last itr to finallized the list result
-  //         if (status.last == v && !tempList.isEmpty) {
-  //           streakCounter += tempList.size
-  //           tempList.clear()
-  //         }
-  //     }
-  //     (character._1, streakCounter)
-  //   }
-  //   .map { case (id, list) => (id, list.maxOption.getOrElse(0)) }
-  // }
+      status.zipWithIndex.map {
+        case (v, i) =>
+          if (v._2) tempList.addOne(i)
+          else {
+            val range = status.slice(tempList.headOption.getOrElse(0), tempList.lastOption.getOrElse(0))
+            if (!range.isEmpty) {
+              streakCounter += range.size
+              tempList.clear()
+            }
+          }
+          // check if it is the last itr to finallized the list result
+          if (status.last == v && !tempList.isEmpty) {
+            streakCounter += tempList.size
+            tempList.clear()
+          }
+      }
+      (character._1, streakCounter)
+    }
+    .map { case (id, list) => (id, list.maxOption.getOrElse(0)) }
+  }
 
-  // def winStreakPerDay(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
-  //   val today: Long = Instant.now().getEpochSecond
-  //   for {
-  //     history <- gameHistoryRepo.getGameHistoryByDateRange(today - (24*60*60), today)
-  //     separatedHistory <- Future.successful(separateHistoryByCharID(history))
-  //     calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
-  //     result <- calcStreakToStreakObject(calcWinStreak)
-  //   } yield result
-  // }
+  def winStreakPerDay(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
+    val today: Long = Instant.now().getEpochSecond
+    for {
+      history <- gameHistoryRepo.getGameHistoryByDateRange(today - (24*60*60), today)
+      separatedHistory <- Future.successful(separateHistoryByCharID(history))
+      calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
+      result <- calcStreakToStreakObject(calcWinStreak)
+    } yield result
+  }
 
-  // def winStreakPerWeekly(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
-  //   val today: Long = Instant.now().getEpochSecond
-  //   for {
-  //     history <- gameHistoryRepo.getGameHistoryByDateRange(today - ((24*60*60) * 7), today)
-  //     separatedHistory <- Future.successful(separateHistoryByCharID(history))
-  //     calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
-  //     result <- calcStreakToStreakObject(calcWinStreak)
-  //   } yield result
-  // }
+  def winStreakPerWeekly(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
+    val today: Long = Instant.now().getEpochSecond
+    for {
+      history <- gameHistoryRepo.getGameHistoryByDateRange(today - ((24*60*60) * 7), today)
+      separatedHistory <- Future.successful(separateHistoryByCharID(history))
+      calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
+      result <- calcStreakToStreakObject(calcWinStreak)
+    } yield result
+  }
 
-  // def winStreakLifeTime(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
-  //   for {
-  //     history <- gameHistoryRepo.getAllGameHistory()
-  //     separatedHistory <- Future.successful(separateHistoryByCharID(history))
-  //     calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
-  //     result <- calcStreakToStreakObject(calcWinStreak)
-  //   } yield result
-  // }
-  // // get character info
-  // // convert iterable to List[object]
-  // // filter and remove win_streak = 0
-  // // sort by high to low and take only top 10 results
-  // def calcStreakToStreakObject(v: HashMap[String,Int]): Future[List[GhostQuestCharactersRankByWinStreak]] =
-  //   Future.sequence {
-  //     v.map { v =>
-  //       for {
-  //         al <- ghostQuestCharacterService.getByID(v._1)
-  //         el <- ghostQuestCharacterService.getCharacterHistoryByID(v._1)
-  //         either <- Future.successful(al.getOrElse(el.get))
-  //         winstreak <- Future.successful {
-  //           GhostQuestCharactersRankByWinStreak(v._1,
-  //                                       either.owner,
-  //                                       either.`class`,
-  //                                       either.level,
-  //                                       v._2)
-  //         }
-  //       } yield winstreak
-  //     }.toList
-  //   }
-  //   .map(_.filterNot(_.win_streak == 0).sortBy(- _.win_streak).take(10))
+  def winStreakLifeTime(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
+    for {
+      history <- gameHistoryRepo.getAllGameHistory()
+      separatedHistory <- Future.successful(separateHistoryByCharID(history))
+      calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
+      result <- calcStreakToStreakObject(calcWinStreak)
+    } yield result
+  }
+  // get character info
+  // convert iterable to List[object]
+  // filter and remove win_streak = 0
+  // sort by high to low and take only top 10 results
+  def calcStreakToStreakObject(v: HashMap[String, Int]): Future[List[GhostQuestCharactersRankByWinStreak]] = {
+      Future.sequence {
+        v.map { v =>
+          val key: String = v._1
+          val ownerID: Int = v._2
+          for {
+            isAlive <- contract.getUserData(ownerID).map(_.map(_.characters).getOrElse(Seq.empty).filter(_.key == key))
+            // al <- Future.successful(characters.filter(_.key == key).headOption)
+            isEliminated <- ghostQuestCharacterService.findGhostQuestCharacterHistory(key)
+            // either <- Future.successful(al.getOrElse(el.get))
+            winstreak <- Future.successful {
+              if (!isAlive.isEmpty)
+                isAlive.map(info => GhostQuestCharactersRankByWinStreak(key, info.value.owner_id, info.value.rarity, ownerID)).toSeq
+              else
+                isEliminated.map(info => GhostQuestCharactersRankByWinStreak(key, info.owner_id, info.rarity, ownerID)).toSeq
+            }
+          } yield (winstreak.headOption.getOrElse(null))
+        }.toList
+    }
+  }
+
 }

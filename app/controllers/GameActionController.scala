@@ -308,75 +308,48 @@ class GameActionController @Inject()(
           .map(x => if (x._1) Ok(Json.obj("transaction_id" -> x._2)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  // def ghostQuestGetAllGQGameHistory() = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.getAllGameHistory().map(x => Ok(Json.toJson(x))))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestGetGQGameHistoryByUser(id: UUID) = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map { account =>
-  //       if (account.id == id)
-  //         ghostQuestService.getGQGameHistoryByUserID(id).map(x => Ok(Json.toJson(x)))
-  //       else
-  //         Future(Unauthorized(views.html.defaultpages.unauthorized()))
-  //     }
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestGetGQGameHistoryByUserAndCharacterID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map { account =>
-  //       if (account.id == userID)
-  //         ghostQuestService.getGameHistoryByUsernameAndCharacterID(userID, id).map(x => Ok(Json.toJson(x)))
-  //       else
-  //         Future(Unauthorized(views.html.defaultpages.unauthorized()))
-  //     }
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestGetGQGameHistoryByGameID(id: String) = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.filteredGameHistoryByID(id).map(x => Ok(Json.toJson(x))))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // // Ghost Quest Game
-  // // def ghostQuestGetAllCharacters() = SecureUserAction.async { implicit request =>
-  // //   request
-  // //     .account
-  // //     .map(_ => gQCharacterDataRepo.all().map(x => Ok(Json.toJson(x))))
-  // //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // // }
-  // def ghostQuestGetAllCharactersByUser(id: UUID) = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map { account =>
-  //       if (account.username == id)
-  //         ghostQuestService.getAllCharactersDataAndHistoryLogsByUser(id).map(Ok(_))
-  //       else
-  //         Future(Unauthorized(views.html.defaultpages.unauthorized()))
-  //     }
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestGetCharactersByUser(id: UUID) = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map { account =>
-  //       if (account.id == id)
-  //         ghostQuestService.getAliveCharacters(id).map(Ok(_))
-  //       else
-  //         Future(Unauthorized(views.html.defaultpages.unauthorized()))
-  //     }
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestGetCharacterByID(id: String) = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.getCharacterDataByID(id).map(Ok(_)))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
+  def ghostQuestGetAllGQGameHistory() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.getAllGameHistory().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestGetGQGameHistoryByOwnerIDAndCharacterID(id: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        ghostQuestService
+          .getGameHistoryByGameIDAndCharacterID(id, account.userGameID)
+          .map(x => Ok(Json.toJson(x)))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestGetGQGameHistoryByGameID(id: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.filteredGameHistoryByID(id).map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestGetAllCharactersByUser() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        ghostQuestService.getAllCharactersDataAndHistoryLogsByUser(account.id, account.userGameID).map(Ok(_))
+      }
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestGetAliveCharactersByUser() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(account => ghostQuestService.getAliveCharacters(account.userGameID).map(Ok(_)))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestGetCharacterByID(key: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(account => ghostQuestService.getCharacterDataByID(account.userGameID, key).map(Ok(_)))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   // def ghostQuestGetCharacterByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
   //   request
   //     .account
@@ -388,76 +361,66 @@ class GameActionController @Inject()(
   //     }
   //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   // }
-  // def ghostQuestGetCharacterHistoryByUser(id: UUID) = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map { account =>
-  //       if (account.id == id)
-  //         ghostQuestService.getAllEliminatedCharacters(id).map(Ok(_))
-  //       else
-  //         Future(Unauthorized(views.html.defaultpages.unauthorized()))
-  //     }
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestGetCharacterHistoryByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map { account =>
-  //       if (account.id == userID)
-  //         ghostQuestService.getCharacterHistoryByUserAndID(userID, id).map(Ok(_))
-  //       else
-  //         Future(Unauthorized(views.html.defaultpages.unauthorized()))
-  //     }
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestHighEarnCharactersAllTime() = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.highEarnCharactersAllTime().map(x => Ok(Json.toJson(x))))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestHighEarnCharactersDaily() = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.highEarnCharactersDaily().map(x => Ok(Json.toJson(x))))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestHighEarnCharactersWeekly() = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.highEarnCharactersWeekly().map(x => Ok(Json.toJson(x))))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestWinStreakPerDay() = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.winStreakPerDay().map(x => Ok(Json.toJson(x))))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestWinStreakPerWeekly() = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.winStreakPerWeekly().map(x => Ok(Json.toJson(x))))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
-  // def ghostQuestWinStreakLifeTime() = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map(_ => ghostQuestService.winStreakLifeTime().map(x => Ok(Json.toJson(x))))
-  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
+  def ghostQuestGetCharacterHistoryByUser() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(account => ghostQuestService.getAllEliminatedCharacters(account.userGameID).map(Ok(_)))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestGetCharacterHistoryByUserAndID(key: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(account => ghostQuestService.getGhostQuestCharacterHistoryByOwnerIDAndID(account.userGameID, key).map(Ok(_)))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestHighEarnCharactersAllTime() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.highEarnCharactersAllTime().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestHighEarnCharactersDaily() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.highEarnCharactersDaily().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestHighEarnCharactersWeekly() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.highEarnCharactersWeekly().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestWinStreakPerDay() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.winStreakPerDay().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestWinStreakPerWeekly() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.winStreakPerWeekly().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def ghostQuestWinStreakLifeTime() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => ghostQuestService.winStreakLifeTime().map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def ghostQuestGetUserData() = SecureUserAction.async { implicit request =>
     request
       .account
       .map(account => ghostQuestService.getUserData(account.userGameID).map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def ghostQuestGetAllCharacters() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map(account => ghostQuestService.getAllCharacters().map(x => Ok(Json.toJson(x))))
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
+  // def ghostQuestGetAllCharacters() = SecureUserAction.async { implicit request =>
+  //   request
+  //     .account
+  //     .map(account => ghostQuestService.getAllCharacters().map(x => Ok(Json.toJson(x))))
+  //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  // }
   def ghostQuestInitialize() = SecureUserAction.async { implicit request =>
     request
       .account
