@@ -66,25 +66,25 @@ POST  /donut/api/v1/game/ghost-quest/generate/character 					controllers.GameAct
 POST  /donut/api/v1/game/ghost-quest/add-life 										controllers.GameActionController.ghostQuestAddLife
 POST  /donut/api/v1/game/ghost-quest/withdraw 										controllers.GameActionController.ghostQuestWithdraw
 
-GET   /donut/api/v1/game/ghost-quest/character/:id   							controllers.GameActionController.ghostQuestGetCharacterByID(id: String)
-GET   /donut/api/v1/game/ghost-quest/character/:user/:id 					controllers.GameActionController.ghostQuestGetCharacterByUserAndID(user: UUID, id: String)
-#GET   /donut/api/v1/game/ghost-quest/characters       						controllers.GameActionController.ghostQuestGetAllCharacters()
-GET   /donut/api/v1/game/ghost-quest/characters/:user     				controllers.GameActionController.ghostQuestGetCharactersByUser(user: UUID)
-GET   /donut/api/v1/game/ghost-quest/characters/:user/all 				controllers.GameActionController.ghostQuestGetAllCharactersByUser(user: UUID)
-GET   /donut/api/v1/game/ghost-quest/history/characters/:user  		controllers.GameActionController.ghostQuestGetCharacterHistoryByUser(user: UUID)
-GET   /donut/api/v1/game/ghost-quest/history/character/:user/:id  controllers.GameActionController.ghostQuestGetCharacterHistoryByUserAndID(user: UUID, id: String)
-GET   /donut/api/v1/game/ghost-quest/history/games     						controllers.GameActionController.ghostQuestGetAllGQGameHistory()
-GET   /donut/api/v1/game/ghost-quest/history/games/:user   				controllers.GameActionController.ghostQuestGetGQGameHistoryByUser(user: UUID)
-GET   /donut/api/v1/game/ghost-quest/history/game/id/:id  				controllers.GameActionController.ghostQuestGetGQGameHistoryByGameID(id: String)
-GET   /donut/api/v1/game/ghost-quest/history/game/:user/:id   		controllers.GameActionController.ghostQuestGetGQGameHistoryByUserAndCharacterID(user: UUID, id: String)
+#GET   /donut/api/v1/game/ghost-quest/character/:id   							controllers.GameActionController.ghostQuestGetCharacterByID(id: String)
+#GET   /donut/api/v1/game/ghost-quest/character/:user/:id 					controllers.GameActionController.ghostQuestGetCharacterByUserAndID(user: UUID, id: String)
+##GET   /donut/api/v1/game/ghost-quest/characters       						controllers.GameActionController.ghostQuestGetAllCharacters()
+#GET   /donut/api/v1/game/ghost-quest/characters/:user     				controllers.GameActionController.ghostQuestGetCharactersByUser(user: UUID)
+#GET   /donut/api/v1/game/ghost-quest/characters/:user/all 				controllers.GameActionController.ghostQuestGetAllCharactersByUser(user: UUID)
+#GET   /donut/api/v1/game/ghost-quest/history/characters/:user  		controllers.GameActionController.ghostQuestGetCharacterHistoryByUser(user: UUID)
+#GET   /donut/api/v1/game/ghost-quest/history/character/:user/:id  controllers.GameActionController.ghostQuestGetCharacterHistoryByUserAndID(user: UUID, id: String)
+#GET   /donut/api/v1/game/ghost-quest/history/games     						controllers.GameActionController.ghostQuestGetAllGQGameHistory()
+#GET   /donut/api/v1/game/ghost-quest/history/games/:user   				controllers.GameActionController.ghostQuestGetGQGameHistoryByUser(user: UUID)
+#GET   /donut/api/v1/game/ghost-quest/history/game/id/:id  				controllers.GameActionController.ghostQuestGetGQGameHistoryByGameID(id: String)
+#GET   /donut/api/v1/game/ghost-quest/history/game/:user/:id   		controllers.GameActionController.ghostQuestGetGQGameHistoryByUserAndCharacterID(user: UUID, id: String)
 
-GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/lifetime 	controllers.GameActionController.ghostQuestHighEarnCharactersAllTime
-GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/daily 		controllers.GameActionController.ghostQuestHighEarnCharactersDaily
-GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/weekly 		controllers.GameActionController.ghostQuestHighEarnCharactersWeekly
+#GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/lifetime 	controllers.GameActionController.ghostQuestHighEarnCharactersAllTime
+#GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/daily 		controllers.GameActionController.ghostQuestHighEarnCharactersDaily
+#GET   /donut/api/v1/game/ghost-quest/characters/rank/earn/weekly 		controllers.GameActionController.ghostQuestHighEarnCharactersWeekly
 
-GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/weekly 		controllers.GameActionController.ghostQuestWinStreakPerDay
-GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily 		controllers.GameActionController.ghostQuestWinStreakPerWeekly
-GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime 	controllers.GameActionController.ghostQuestWinStreakLifeTime
+#GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/weekly 		controllers.GameActionController.ghostQuestWinStreakPerDay
+#GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/daily 		controllers.GameActionController.ghostQuestWinStreakPerWeekly
+#GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime 	controllers.GameActionController.ghostQuestWinStreakLifeTime
 
 # Treasurehunt API
 GET  	/donut/api/v1/game/treasurehunt/game/data 				controllers.GameActionController.treasureHuntGameData

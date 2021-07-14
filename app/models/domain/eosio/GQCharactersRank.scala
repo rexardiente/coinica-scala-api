@@ -1,6 +1,5 @@
 package models.domain.eosio
 
-import java.util.UUID
 import play.api.libs.json._
 // Ranking table
 // - character_id
@@ -10,12 +9,12 @@ import play.api.libs.json._
 // - highest_win_streak // if current will be higher than max then max = current_streak
 // - updated_at
 // - created_at
-// object GQCharactersWinStreakList extends utils.CommonImplicits
-// case class GQCharactersWinStreakList(game_id: List[String]) extends AnyVal
-object GQCharactersLifeTimeWinStreak extends utils.CommonImplicits
-object GQCharactersRankByEarned extends utils.CommonImplicits
-object GQCharactersRankByWinStreak extends utils.CommonImplicits
-case class GQCharactersLifeTimeWinStreak(character_id: String,
+// object GhostQuestCharactersWinStreakList extends utils.CommonImplicits
+// case class GhostQuestCharactersWinStreakList(game_id: List[String]) extends AnyVal
+object GhostQuestCharactersLifeTimeWinStreak extends utils.CommonImplicits
+object GhostQuestCharactersRankByEarned extends utils.CommonImplicits
+object GhostQuestCharactersRankByWinStreak extends utils.CommonImplicits
+case class GhostQuestCharactersLifeTimeWinStreak(character_id: String,
 																				current_win_streak: List[String], // list of game_id
 																				highest_win_streak: List[String],
 																				updated_at: Long,
@@ -23,17 +22,15 @@ case class GQCharactersLifeTimeWinStreak(character_id: String,
 	def toJson(): JsValue = Json.toJson(this)
 }
 
-case class GQCharactersRankByEarned(id: String,
-																		owner: UUID,
-																		ghost_class: Int,
-																		ghost_level: Int,
-																		earned: Double) {
+case class GhostQuestCharactersRankByEarned(id: String,
+																						owner: Int,
+																						rarity: Int,
+																						earned: Double) {
 	def toJson(): JsValue = Json.toJson(this)
 }
-case class GQCharactersRankByWinStreak(id: String,
-																			owner: UUID,
-																			ghost_class: Int,
-																			ghost_level: Int,
-																			win_streak: Int) {
+case class GhostQuestCharactersRankByWinStreak(id: String,
+																							owner: Int,
+																							rarity: Int,
+																							win_streak: Int) {
 	def toJson(): JsValue = Json.toJson(this)
 }

@@ -54,7 +54,7 @@ class GhostQuestCharacterGameHistoryRepo @Inject()(
         case (p1, p2) => mergeSeq[GhostQuestCharacterGameHistory, Seq[GhostQuestCharacterGameHistory]](p1, p2)
       }
 
-  def getGameHistoryByUsernameAndCharacterID(id: String, ownerID: Int): Future[Seq[GhostQuestCharacterGameHistory]] =
+  def getGameHistoryByGameIDAndCharacterID(id: String, ownerID: Int): Future[Seq[GhostQuestCharacterGameHistory]] =
     for {
       aswinner <- db.run(dao.Query.filter(v => v.winnerID === id && v.winner === ownerID).result)
       asloser <- db.run(dao.Query.filter(v => v.loserID === id && v.loser === ownerID).result)
@@ -62,14 +62,14 @@ class GhostQuestCharacterGameHistoryRepo @Inject()(
       case (p1, p2) => mergeSeq[GhostQuestCharacterGameHistory, Seq[GhostQuestCharacterGameHistory]](p1, p2)
     }
 
-  def getGameHistoryByUsernameAndGameID(id: String, ownerID: Int): Future[Seq[GhostQuestCharacterGameHistory]] =
-    for {
-      filtered <- filteredGameHistoryByID(id)
-      aswinner <- Future.successful(filtered.filter(_.winner == ownerID))
-      asloser <- Future.successful(filtered.filter(_.loser == ownerID))
-    } yield (aswinner, asloser) match {
-      case (p1, p2) => mergeSeq[GhostQuestCharacterGameHistory, Seq[GhostQuestCharacterGameHistory]](p1, p2)
-    }
+  // def getGameHistoryByUsernameAndGameID(id: String, ownerID: Int): Future[Seq[GhostQuestCharacterGameHistory]] =
+  //   for {
+  //     filtered <- filteredGameHistoryByID(id)
+  //     aswinner <- Future.successful(filtered.filter(_.winner == ownerID))
+  //     asloser <- Future.successful(filtered.filter(_.loser == ownerID))
+  //   } yield (aswinner, asloser) match {
+  //     case (p1, p2) => mergeSeq[GhostQuestCharacterGameHistory, Seq[GhostQuestCharacterGameHistory]](p1, p2)
+  //   }
 
   def getGameHistoryByCharacterID(id: String): Future[Seq[GhostQuestCharacterGameHistory]] =
     for {

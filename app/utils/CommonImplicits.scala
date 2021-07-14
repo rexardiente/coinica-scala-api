@@ -428,9 +428,9 @@ implicit val implicitGQCharacterInfoReads: Reads[GQCharacterInfo] = new Reads[GQ
     }
   }
 
-  implicit def implGQCharactersRankByEarned = Json.format[GQCharactersRankByEarned]
-  implicit def implGQCharactersRankByWinStreak = Json.format[GQCharactersRankByWinStreak]
-  implicit def implGQCharactersLifeTimeWinStreak = Json.format[GQCharactersLifeTimeWinStreak]
+  implicit def implGhostQuestCharactersRankByEarned = Json.format[GhostQuestCharactersRankByEarned]
+  implicit def implGhostQuestCharactersRankByWinStreak = Json.format[GhostQuestCharactersRankByWinStreak]
+  implicit def implGhostQuestCharactersLifeTimeWinStreak = Json.format[GhostQuestCharactersLifeTimeWinStreak]
 
   implicit def implGameType = Json.format[GameType]
 	implicit def implPaymentType = Json.format[PaymentType]

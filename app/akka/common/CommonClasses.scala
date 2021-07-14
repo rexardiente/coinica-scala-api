@@ -20,12 +20,12 @@ object ChallengeScheduler
 object DailyTaskScheduler
 object CreateNewDailyTask
 object RankingScheduler
-object GQBattleScheduler {
-	var nextBattle: Long = 0
-  val characters = HashMap.empty[String, GQCharacterData]
-  val eliminatedOrWithdrawn = HashMap.empty[String, GQCharacterData]
-  val isUpdatedCharacters = HashMap.empty[String, GQCharacterData]
-  val toRemovedCharacters = HashMap.empty[String, GQCharacterData] // character ID and user
-  val battleCounter = HashMap.empty[UUID, GQBattleResult]
-  val noEnemy = HashMap.empty[String, UUID] // character ID and username
-}
+// object GQBattleScheduler {
+// 	var nextBattle: Long = 0
+//   val characters = HashMap.empty[String, GQCharacterData]
+//   val eliminatedOrWithdrawn = HashMap.empty[String, GQCharacterData]
+//   val isUpdatedCharacters = HashMap.empty[String, GQCharacterData]
+//   val toRemovedCharacters = HashMap.empty[String, GQCharacterData] // character ID and user
+//   val battleCounter = HashMap.empty[UUID, GQBattleResult]
+//   val noEnemy = HashMap.empty[String, UUID] // character ID and username
+// }

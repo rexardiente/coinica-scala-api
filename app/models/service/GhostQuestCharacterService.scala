@@ -35,11 +35,8 @@ class GhostQuestCharacterService @Inject()(
   def getGameHistoryByUsernameCharacterIDAndDate(id: String, ownerID: Int, startDate: Long, endDate: Long): Future[Seq[GhostQuestCharacterGameHistory]] =
     gameHistory.getGameHistoryByUsernameCharacterIDAndDate(id, ownerID, startDate, endDate)
 
-  def getGameHistoryByUsernameAndCharacterID(id: String, ownerID: Int): Future[Seq[GhostQuestCharacterGameHistory]] =
-    gameHistory.getGameHistoryByUsernameAndCharacterID(id, ownerID)
-
-  def getGameHistoryByUsernameAndGameID(id: String, ownerID: Int): Future[Seq[GhostQuestCharacterGameHistory]] =
-    gameHistory.getGameHistoryByUsernameAndGameID(id, ownerID)
+  def getGameHistoryByGameIDAndCharacterID(id: String, ownerID: Int): Future[Seq[GhostQuestCharacterGameHistory]] =
+    gameHistory.getGameHistoryByGameIDAndCharacterID(id, ownerID)
 
   def getGameHistoryByCharacterID(id: String): Future[Seq[GhostQuestCharacterGameHistory]] =
     gameHistory.getGameHistoryByCharacterID(id)
@@ -85,4 +82,8 @@ class GhostQuestCharacterService @Inject()(
 
   def findGhostQuestCharacterHistory(key: String): Future[Option[GhostQuestCharacterHistory]] =
     characterHistory.find(key)
+  def findGhostQuestCharacterHistoryByOwnerID(ownerID: Int): Future[Seq[GhostQuestCharacterHistory]] =
+    characterHistory.findByOwnerID(ownerID)
+  def getGhostQuestCharacterHistoryByOwnerIDAndID(ownerID: Int, key: String): Future[Seq[GhostQuestCharacterHistory]] =
+    characterHistory.findByOwnerIDAndID(ownerID, key)
 }

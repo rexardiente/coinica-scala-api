@@ -12,9 +12,12 @@ import models.domain._
 import models.repo._
 
 @Singleton
-class HistoryService @Inject()(gameTxHistory: OverAllGameHistoryRepo) {
-	def getOverAllHistory(): Future[Seq[OverAllGameHistory]] = gameTxHistory.all
-	def getOverAllHistorySize(): Future[Int] = gameTxHistory.getSize()
-	def getHistoryByGameName(v: String): Future[Seq[OverAllGameHistory]] = gameTxHistory.getByGameName(v: String)
+class HistoryService @Inject()(overallGameHistory: OverAllGameHistoryRepo) {
+	def getOverAllHistory(): Future[Seq[OverAllGameHistory]] = overallGameHistory.all
+	def getOverAllHistorySize(): Future[Int] = overallGameHistory.getSize()
+	def getHistoryByGameName(v: String): Future[Seq[OverAllGameHistory]] = overallGameHistory.getByGameName(v: String)
+	def addOverAllHistory(v: OverAllGameHistory): Future[Int] = overallGameHistory.add(v)
+
+
 
 }

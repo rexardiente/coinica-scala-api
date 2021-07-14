@@ -40,7 +40,7 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
 
     case "BROADCAST_NEXT_BATTLE" =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
       }
 
     case "BROADCAST_DB_UPDATED" =>
@@ -62,7 +62,7 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
       } catch { case _: Throwable => {} }
     case "BROADCAST_NO_CHARACTERS_AVAILABLE" =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
       }
 
     case e => log.info("DynamicBroadcastActor: invalid request")

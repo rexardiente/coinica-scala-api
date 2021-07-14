@@ -14,11 +14,8 @@ import models.domain._
 import models.domain.enum._
 import models.domain.Event._
 import models.domain.eosio.TableRowsRequest
-import models.domain.eosio.GQ.v2.{ GQRowsResponse, GQGame, GQCharacterData, GQTable }
-import models.repo.eosio.{ GQCharacterDataRepo, GQCharacterGameHistoryRepo }
 import models.repo.{ OverAllGameHistoryRepo, VIPUserRepo }
 import models.service.UserAccountService
-import akka.common.objects.{ Connect, GQBattleScheduler }
 import models.domain.wallet.support.UserAccountWalletHistory
 import utils.lib.GhostQuestEOSIO
 import utils.Config
@@ -27,8 +24,6 @@ object WebSocketActor {
   def props(
       out: ActorRef,
       userAccountService: UserAccountService,
-      characterRepo: GQCharacterDataRepo,
-      historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
       vipUserRepo: VIPUserRepo,
       ghostQuestEOSIO: GhostQuestEOSIO,
@@ -37,15 +32,12 @@ object WebSocketActor {
     Props(classOf[WebSocketActor],
           out,
           userAccountService,
-          characterRepo,
-          historyRepo,
           overAllGameHistory,
           vipUserRepo,
           ghostQuestEOSIO,
           dynamicBroadcast,
           dynamicProcessor,
           system)
-  val isUpdatedCharacters = HashMap.empty[String, GQCharacterData]
   val subscribers = HashMap.empty[UUID, ActorRef]
   var hasPrevUpdateCharacter: Boolean = false
 }
@@ -54,8 +46,6 @@ object WebSocketActor {
 class WebSocketActor@Inject()(
       out: ActorRef,
       userAccountService: UserAccountService,
-      characterRepo: GQCharacterDataRepo,
-      historyRepo: GQCharacterGameHistoryRepo,
       overAllGameHistory: OverAllGameHistoryRepo,
       vipUserRepo: VIPUserRepo,
       ghostQuestEOSIO: GhostQuestEOSIO,
@@ -105,52 +95,52 @@ class WebSocketActor@Inject()(
               case true => in.input match {
                 // if server got a WS message for newly created character
                 // try to update character DB
-                case cc: GQCharacterCreated =>
-                  if (!WebSocketActor.hasPrevUpdateCharacter) {
-                    // set has existing request to update characters DB
-                    WebSocketActor.hasPrevUpdateCharacter = true
-                    Thread.sleep(300)
-                    Await.ready(getEOSTableRows(Some("REQUEST_UPDATE_CHARACTERS_DB")), Duration.Inf)
-                    Thread.sleep(1000)
-                    if (!WebSocketActor.isUpdatedCharacters.isEmpty) {
-                      val seq: Seq[GQCharacterData] = WebSocketActor.isUpdatedCharacters.map(_._2).toSeq
-                      // remove characters with no life..
-                      for {
-                        _ <- Future.sequence {
-                          seq.filter(x => x.life <= 0).map { data =>
-                            userAccountService.getAccountByID(data.owner).map {
-                              case Some(account) =>
-                                Await.ready(for {
-                                  isRemoved <- characterRepo.remove(account.id, data.key)
-                                  _ <- Future.successful {
-                                    Thread.sleep(500)
-                                    // check if character exist already on history else add..
-                                    characterRepo.getCharacterHistoryByID(data.key).map {
-                                      case Some(v) => ()
-                                      case None =>
-                                        characterRepo
-                                          .insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
-                                          .map(x => if(x < 1) characterRepo.insert(data))
-                                    }
-                                  }
-                                } yield (Thread.sleep(1000)), Duration.Inf)
-                              case _ => ()
-                            }
-                          }
-                        }
-                        // update remaining characters that are still on battle
-                        _ <- Future.sequence(seq.filter(x => x.life > 0).map(characterRepo.updateOrInsertAsSeq))
-                      } yield (out ! OutEvent.apply)
-                    }
-                    WebSocketActor.isUpdatedCharacters.clear
-                    WebSocketActor.hasPrevUpdateCharacter = false
-                  }
+                // case cc: GQCharacterCreated =>
+                //   if (!WebSocketActor.hasPrevUpdateCharacter) {
+                //     // set has existing request to update characters DB
+                //     WebSocketActor.hasPrevUpdateCharacter = true
+                //     Thread.sleep(300)
+                //     Await.ready(getEOSTableRows(Some("REQUEST_UPDATE_CHARACTERS_DB")), Duration.Inf)
+                //     Thread.sleep(1000)
+                //     if (!WebSocketActor.isUpdatedCharacters.isEmpty) {
+                //       val seq: Seq[GQCharacterData] = WebSocketActor.isUpdatedCharacters.map(_._2).toSeq
+                //       // remove characters with no life..
+                //       for {
+                //         _ <- Future.sequence {
+                //           seq.filter(x => x.life <= 0).map { data =>
+                //             userAccountService.getAccountByID(data.owner).map {
+                //               case Some(account) =>
+                //                 Await.ready(for {
+                //                   isRemoved <- characterRepo.remove(account.id, data.key)
+                //                   _ <- Future.successful {
+                //                     Thread.sleep(500)
+                //                     // check if character exist already on history else add..
+                //                     characterRepo.getCharacterHistoryByID(data.key).map {
+                //                       case Some(v) => ()
+                //                       case None =>
+                //                         characterRepo
+                //                           .insertDataHistory(GQCharacterData.toCharacterDataHistory(data))
+                //                           .map(x => if(x < 1) characterRepo.insert(data))
+                //                     }
+                //                   }
+                //                 } yield (Thread.sleep(1000)), Duration.Inf)
+                //               case _ => ()
+                //             }
+                //           }
+                //         }
+                //         // update remaining characters that are still on battle
+                //         _ <- Future.sequence(seq.filter(x => x.life > 0).map(characterRepo.updateOrInsertAsSeq))
+                //       } yield (out ! OutEvent.apply)
+                //     }
+                //     WebSocketActor.isUpdatedCharacters.clear
+                //     WebSocketActor.hasPrevUpdateCharacter = false
+                //   }
                 // if result is empty it means on battle else standby mode..
                 case cc: GQGetNextBattle =>
-                  if (GQBattleScheduler.nextBattle == 0)
+                  if (GhostQuestSchedulerActor.nextBattle == 0)
                     out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
                   else
-                    out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GQBattleScheduler.nextBattle))
+                    out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
 
                 case e: EOSNotifyTransaction =>
                   // Check if notification relates to TH
@@ -201,68 +191,5 @@ class WebSocketActor@Inject()(
     }
 
     case _ => out ! OutEvent(JsNull, JsString("invalid"))
-  }
-  // recursive request no matter how many times till finished
-  private def getEOSTableRows(sender: Option[String]): Future[Unit] = Future.successful {
-    var hasNextKey: Option[String] = None
-    var hasRows: Seq[GQTable] = Seq.empty
-    do {
-      Await.ready(ghostQuestEOSIO.getGhostQuestTableRows(new TableRowsRequest(Config.GQ_CODE,
-                                                                    Config.GQ_TABLE,
-                                                                    Config.GQ_SCOPE,
-                                                                    None,
-                                                                    Some("uint64_t"),
-                                                                    None,
-                                                                    None,
-                                                                    hasNextKey), sender), Duration.Inf) map {
-        case Some(GQRowsResponse(rows, hasNext, nextKey, sender)) =>
-          hasNextKey = if (nextKey == "") None else Some(nextKey)
-          hasRows = rows
-        case _ =>
-          hasNextKey = None
-          hasRows = Seq.empty
-      }
-
-      Thread.sleep(2000)
-      if (!hasRows.isEmpty) Await.ready(processEOSTableResponse(sender, hasRows), Duration.Inf)
-    } while (hasNextKey != None);
-  }
-  private def processEOSTableResponse(sender: Option[String], rows: Seq[GQTable]): Future[Seq[Any]] = Future.sequence {
-    rows.map { row =>
-      // find account info and return ID..
-      userAccountService.getAccountByName(row.username).map {
-        case Some(account) =>
-          // val username: String = row.username
-          val data: GQGame = row.data
-
-          val characters = data.characters.map { ch =>
-            val key = ch.key
-            val time = ch.value.createdAt
-            new GQCharacterData(key,
-                                account.id,
-                                ch.value.life,
-                                ch.value.hp,
-                                ch.value.`class`,
-                                ch.value.level,
-                                ch.value.status,
-                                ch.value.attack,
-                                ch.value.defense,
-                                ch.value.speed,
-                                ch.value.luck,
-                                ch.value.limit,
-                                ch.value.count,
-                                if (time <= Instant.now().getEpochSecond - (60 * 5)) false else true,
-                                time)
-          }
-
-          sender match {
-            case Some("REQUEST_UPDATE_CHARACTERS_DB") =>
-              characters.map(v => WebSocketActor.isUpdatedCharacters.addOne(v.key, v))
-            case e => log.info("GQRowsResponse: unknown data")
-          }
-
-        case _ => Seq.empty
-      }
-    }
   }
 }

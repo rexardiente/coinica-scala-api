@@ -6,6 +6,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object GhostQuestCharacterValue extends utils.CommonImplicits
+object GhostQuestCharacter extends utils.CommonImplicits
 object GhostQuestGameData extends utils.CommonImplicits
 object GhostQuestTableGameData extends utils.CommonImplicits
 object GhostQuestCharacterHistory extends utils.CommonImplicits
@@ -72,4 +73,23 @@ case class GhostQuestCharacterHistory(key: String,
 																			last_match: Int,
 																			enemy_fought: JsValue) {
 	def toJson(): JsValue = Json.toJson(this)
+	def toCharacterData(): GhostQuestCharacter =
+		new GhostQuestCharacter(key, new GhostQuestCharacterValue(
+			owner_id,
+			ghost_name,
+			ghost_id,
+			rarity,
+			character_life,
+			initial_hp,
+			hitpoints,
+			status,
+			attack,
+			defense,
+			speed,
+			luck,
+			prize,
+			battle_limit,
+			battle_count,
+			last_match,
+			enemy_fought))
 }

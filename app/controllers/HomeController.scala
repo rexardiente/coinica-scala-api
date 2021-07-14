@@ -40,8 +40,6 @@ class HomeController @Inject()(
       referralHistoryService:  ReferralHistoryService,
       eosNetTransaction: EOSNetTransactionService,
       challengeService: ChallengeService,
-      gQCharacterDataRepo: GQCharacterDataRepo,
-      gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
       overAllGameHistoryRepo: OverAllGameHistoryRepo,
       // overAllHistoryService: OverAllHistoryService,
       ghostQuestEOSIO: utils.lib.GhostQuestEOSIO,
@@ -107,8 +105,6 @@ class HomeController @Inject()(
     play.api.libs.streams.ActorFlow.actorRef { out =>
       WebSocketActor.props(out,
                           accountService,
-                          gQCharacterDataRepo,
-                          gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
                           vipUserRepo,
                           ghostQuestEOSIO,
