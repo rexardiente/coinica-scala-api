@@ -53,8 +53,8 @@ class GhostQuestSchedulerActor @Inject()(
         if (!GhostQuestSchedulerActor.isIntialized) {
           GhostQuestSchedulerActor.isIntialized = true
 
-          GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
-          systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
+          // GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
+          // systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
           log.info("GQ Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
