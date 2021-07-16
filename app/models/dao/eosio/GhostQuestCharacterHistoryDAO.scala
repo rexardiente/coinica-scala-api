@@ -31,6 +31,7 @@ final class GhostQuestCharacterHistoryDAO @Inject()(
     def prize = column[BigDecimal] ("PRIZE")
     def battle_limit = column[Int] ("BATTLE_LIMIT")
     def battle_count = column[Int] ("BATTLE_COUNT")
+    def created_at = column[String] ("CREATED_AT")
     def last_match = column[Int] ("LAST_MATCH")
     def enemy_fought = column[JsValue] ("MATCHES")
 
@@ -50,6 +51,7 @@ final class GhostQuestCharacterHistoryDAO @Inject()(
             prize,
             battle_limit,
             battle_count,
+            created_at,
             last_match,
             enemy_fought) <> ((GhostQuestCharacterHistory.apply _).tupled, GhostQuestCharacterHistory.unapply)
   }

@@ -638,6 +638,7 @@ trait CommonImplicits {
 						try { BigDecimal((json \ "prize").as[String]) } catch { case _: Throwable => 0 },
 						(json \ "battle_limit").as[Int],
 						(json \ "battle_count").as[Int],
+						(json \ "created_at").as[String],
 						(json \ "last_match").as[Int],
 						(json \ "enemy_fought").as[JsValue]))
 				} catch {
@@ -664,6 +665,7 @@ trait CommonImplicits {
 			"prize" -> v.prize,
 			"battle_limit" -> v.battle_limit,
 			"battle_count" -> v.battle_count,
+			"created_at" -> v.created_at,
 			"last_match" -> v.last_match,
 			"enemy_fought" -> v.enemy_fought)
 	}

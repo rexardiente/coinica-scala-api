@@ -25,6 +25,7 @@ case class GhostQuestCharacterValue(owner_id: Int,
 																		prize: BigDecimal,
 																		battle_limit: Int,
 																		battle_count: Int,
+																		created_at: String,
 																		last_match: Int,
 																		enemy_fought: JsValue) {
 	def toJson(): JsValue = Json.toJson(this)
@@ -47,6 +48,7 @@ case class GhostQuestCharacter(key: String, value: GhostQuestCharacterValue) {
 																	value.prize,
 																	value.battle_limit,
 																	value.battle_count,
+																	value.created_at,
 																	value.last_match,
 																	value.enemy_fought)
 }
@@ -70,6 +72,7 @@ case class GhostQuestCharacterHistory(key: String,
 																			prize: BigDecimal,
 																			battle_limit: Int,
 																			battle_count: Int,
+																			created_at: String,
 																			last_match: Int,
 																			enemy_fought: JsValue) {
 	def toJson(): JsValue = Json.toJson(this)
@@ -90,6 +93,7 @@ case class GhostQuestCharacterHistory(key: String,
 			prize,
 			battle_limit,
 			battle_count,
+			created_at,
 			last_match,
 			enemy_fought))
 }
