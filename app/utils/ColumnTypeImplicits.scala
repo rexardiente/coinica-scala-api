@@ -7,8 +7,17 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.eosio.{ Act, ActionTrace, Data, Partial, Receipt, Trace, GQGameStatus, GameLog }
+import models.domain.eosio.{
+    Act,
+    ActionTrace,
+    Data,
+    Partial,
+    Receipt,
+    Trace,
+    GhostQuestCharacterGameLog,
+    GhostQuestCharacterValue }
 import models.domain.{ ChallengeTracker, TransactionType, RankType }
+import models.domain.wallet.support.{ Coin, CryptoJsonRpcHistory }
 import models.domain.enum._
 // import ejisan.kuro.otp.OTPKey
 // import ejisan.scalauthx.HashedCredential
@@ -39,15 +48,21 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val transactionTypeColumnMapper = MappedColumnType.base[TransactionType, JsValue](
      s => s.toJson(),
      i => i.as[TransactionType])
+  implicit val ghostQuestCharacterValueColumnMapper = MappedColumnType.base[GhostQuestCharacterValue, JsValue](
+     s => s.toJson(),
+     i => i.as[GhostQuestCharacterValue])
+  implicit val walletCoinColumnMapper = MappedColumnType.base[Coin, JsValue](
+     s => s.toJson(),
+     i => i.as[Coin])
+  implicit val CryptoJsonRpcHistoryColumnMapper = MappedColumnType.base[CryptoJsonRpcHistory, JsValue](
+     s => s.toJson(),
+     i => i.as[CryptoJsonRpcHistory])
   implicit val listTransactionTypeColumnMapper = MappedColumnType.base[List[TransactionType], JsValue](
     s => Json.toJson(s),
     i => i.as[List[TransactionType]])
-  implicit val gqListGameStatusColumnMapper = MappedColumnType.base[List[GQGameStatus], JsValue](
+  implicit val gqCharacterGameLogColumnMapper = MappedColumnType.base[List[GhostQuestCharacterGameLog], JsValue](
     s => Json.toJson(s),
-    i => i.as[List[GQGameStatus]])
-  implicit val gqGameLogColumnMapper = MappedColumnType.base[List[GameLog], JsValue](
-    s => Json.toJson(s),
-    i => i.as[List[GameLog]])
+    i => i.as[List[GhostQuestCharacterGameLog]])
   implicit val challengeTrackerColumnMapper = MappedColumnType.base[List[ChallengeTracker], JsValue](
     s => Json.toJson(s),
     i => i.as[List[ChallengeTracker]])

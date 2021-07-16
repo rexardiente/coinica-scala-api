@@ -8,6 +8,7 @@ import models.dao._
 @Singleton
 class Generator @Inject()(
     user: UserAccountDAO,
+    userWalletHistory: UserAccountWalletHistoryDAO,
     game: GameDAO,
     genre: GenreDAO,
     task: TaskDAO,
@@ -19,9 +20,9 @@ class Generator @Inject()(
     challenge: ChallengeDAO,
     challengeHistory: ChallengeHistoryDAO,
     challengeTracker: ChallengeTrackerDAO,
-    gqCharacterData: GQCharacterDataDAO,
-    gqCharacterGameHistory: GQCharacterGameHistoryDAO,
-    gqCharacterDataHistory: GQCharacterDataHistoryDAO,
+    ghostQuestCharacterDAO: GhostQuestCharacterDAO,
+    ghostQuestCharacterHistoryDAO: GhostQuestCharacterHistoryDAO,
+    ghostQuestCharacterGameHistoryDAO: GhostQuestCharacterGameHistoryDAO,
     vipBenefit: VIPBenefitDAO,
     news: NewsDAO,
     overAllGameHistory: OverAllGameHistoryDAO,
@@ -32,8 +33,11 @@ class Generator @Inject()(
   def createDDLScript() = {
     val schemas =
       user.UserAccountQuery.schema ++
+      userWalletHistory.Query.schema ++
       user.UserTokenQuery.schema ++
       user.VIPUserQuery.schema ++
+      user.UserWalletQuery.schema ++
+      user.FailedCoinDepositQuery.schema ++
       game.Query.schema ++
       genre.Query.schema ++
       task.Query.schema ++
@@ -45,9 +49,9 @@ class Generator @Inject()(
       challenge.Query.schema ++
       challengeHistory.Query.schema ++
       challengeTracker.Query.schema ++
-      gqCharacterData.Query.schema ++
-      gqCharacterGameHistory.Query.schema ++
-      gqCharacterDataHistory.Query.schema ++
+      ghostQuestCharacterDAO.Query.schema ++
+      ghostQuestCharacterHistoryDAO.Query.schema ++
+      ghostQuestCharacterGameHistoryDAO.Query.schema ++
       vipBenefit.Query.schema ++
       news.Query.schema ++
       overAllGameHistory.Query.schema

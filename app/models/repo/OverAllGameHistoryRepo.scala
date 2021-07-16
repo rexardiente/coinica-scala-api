@@ -51,6 +51,8 @@ class OverAllGameHistoryRepo @Inject()(
 
   def getByDateRangeAndGame(game: String, start: Long, end : Long): Future[Seq[OverAllGameHistory]] =
     db.run(dao.Query.filter(r => r.game === game && r.createdAt >= start && r.createdAt <= end).result)
+  def getByGameName(game: String): Future[Seq[OverAllGameHistory]] =
+    db.run(dao.Query.filter(_.game === game).result)
   // def getByDateRangeAndUser(user: String, start: Long, end : Long): Future[Seq[OverAllGameHistory]] =
   //   db.run(dao.Query.filter(r => r.createdAt >= start && r.createdAt <= end).result)
 }

@@ -29,9 +29,9 @@ class DBMockupGenerator @Inject()(
     val description: String = """Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."""
     val genreID: UUID = UUID.fromString("7633f64d-2caa-472b-9da7-e0feb439aefe")
     Seq(
-        new Game(UUID.fromString("0f335579-1bf8-4f9e-8ede-eb204f5c0cba"), "GHOST QUEST", "https://eos-web-assets.s3.ap-northeast-2.amazonaws.com/eos-web/imgs/platform/games/GQ.jpeg", "/game/ghostquest", genreID, Some(description)),
-        new Game(UUID.fromString("1b977a2b-842e-430b-bd1b-c0bd3abe1c55"), "TREASURE HUNT", "https://eos-web-assets.s3.ap-northeast-2.amazonaws.com/eos-web/imgs/platform/games/TH.jpeg", "/game/treasurehunt", genreID, Some(description)),
-        new Game(UUID.fromString("74cd374c-6126-495a-a8a3-33db87caa511"), "MAHJONG HILO", "https://eos-web-assets.s3.ap-northeast-2.amazonaws.com/eos-web/imgs/platform/games/MJ.png", "/game/mahjong", genreID, Some(description))
+        new Game(UUID.fromString("0f335579-1bf8-4f9e-8ede-eb204f5c0cba"), "GHOST QUEST", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/GQ.jpeg", "/game/ghostquest", genreID, Some(description)),
+        new Game(UUID.fromString("1b977a2b-842e-430b-bd1b-c0bd3abe1c55"), "TREASURE HUNT", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/TH.jpeg", "/game/treasurehunt", genreID, Some(description)),
+        new Game(UUID.fromString("74cd374c-6126-495a-a8a3-33db87caa511"), "MAHJONG HILO", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/MJ.png", "/game/mahjong", genreID, Some(description))
     ).map(gameRepo.add(_))
   }
   private def genreQuery(): Unit = {

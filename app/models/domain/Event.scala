@@ -1,5 +1,6 @@
 package models.domain
 
+import java.util.UUID
 import play.api.libs.json._
 
 object InEventMessage extends utils.CommonImplicits
@@ -8,7 +9,7 @@ object GQCharacterCreated
 object GQGetNextBattle
 object VIPWSRequest
 object EOSNotifyTransaction
-object THGameResult
+// object THGameResult
 
 sealed trait InEventMessage {
   def toJson(): JsValue = Json.toJson(this)
@@ -23,19 +24,7 @@ case class GQGetNextBattle(GQ_NEXT_BATTLE: String) extends InEventMessage {
 case class EOSNotifyTransaction(EOS_NET_TRANSACTION: JsValue) extends InEventMessage {
 	// require(GQ_NEXT_BATTLE == "get", "GQ Next Battle: invalid request")
 }
-
-case class THPanelSet(key: Int, isopen: Int, iswin: Int) extends utils.CommonImplicits
-case class THGameData(destination: Int,
-											enemy_count: Int,
-											maxprize: Double,
-											nextprize: Double,
-											odds: Double,
-											panel_set: Seq[THPanelSet],
-											prize: Double,
-											status: Int,
-											unopentile: Int,
-											win_count: Int) extends utils.CommonImplicits
-case class THGameResult(tx_hash: String, game_id: String, data: THGameData) extends InEventMessage
+// case class THGameResult(tx_hash: String, game_id: String, data: THGameData) extends InEventMessage
 // VIP objects
 case class VIPWSRequest(user: String, command: String, request: String) extends InEventMessage {
 	require(command == "vip", "VIP Command: invalid request")
@@ -50,19 +39,43 @@ case class VIPWSRequest(user: String, command: String, request: String) extends 
 }
 
 object Event extends utils.CommonImplicits
+object ETHUSDCWithdrawEvent extends utils.CommonImplicits
+object DepositEvent extends utils.CommonImplicits
 object InEvent extends utils.CommonImplicits
-object OutEvent extends utils.CommonImplicits
+object OutEvent extends utils.CommonImplicits {
+	def apply(): OutEvent = new OutEvent(JsNull, JsString("success"))
+}
 object Subscribe extends utils.CommonImplicits
 object ConnectionAlive extends utils.CommonImplicits
 
 sealed trait Event {
   def toJson(): JsValue = Json.toJson(this)
+  def account_id: Option[UUID]
 }
-case class InEvent(id: JsValue, input: JsValue) extends Event
-case class OutEvent(id: JsValue, response: JsValue) extends Event
-case class Subscribe(id: String, message: String) extends Event {
+case class ETHUSDCWithdrawEvent(account_id: Option[UUID], tx_hash: String, tx_type: String, currency: String) extends Event {
+	require(tx_type == "WITHDRAW", "invalid transaction type")
+}
+case class DepositEvent(account_id: Option[UUID],
+												tx_hash: String,
+												tx_type: String,
+												issuer: String,
+												receiver: String,
+												currency: String,
+												amount: BigDecimal) extends Event {
+	require(tx_type == "DEPOSIT", "invalid transaction type")
+	require(amount > 0, "amount must not equal to 0.")
+}
+case class InEvent(id: JsValue, input: InEventMessage) extends Event {
+	def account_id: Option[UUID] = None
+}
+case class OutEvent(id: JsValue, response: JsValue) extends Event {
+	def account_id: Option[UUID] = None
+}
+case class Subscribe(id: UUID, message: String) extends Event {
+	def account_id: Option[UUID] = None
 	require(message == "subscribe", "Subscribe: Invalid message received")
 }
 case class ConnectionAlive(message: String) extends Event {
 	require(message == "connection_reset", "Connection Alive: Invalid message received")
+	def account_id: Option[UUID] = None
 }

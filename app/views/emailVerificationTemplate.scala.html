@@ -11,25 +11,25 @@
           // contentType: "application/json; charset=utf-8",
           url: "@routes.HomeController.signIn(true)",
           success: function(response) {
-            setTimeout(function() { confirmEmail(response.token); }, 1000);
+            setTimeout(function() { confirmEmail(response); }, 1000);
           },
           error: function(err) { setTimeout(function() { window.close(); }, 1000); }
-       });
+        });
       };
 
-      function confirmEmail(session) {
+      function confirmEmail(params) {
         $.ajax({
           type : "POST",
           dataType: 'json',
           data: JSON.stringify({'email': "@email"}),
           contentType: "application/json; charset=utf-8",
-          headers: { 'CLIENT_TOKEN': session, 'Content-Type':'application/json' },
+          headers: { 'CLIENT_ID': params.id, 'CLIENT_TOKEN': params.token, 'Content-Type':'application/json' },
           url: "@routes.SecureActionController.updateEmailAccount()",
           success: function(res) {
             window.location="@routes.HomeController.index()";
           },
           error: function(err) { setTimeout(function() { window.close(); }, 1000); }
-       });
+        });
       };
     </script>
 }

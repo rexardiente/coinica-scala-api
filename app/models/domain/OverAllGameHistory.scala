@@ -6,46 +6,44 @@ import play.api.libs.json._
 
 object GameType
 object PaymentType
-object GQGameHistory
-object THGameHistory
+object BooleanPredictions
+object IntPredictions
+object ListOfIntPredictions
 object TransactionType extends utils.CommonImplicits
-object OverAllGameHistory { implicit def implOverAllGameHistory = Json.format[OverAllGameHistory] }
+object OverAllGameHistory extends utils.CommonImplicits
 
 sealed trait TransactionType {
-	def user: String
-	def bet: Double
+	def user(): String
+	def bet(): Double
+	def amount(): Double
 	def toJson(): JsValue = Json.toJson(this)
 }
 // prediction default to WIN and after battle check if who wins to true else false for lose..
-case class GQGameHistory(user: String, prediction: String, result: Boolean, bet: Double = 1) extends TransactionType {
+case class BooleanPredictions(user: String, prediction: Boolean, result: Boolean, bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
+	def isWin(): Boolean = (prediction == result)
+}
+case class IntPredictions(user: String, prediction: Int, result: Int, bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
+	override def toJson(): JsValue = Json.toJson(this)
+	def isWin(): Boolean = (prediction == result)
 }
 // prediction equals list of panels selected and check if `result == prediction` is win else lose
-case class THGameHistory(user: String, prediction: List[Int], result: List[Int], bet: Double, amount: Double) extends TransactionType {
+case class ListOfIntPredictions(user: String, prediction: List[Int], result: List[Int], bet: Double, amount: Double, more_info: Option[JsValue]) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
+	def isWin(): Boolean = (prediction == result)
 }
-// case class THGameHistory(user: String,
-// 												destination: Int,
-// 												enemy_count: Int,
-// 												maxprize: Double,
-// 												nextprize: Double,
-// 												bet: Double,
-// 												panel_set: Seq[THPanelSet],
-// 												prize: Double,
-// 												status: Int,
-// 												unopentile: Int,
-// 												win_count: Int) extends TransactionType {
-// 	override def toJson(): JsValue = Json.toJson(this)
-// }
+// case class MJGameHistory(user: String, bet: Double, amount: Double) extends TransactionType
 case class GameType(user: String, isWin: Boolean, bet: Double) extends TransactionType {
 	override def toJson(): JsValue = Json.toJson(this)
+	def amount(): Double = 0D
 }
-case class PaymentType(user: String, data: String, bet: Double) extends TransactionType {
-	require(data == "transfer" || data == "receive" , "Payment Type Input: invalid request")
+case class PaymentType(user: String, data: String, amount: Double) extends TransactionType {
+	require(data == "WITHDRAW" || data == "DEPOSIT", "Payment Type Input: invalid request")
 	override def toJson(): JsValue = Json.toJson(this)
+	def bet(): Double = 0D
 }
 case class OverAllGameHistory(id: UUID,
-															tx_hash: String,
+															txHash: String,
 															gameID: String, // name or ID
 															game: String, // name or ID
 															info: TransactionType,
@@ -53,25 +51,3 @@ case class OverAllGameHistory(id: UUID,
 															createdAt: Long) {
 	def toJson(): JsValue = Json.toJson(this)
 }
-// GAME TRANSACTION
-// 	- TRANSACTION TYPE
-// 		- GAME
-// 		- PAYMENT AS TRANSFER (FROM TO ACCOUNT)
-
-// - GAME
-// 	- ACCOUNT/USERNAME
-// 	- IS_WIN
-// 	- AMOUNT
-
-// - PAYMENT AS TRANSFER (FROM TO ACCOUNT)
-// 	- ACCOUNT/USERNAME
-// 	- TRANSFER OR RECEIVED
-// 	- AMOUNT
-
-
-// TX ID | GAME 	  | TYPE 		| PLAYER| RESULT 	 | AMOUNT
-// 1 		| MJ		  | GAME 		| user1 | WIN 		 | 3.23
-// 2 		| TH		  | GAME 		| user2 | LOSE		 | 2.34
-// 3 		| TH  		| PAYMENT | user1 | TRANSFER | 1.00
-// 4 		| MJ 		  | PAYMENT | user3 | RECEIVED | 0.90
-

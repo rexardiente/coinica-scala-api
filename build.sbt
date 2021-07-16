@@ -20,6 +20,7 @@ javaOptions in Universal ++= Seq("-Dpidfile.path=/dev/null")
 libraryDependencies ++= Seq(
 	guice,
 	ws,
+	"com.enragedginger" %% "akka-quartz-scheduler" % "1.9.1-akka-2.6.x",
 	"com.typesafe.play" %% "play-mailer" % "8.0.1",
 	"com.typesafe.play" %% "play-mailer-guice" % "8.0.1",
 	"com.typesafe.slick" %% "slick" % "3.3.2",
@@ -39,6 +40,7 @@ play.sbt.routes.RoutesKeys.routesImport ++= Seq(
 	"java.util.UUID"
 )
 // scalacOptions in Compile ++= Seq("-Xmax-classfile-name", "128")
+resolvers += "Typesafe Repository" at "https://repo.typesafe.com/typesafe/releases/"
 resolvers += "sonatype snapshots".at("https://oss.sonatype.org/content/repositories/snapshots/")
 // resolvers += "Ejisan Github" at "https://ejisan.github.io/repo/"
 Global / onChangedBuildSource := IgnoreSourceChanges

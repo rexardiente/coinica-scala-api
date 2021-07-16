@@ -5,7 +5,6 @@ import java.time.{ LocalTime, Instant }
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import akka.actor.ActorRef
 import models.domain.eosio.{ TableRowsRequest, GQBattleResult }
-import models.domain.eosio.GQ.v2._
 
 case class Connect(username: String) extends AnyVal
 // case class Disconnect(disconnection: ActorRef) extends AnyVal
@@ -20,13 +19,12 @@ object ChallengeScheduler
 object DailyTaskScheduler
 object CreateNewDailyTask
 object RankingScheduler
-object GQBattleScheduler {
-	var nextBattle: Long = 0
-  val characters = HashMap.empty[String, GQCharacterData]
-  val eliminatedOrWithdrawn = HashMap.empty[String, GQCharacterData]
-  val isUpdatedCharacters = HashMap.empty[String, GQCharacterData]
-  val toRemovedCharacters = HashMap.empty[String, GQCharacterData] // character ID and user
-  val battleCounter = HashMap.empty[UUID, GQBattleResult]
-  val noEnemy = HashMap.empty[String, UUID] // character ID and username
-  var REQUEST_BATTLE_STATUS = ""
-}
+// object GQBattleScheduler {
+// 	var nextBattle: Long = 0
+//   val characters = HashMap.empty[String, GQCharacterData]
+//   val eliminatedOrWithdrawn = HashMap.empty[String, GQCharacterData]
+//   val isUpdatedCharacters = HashMap.empty[String, GQCharacterData]
+//   val toRemovedCharacters = HashMap.empty[String, GQCharacterData] // character ID and user
+//   val battleCounter = HashMap.empty[UUID, GQBattleResult]
+//   val noEnemy = HashMap.empty[String, UUID] // character ID and username
+// }

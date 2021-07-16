@@ -21,6 +21,7 @@ import models.service._
 import models.domain.enum._
 import akka.WebSocketActor
 import utils.Config
+import models.domain.wallet.support.Coin
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -39,12 +40,9 @@ class HomeController @Inject()(
       referralHistoryService:  ReferralHistoryService,
       eosNetTransaction: EOSNetTransactionService,
       challengeService: ChallengeService,
-      gQCharacterDataRepo: GQCharacterDataRepo,
-      gQCharacterGameHistoryRepo: GQCharacterGameHistoryRepo,
       overAllGameHistoryRepo: OverAllGameHistoryRepo,
-      overAllHistoryService: OverAllHistoryService,
-      gqGameService: GQGameService,
-      eosioHTTPSupport: akka.EOSIOHTTPSupport,
+      // overAllHistoryService: OverAllHistoryService,
+      ghostQuestEOSIO: utils.lib.GhostQuestEOSIO,
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
       mat: akka.stream.Materializer,
@@ -54,6 +52,7 @@ class HomeController @Inject()(
       encryptKey: utils.auth.EncryptKey,
       validateEmail: EmailValidation,
       mailerService: MailerService,
+      multiCurrencySupport: utils.lib.MultiCurrencyHTTPSupport,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
@@ -106,11 +105,9 @@ class HomeController @Inject()(
     play.api.libs.streams.ActorFlow.actorRef { out =>
       WebSocketActor.props(out,
                           accountService,
-                          gQCharacterDataRepo,
-                          gQCharacterGameHistoryRepo,
                           overAllGameHistoryRepo,
                           vipUserRepo,
-                          eosioHTTPSupport,
+                          ghostQuestEOSIO,
                           dynamicBroadcast,
                           dynamicProcessor)
     }
@@ -157,31 +154,38 @@ class HomeController @Inject()(
         // validate username and referral code..
         for {
           isAccountAlreadyExists <- accountService.getAccountByName(username)
-          hasReferralCode <- accountService.getAccountByCode(code.getOrElse(null))
-          processed <- {
+          processSignUp <- {
             if (isAccountAlreadyExists == None) {
-              if (hasReferralCode.map(_.referralCode) == code) {
-                // encrypt account password into SHA256 algorithm...
-                val userAccount: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
-                // generate User Account and VIP Account
-                for {
-                  addAccount <- accountService.newUserAcc(userAccount)
-                  addAccountToken <- accountService.addUpdateUserToken(UserToken(userAccount.id))
-                  addVip <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
-                  // apply code if has value
-                  _ <- Future.successful {
-                    Thread.sleep(500) // add small delay
-                    if (hasReferralCode.map(_.referralCode) != None) {
-                      referralHistoryService.applyReferralCode(userAccount.id, code.getOrElse(null))
+              // if (hasCode.referralCode == code.getOrElse("")) {
+                try {
+                  // encrypt account password into SHA256 algorithm...
+                  val userAccount: UserAccount = UserAccount(username, encryptKey.toSHA256(password))
+                  // generate User Account, VIP Account and User Wallet..
+                  for {
+                    _ <- accountService.newUserAcc(userAccount)
+                    _ <- accountService.addUpdateUserToken(UserToken(userAccount.id))
+                    _ <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
+                    _ <- accountService.addUserWallet(new UserAccountWallet(userAccount.id, Coin("BTC"), Coin("ETH"), Coin("USDC")))
+                    processCode <- {
+                      if (code != None) {
+                        for {
+                          hasCode <- accountService.getAccountByCode(code.getOrElse(""))
+                          isUpdated <- {
+                            referralHistoryService
+                              .applyReferralCode(userAccount.id, hasCode.map(_.referralCode).getOrElse(null))
+                              .map(x => if (x > 0) Created else InternalServerError)
+                          }
+                        } yield (isUpdated)
+                      }
+                      else Future(Created)
                     }
-                  }
-                } yield (Created)
-              }
-              else Future(InternalServerError)
+                  } yield (processCode)
+                }
+                catch { case _: Throwable => Future(InternalServerError) }
             }
             else Future(Conflict)
           }
-        } yield (processed)
+        } yield (processSignUp)
       })
   }
   // def signOut() = Action.async { implicit request =>
@@ -487,5 +491,8 @@ class HomeController @Inject()(
 
   def news() = Action.async { implicit req =>
     newsRepo.all().map(x => Ok(Json.toJson(x)))
+  }
+  def getCoinCapAsset() = Action.async { implicit request =>
+    multiCurrencySupport.getCoinCapAssets().map(x => Ok(Json.toJson(x)))
   }
 }

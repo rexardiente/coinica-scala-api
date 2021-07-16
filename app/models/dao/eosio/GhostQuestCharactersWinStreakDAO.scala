@@ -8,12 +8,12 @@ import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.eosio._
 
 @Singleton
-final class GQCharactersLifeTimeWinStreakDAO @Inject()(
+final class GhostQuestCharactersLifeTimeWinStreakDAO @Inject()(
     protected val dbConfigProvider: DatabaseConfigProvider,
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with utils.ColumnTypeImplicits {
   import profile.api._
 
-  protected class GQCharactersLifeTimeWinStreakTable(tag: Tag) extends Table[GQCharactersLifeTimeWinStreak](tag, "GQ_CHARACTER_WIN_STREAK_HISTORY") {
+  protected class GhostQuestCharactersLifeTimeWinStreakTable(tag: Tag) extends Table[GhostQuestCharactersLifeTimeWinStreak](tag, "GQ_CHARACTER_WIN_STREAK_HISTORY") {
     def id = column[String] ("ID", O.PrimaryKey)
     def current_win_streak = column[List[String]] ("CURRENT_WIN_STREAK")
     def highest_win_streak = column[List[String]] ("HIGHEST_WIN_STREAK")
@@ -24,10 +24,10 @@ final class GQCharactersLifeTimeWinStreakDAO @Inject()(
             current_win_streak,
             highest_win_streak,
             updated_at,
-            created_at) <> ((GQCharactersLifeTimeWinStreak.apply _).tupled, GQCharactersLifeTimeWinStreak.unapply)
+            created_at) <> ((GhostQuestCharactersLifeTimeWinStreak.apply _).tupled, GhostQuestCharactersLifeTimeWinStreak.unapply)
   }
 
-  object Query extends TableQuery(new GQCharactersLifeTimeWinStreakTable(_)) {
+  object Query extends TableQuery(new GhostQuestCharactersLifeTimeWinStreakTable(_)) {
     def apply(id: String) = this.withFilter(_.id === id)
   }
 }

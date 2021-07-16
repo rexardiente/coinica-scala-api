@@ -8,7 +8,10 @@ import play.api.{ ConfigLoader, Configuration }
 object Config {
 	val config = ConfigFactory.load()
 	val DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = config.getInt("platform.default.system.scheduler")
+	val DEFAULT_WEI_VALUE: BigDecimal = BigDecimal(config.getString("platform.wei.value"))
 	val GQ_DEFAULT_BATTLE_TIMER: Int = config.getInt("platform.games.GQ.battle.timer")
+	val SUPPORTED_CURRENCIES: List[String] = config.getStringList("platform.supported.currencies").asScala.toList
+	val SUPPORTED_SYMBOLS: List[String] = config.getStringList("platform.supported.symbols").asScala.toList
 	// Ghost Quest
 	val GQ: List[String] = config.getStringList("platform.games.contracts.ghostquest").asScala.toList
 	val GQ_CODE: String = GQ(0)
@@ -24,7 +27,7 @@ object Config {
 	val TH_GAME_ID: UUID = UUID.fromString(TH(3))
 	val TH_GAME_CODE: String = TH(4)
 	// Mahjong Hilo
-	val MJHilo: List[String] = config.getStringList("platform.games.contracts.treasurehunt").asScala.toList
+	val MJHilo: List[String] = config.getStringList("platform.games.contracts.mahjonghilo").asScala.toList
 	val MJHilo_CODE: String = MJHilo(0)
 	val MJHilo_TABLE: String = MJHilo(1)
 	val MJHilo_SCOPE: String = MJHilo(2)
@@ -41,9 +44,16 @@ object Config {
 	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
 
 	// Server Host URL
-	private val serverAllowedURLs: List[String] = config.getStringList("play.filters.hosts.allowed").asScala.toList
+	private val serverAllowedURLs: List[String] = config.getStringList("play.filters.hosts.host").asScala.toList
+	private val serverAllPorts: List[Int] = config.getIntList("play.filters.hosts.port").asScala.map(_.toInt).toList
 	private val serverAllowedProtocols: List[String] = config.getStringList("play.filters.hosts.protocol").asScala.toList
-	val MAILER_HOST: String = serverAllowedURLs(3)
+
+	val MAILER_HOST: String = serverAllowedURLs(2)
+	val MAILER_PORT: Int = serverAllPorts(0)
 	val MAILER_PROTOCOL: String = serverAllowedProtocols(0)
+
+	val EGS_WEB_HOST = serverAllowedURLs(3)
+	val EGS_WEB_PORT: Int = serverAllPorts(2)
+	val EGS_WEB_PROTOCOL: String = serverAllowedProtocols(0)
 
 }

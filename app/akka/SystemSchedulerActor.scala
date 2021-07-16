@@ -8,21 +8,28 @@ import scala.concurrent.{ Await, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
+import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import Ordering.Double.IeeeOrdering
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
-import utils.Config
+import utils.Config._
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects._
 import models.domain._
 import models.repo._
+import models.service.UserAccountService
 import models.domain.enum._
+import models.domain.wallet.support._
+import utils.lib.MultiCurrencyHTTPSupport
 
 object SystemSchedulerActor {
   var currentChallengeGame: Option[UUID] = None
   var isIntialized: Boolean = false
+  val walletTransactions = HashMap.empty[String, Event]
   def props(
+            userAccountService: UserAccountService,
+            userWalletRepo: UserAccountWalletHistoryRepo,
             gameRepo: GameRepo,
             challengeRepo: ChallengeRepo,
             challengeHistoryRepo: ChallengeHistoryRepo,
@@ -34,8 +41,11 @@ object SystemSchedulerActor {
             userAccountRepo: UserAccountRepo,
             rankingHistoryRepo: RankingHistoryRepo,
             vipUserRepo: VIPUserRepo,
+            httpSupport: MultiCurrencyHTTPSupport,
             )(implicit system: ActorSystem) =
     Props(classOf[SystemSchedulerActor],
+          userAccountService,
+          userWalletRepo,
           gameRepo,
           challengeRepo,
           challengeHistoryRepo,
@@ -47,29 +57,35 @@ object SystemSchedulerActor {
           userAccountRepo,
           rankingHistoryRepo,
           vipUserRepo,
+          httpSupport,
           system)
 }
+case object WalletTxScheduler
 
 @Singleton
-class SystemSchedulerActor @Inject()(
-                                      gameRepo: GameRepo,
-                                      challengeRepo: ChallengeRepo,
-                                      challengeHistoryRepo: ChallengeHistoryRepo,
-                                      challengeTrackerRepo: ChallengeTrackerRepo,
-                                      taskRepo: TaskRepo,
-                                      dailyTaskRepo: DailyTaskRepo,
-                                      taskHistoryRepo: TaskHistoryRepo,
-                                      overAllGameHistory: OverAllGameHistoryRepo,
-                                      userAccountRepo: UserAccountRepo,
-                                      rankingHistoryRepo: RankingHistoryRepo,
-                                      vipUserRepo: VIPUserRepo,
-                                      @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
+class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
+                                    userWalletRepo: UserAccountWalletHistoryRepo,
+                                    gameRepo: GameRepo,
+                                    challengeRepo: ChallengeRepo,
+                                    challengeHistoryRepo: ChallengeHistoryRepo,
+                                    challengeTrackerRepo: ChallengeTrackerRepo,
+                                    taskRepo: TaskRepo,
+                                    dailyTaskRepo: DailyTaskRepo,
+                                    taskHistoryRepo: TaskHistoryRepo,
+                                    overAllGameHistory: OverAllGameHistoryRepo,
+                                    userAccountRepo: UserAccountRepo,
+                                    rankingHistoryRepo: RankingHistoryRepo,
+                                    vipUserRepo: VIPUserRepo,
+                                    httpSupport: MultiCurrencyHTTPSupport,
+                                    @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
 
   override def preStart: Unit = {
     super.preStart
+
+    QuartzSchedulerExtension(system).schedule("WalletTxScheduler", self, WalletTxScheduler)
     // keep alive connection
     // https://stackoverflow.com/questions/13700452/scheduling-a-task-at-a-fixed-time-of-the-day-with-akka
     akka.stream.scaladsl.Source.tick(0.seconds, 20.seconds, "SystemSchedulerActor").runForeach(n => ())
@@ -79,7 +95,7 @@ class SystemSchedulerActor @Inject()(
         if (!SystemSchedulerActor.isIntialized) {
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = { Config.DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
+          val dailySchedInterval: FiniteDuration = { DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
           val dailySchedDelay   : FiniteDuration = {
               val time = LocalTime.of(0, 0).toSecondOfDay
               val now = LocalTime.now().toSecondOfDay
@@ -99,10 +115,9 @@ class SystemSchedulerActor @Inject()(
           // set true if actor already initialized
           SystemSchedulerActor.isIntialized = true
           // load default SC users/account to avoid adding into user accounts table
-          WebSocketActor.subscribers.addOne(Config.GQ_CODE, self)
-          WebSocketActor.subscribers.addOne(Config.TH_CODE, self)
-          WebSocketActor.subscribers.addOne(Config.MJHilo_CODE, self)
-
+          WebSocketActor.subscribers.addOne(GQ_GAME_ID, self)
+          WebSocketActor.subscribers.addOne(TH_GAME_ID, self)
+          WebSocketActor.subscribers.addOne(MJHilo_GAME_ID, self)
           log.info("System Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
@@ -110,6 +125,136 @@ class SystemSchedulerActor @Inject()(
   }
 
   def receive: Receive = {
+    // ETH and USDC wallet tx details checker,
+    // limit checking of tx details failed..
+    case WalletTxScheduler =>
+      SystemSchedulerActor.walletTransactions.map { data =>
+        val txHash: String = data._1
+        for {
+          // check if txhash already exists else do nothing,.
+          isTxHashExists <- userWalletRepo.existByTxHash(txHash)
+          processWithdrawOrDeposit <- {
+            if (!isTxHashExists) {
+              // validate instance of data/Event object..
+              data._2 match {
+                case w: ETHUSDCWithdrawEvent =>
+                  for {
+                    wallet <- userAccountService.getUserAccountWallet(w.account_id.getOrElse(UUID.randomUUID))
+                    processWithdraw <- {
+                      wallet.map { account =>
+                        w.currency match {
+                          case "USDC" | "ETH" =>
+                            for {
+                              txDetails <- httpSupport.getETHTxInfo(txHash, w.currency)
+                              // update DB and history..
+                              updateBalance <- {
+                                txDetails.map { detail =>
+                                  val initialAmount: Double = detail.result.value.toDouble
+                                  val totalAmount: BigDecimal = w.currency match {
+                                    case "USDC" =>
+                                      (detail.result.gasPrice * DEFAULT_WEI_VALUE) + initialAmount
+
+                                    case "ETH" =>
+                                      val maxTxFeeLimit: BigDecimal = 500000
+                                      (((maxTxFeeLimit * detail.result.gasPrice) * DEFAULT_WEI_VALUE) + initialAmount)
+                                  }
+                                  userAccountService.deductBalanceByCurrency(account.id, w.currency, totalAmount)
+                                }
+                                .getOrElse(Future(0))
+                              }
+
+                              addHistory <- {
+                                if (updateBalance > 0) {
+                                  // save to history
+                                  userAccountService.saveUserWalletHistory(
+                                    new UserAccountWalletHistory(txHash,
+                                                                account.id,
+                                                                w.currency,
+                                                                w.tx_type,
+                                                                txDetails.map(_.result).getOrElse(null),
+                                                                Instant.now))
+                                    .map { isAdded =>
+                                      if (isAdded > 0) {
+                                        // send user a notification process sucessful
+                                        WebSocketActor.subscribers(account.id) !
+                                        OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"),
+                                                (txDetails.get.toJson.as[JsObject] + ("tx_type" -> JsString(w.tx_type))))
+                                        (1)
+                                      } else (0)
+                                    }
+                                }
+                                else Future(0)
+                              }
+                            } yield (addHistory)
+                          case _ => Future(0)
+                        }
+                      }.getOrElse(Future(0))
+                    }
+                  } yield (processWithdraw)
+
+                case d: DepositEvent =>
+                  for {
+                    wallet <- userAccountService.getUserAccountWallet(d.account_id.getOrElse(UUID.randomUUID))
+                    processDeposit <- {
+                      wallet.map { account =>
+                        d.currency match {
+                          case "USDC" | "ETH" =>
+                            for {
+                              txDetails <- httpSupport.getETHTxInfo(txHash, d.currency)
+                              // update DB and history..
+                              updateBalance <- {
+                                txDetails.map { detail =>
+                                    val result: ETHJsonRpcResult = detail.result
+
+                                    if (result.from == d.issuer && result.to == d.receiver) {
+                                      userAccountService.addBalanceByCurrency(account.id, d.currency, result.value.toDouble)
+                                    }
+                                    else Future(0)
+                                }
+                                .getOrElse(Future(0))
+                              }
+
+                              addHistory <- {
+                                if (updateBalance > 0) {
+                                  // save to history
+                                  userAccountService.saveUserWalletHistory(
+                                    new UserAccountWalletHistory(txHash,
+                                                                account.id,
+                                                                d.currency,
+                                                                d.tx_type,
+                                                                txDetails.map(_.result).getOrElse(null),
+                                                                Instant.now))
+                                    .map { isAdded =>
+                                      if (isAdded > 0) {
+                                        // send user a notification process sucessful
+                                        WebSocketActor.subscribers(account.id) !
+                                        OutEvent(JsString("DEPOSIT_WITHDRAW_EVENT"),
+                                                          (txDetails.get.toJson.as[JsObject] + ("tx_type" -> JsString(d.tx_type))))
+                                        (1)
+                                      } else (0)
+                                    }
+                                }
+                                else Future(0)
+                              }
+                            } yield (addHistory)
+                          case _ => Future(0)
+                        }
+                      }.getOrElse(Future(0))
+                    }
+                  } yield (processDeposit)
+                case _ => Future(0) // do nothing
+              }
+            }
+            else Future(0)
+          }
+          // if already exists on DB, remove tx from the list..
+          _ <- Future.successful {
+            if (isTxHashExists) SystemSchedulerActor.walletTransactions.remove(txHash)
+            if (processWithdrawOrDeposit > 0) SystemSchedulerActor.walletTransactions.remove(txHash)
+          }
+        } yield ()
+      }
+
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
       val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
@@ -237,16 +382,16 @@ class SystemSchedulerActor @Inject()(
         // grouped history by user..
         processedBets <- Future.successful {
           grouped.map { case (user, histories) =>
-            val bets: Seq[(Double, Double)] = histories.map { history =>
-              history.info match {
-                case GQGameHistory(name, prediction, result, bet) =>
-                  if (result) (bet, 1) else (bet, 0)
-                case THGameHistory(name, prediction, result, bet, amount) =>
-                  if (prediction == result) (bet, amount) else (bet, amount)
-                case e => (e.bet, 0)
-              }
-            }
-            (user, bets)
+            // val bets: Seq[(Double, Double)] = histories.map { history =>
+            //   history.info match {
+            //     case BooleanPredictions(name, prediction, result, bet, amount) =>
+            //       if (prediction == result) (bet, amount) else (bet, amount)
+            //     case ListOfIntPredictions(name, prediction, result, bet, amount) =>
+            //       if (prediction == result) (bet, amount) else (bet, amount)
+            //     case e => (e.bet, 0)
+            //   }
+            // }
+            (user, histories.map(x => (x.info.bet, x.info.amount)))
           }
           .toSeq
         }
@@ -270,7 +415,7 @@ class SystemSchedulerActor @Inject()(
         // total bet amount * (EOS price -> USD)
         wagered <- Future.sequence {
           processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum * Config.EOS_TO_USD_CONVERSION) }
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum * EOS_TO_USD_CONVERSION) }
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
