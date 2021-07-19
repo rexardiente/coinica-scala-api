@@ -48,12 +48,12 @@ object Config {
 	private val serverAllPorts: List[Int] = config.getIntList("play.filters.hosts.port").asScala.map(_.toInt).toList
 	private val serverAllowedProtocols: List[String] = config.getStringList("play.filters.hosts.protocol").asScala.toList
 
-	val MAILER_HOST: String = serverAllowedURLs(2)
+	val MAILER_HOST: String = serverAllowedURLs(1)
 	val MAILER_PORT: Int = serverAllPorts(0)
 	val MAILER_PROTOCOL: String = serverAllowedProtocols(0)
 
-	val EGS_WEB_HOST = serverAllowedURLs(3)
-	val EGS_WEB_PORT: Int = serverAllPorts(2)
+	val EGS_WEB_HOST = serverAllowedURLs(2)
+	val EGS_WEB_PORT: Int = serverAllPorts(1)
 	val EGS_WEB_PROTOCOL: String = serverAllowedProtocols(0)
 
 }
