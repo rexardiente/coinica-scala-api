@@ -63,6 +63,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val gqCharacterGameLogColumnMapper = MappedColumnType.base[List[GhostQuestCharacterGameLog], JsValue](
     s => Json.toJson(s),
     i => i.as[List[GhostQuestCharacterGameLog]])
+  implicit val gqBattleResultColumnMapper = MappedColumnType.base[List[(String, (Int, Boolean))], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[(String, (Int, Boolean))]])
   implicit val challengeTrackerColumnMapper = MappedColumnType.base[List[ChallengeTracker], JsValue](
     s => Json.toJson(s),
     i => i.as[List[ChallengeTracker]])
