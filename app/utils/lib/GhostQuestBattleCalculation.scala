@@ -21,20 +21,20 @@ class GhostQuestBattleCalculation[T <: GhostQuestCharacter](plyr1: T, plyr2: T) 
 	private def run(): Unit = {
 		if (plyr1.value.character_life == 0 || plyr2.value.character_life == 0) None
 		else
-			while (plyr1TotalDmg < characters(plyr1.key).value.initial_hp && plyr2TotalDmg < characters(plyr2.key).value.initial_hp) {
+			while (plyr1TotalDmg < characters(plyr1.key).value.hitpoints && plyr2TotalDmg < characters(plyr2.key).value.hitpoints) {
 				// perform damage calculation
 				val partialDmg2: (GhostQuestCharacterGameLog, Int) = dmgOutput(characters.head._2, characters.last._2)
 				logs += partialDmg2._1
 				plyr2TotalDmg += partialDmg2._2
 				gameRounds += 1
 
-				if (characters.last._2.value.initial_hp > plyr2TotalDmg) {
+				if (characters.last._2.value.hitpoints > plyr2TotalDmg) {
 					val partialDmg1: (GhostQuestCharacterGameLog, Int) = dmgOutput(characters.last._2, characters.head._2)
 					logs += partialDmg1._1
 					plyr1TotalDmg += partialDmg1._2
 					gameRounds += 1
 
-					if (characters.head._2.value.initial_hp < plyr1TotalDmg)
+					if (characters.head._2.value.hitpoints < plyr1TotalDmg)
 						battleResult = Some(GhostQuestBattleResult(
 																gameID,
 																Map(characters.last._2.key -> (characters.last._2.value.owner_id, true),
