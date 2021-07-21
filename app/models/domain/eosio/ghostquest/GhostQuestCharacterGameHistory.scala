@@ -16,4 +16,6 @@ case class GhostQuestCharacterGameHistory(id: String,
                                           timeExecuted: Long) {
   def toJson(): JsValue = Json.toJson(this)
 }
-case class GhostQuestBattleResult(id: java.util.UUID, characters: Map[String, (Int, Boolean)], logs: List[GhostQuestCharacterGameLog])
+case class GhostQuestBattleResult(id: java.util.UUID, characters: List[(String, (Int, Boolean))], logs: List[GhostQuestCharacterGameLog]) {
+  def toJson(): JsValue = Json.toJson(this)
+}

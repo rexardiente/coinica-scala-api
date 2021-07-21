@@ -19,6 +19,7 @@ import models.domain.{ OverAllGameHistory, PaymentType }
 class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                                       userAccountService: UserAccountService,
                                       overAllHistory: OverAllHistoryService,
+                                      battleResult: GhostQuestBattleResultRepo,
                                       ghostQuestCharacterService: GhostQuestCharacterService,
                                       gameHistoryRepo: GhostQuestCharacterGameHistoryRepo,
                                       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
@@ -413,5 +414,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         }.toList
     }
   }
-
+  def insertBattleResult(v: GhostQuestBattleResult): Future[Int] = battleResult.insert(v)
+  def removeAllBattleResult(): Future[Int] = battleResult.removeAll()
+  def getAllBattleResult(): Future[Seq[GhostQuestBattleResult]] = battleResult.all()
 }

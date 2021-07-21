@@ -38,13 +38,13 @@ class GhostQuestBattleCalculation[T <: GhostQuestCharacter](plyr1: T, plyr2: T) 
 						battleResult = Some(GhostQuestBattleResult(
 																gameID,
 																Map(characters.last._2.key -> (characters.last._2.value.owner_id, true),
-																		characters.head._2.key -> (characters.head._2.value.owner_id, false)),
+																		characters.head._2.key -> (characters.head._2.value.owner_id, false)).toList,
 																logs.toList))
 				}
 				else battleResult = Some(GhostQuestBattleResult(
 																gameID,
 																Map(characters.head._2.key -> (characters.head._2.value.owner_id, true),
-																		characters.last._2.key -> (characters.last._2.value.owner_id, false)),
+																		characters.last._2.key -> (characters.last._2.value.owner_id, false)).toList,
 																	logs.toList))
 			}
 	}
