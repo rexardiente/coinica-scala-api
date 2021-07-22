@@ -21,7 +21,6 @@ final class GhostQuestCharacterHistoryDAO @Inject()(
     def ghost_id = column[Int] ("GHOST_ID")
     def rarity = column[Int] ("RARITY")
     def character_life = column[Int] ("LIFE")
-    def initial_hp = column[Int] ("INITIAL_HP")
     def hitpoints = column[Int] ("HIT_POINTS")
     def status = column[Int] ("STATUS")
     def attack = column[Int] ("ATTACK")
@@ -41,7 +40,6 @@ final class GhostQuestCharacterHistoryDAO @Inject()(
             ghost_id,
             rarity,
             character_life,
-            initial_hp,
             hitpoints,
             status,
             attack,
