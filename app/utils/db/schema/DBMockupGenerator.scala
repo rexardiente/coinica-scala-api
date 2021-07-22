@@ -38,15 +38,14 @@ class DBMockupGenerator @Inject()(
     genreRepo.add(new Genre(UUID.fromString("7633f64d-2caa-472b-9da7-e0feb439aefe"), "LUCKY", None))
   }
   private def newsQuery(): Unit = {
-    // val title: String = "Lorem Ipsum"
-    // val subTitle: String = "What is Lorem Ipsum?"
-    // val description: String = """Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."""
-    // // temporary list of news and
-    // // add list to news tbl..
-    // newsRepo ++= Seq(
-    //   News(s"${title} 1", s"${subTitle} 1", description, "author 1", "sample url"),
-    //   News(s"${title} 2", s"${subTitle} 2", description, "author 2", "sample url"),
-    //   News(s"${title} 3", s"${subTitle} 3", description, "author 3", "sample url"))
+    // temporary list of news and
+    // add list to news tbl..
+    newsRepo ++= Seq(
+      News("Beta Launch", "", "Launching your product in beta, knowingly releasing an unfinished product with known bugs and unknown bugs to users, is a great way to identify and rid its most critical bugs, usability friction, and bad performance before releasing it in its finished version", "Coinica", ""),
+      News("Treasure Hunt", "Game", "Open tiles without pirates and test your luck.", "Coinica", ""),
+      News("Ghost Quest", "Game", "Summon characters and earn points on ever battle win.", "Coinica", ""),
+      News("Wallet Support", "BTC, ETH and USDC", "Cryptocurrency is a form of payment that can be exchanged online for goods and services. Many companies have issued their own currencies, often called tokens, and these can be traded specifically for the good or service that the company provides. Think of them as you would arcade tokens or casino chips.", "Coinica", ""),
+      News("Mahjong Hilo", "Game", "Authentic Japanese mahjong with riichi mechanics and dora tiles.", "Coinica", ""))
   }
   private def challenge(): Unit = {
     // val name: String = "GQ"
@@ -103,6 +102,7 @@ class DBMockupGenerator @Inject()(
     genreQuery()
     Thread.sleep(1000)
     gamesQuery()
+    newsQuery()
     // challenge()
     // gameHistory()
     // after schema is generated..terminate akka actor gracefully
