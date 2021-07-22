@@ -21,6 +21,8 @@ object GhostQuestSchedulerActor {
   val scheduledTime : FiniteDuration = { defaultTimeSet }.minutes
   var isIntialized  : Boolean        = false
   var nextBattle    : Long           = 0
+  val noEnemy: HashMap[String, GhostQuestCharacterValue] = HashMap.empty[String, GhostQuestCharacterValue]
+  val scUpdatedBattles = HashMap.empty[String, GhostQuestBattleResult]
   def props(historyService: HistoryService,
             userAccountService: UserAccountService,
             characterService: GhostQuestCharacterService,
@@ -47,7 +49,7 @@ class GhostQuestSchedulerActor @Inject()(
   override def preStart: Unit = {
     super.preStart
     // keep alive connection
-    akka.stream.scaladsl.Source.tick(0.seconds, 2.minutes, "GhostQuestSchedulerActor").runForeach(n => ())
+    // akka.stream.scaladsl.Source.tick(0.seconds, 2.minutes, "GhostQuestSchedulerActor").runForeach(n => ())
     system.actorSelection("/user/GhostQuestSchedulerActor").resolveOne().onComplete {
       case Success(actor) =>
         if (!GhostQuestSchedulerActor.isIntialized) {
@@ -73,73 +75,36 @@ class GhostQuestSchedulerActor @Inject()(
         _ <- Future.sequence(extractCharacters.map(x => characterService.insertGhostQuestCharacters(x)).toSeq)
         // get save characters from DB
         availableCharacters <- characterService.allGhostQuestCharacter()
+        // remove characters that reach battle limit
+        hasReachLimit <- Future.successful(availableCharacters.filter(x => x.value.battle_count < x.value.battle_limit))
         // convert availableCharacters into HashMap[String, GhostQuestCharacter]
-        hashMapCharacters <- Future.successful(HashMap(availableCharacters.map(ch => (ch.key, ch)) : _*))
-        noEnemies <- Await.ready(battleProcess(hashMapCharacters), Duration.Inf)
+        hashMapCharacters <- Future.successful(HashMap(hasReachLimit.map(ch => (ch.key, ch)) : _*))
+        _ <- Await.ready(battleProcess(hashMapCharacters), Duration.Inf)
         // broadcast characters no available enemy..
-        _ <- Future.successful(dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", noEnemies.groupBy(_._2)))
+        _ <- Future.successful(dynamicBroadcast ! ("BROADCAST_CHARACTER_NO_ENEMY", GhostQuestSchedulerActor.noEnemy.groupBy(_._2)))
+        // get all battle recorded on the DB
         battles <- gameService.getAllBattleResult()
-        _ <- Await.ready(Future.successful {
-          if (battles.isEmpty) {
-            dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
-            defaultSchedule()
-          }
-          else {
-            val scUpdatedBattles = HashMap.empty[String, GhostQuestBattleResult]
-            // TODO: TO be continued...
-            battles.map { counter =>
-              val winner = counter.characters.filter(_._2._2).head
-              val loser = counter.characters.filter(!_._2._2).head
+        _ <- Await.ready(Future.sequence {
+          battles.map { counter =>
+            val winner = counter.characters.filter(_._2._2).head
+            val loser = counter.characters.filter(!_._2._2).head
 
-              gameService.battleResult(counter.id.toString, (winner._1, winner._2._1), (loser._1, loser._2._1)).map {
-                  case Some(e) => scUpdatedBattles.addOne(e, counter)
-                  case e => null
-                }
-            }
-            Thread.sleep(1000)
-
-            if (scUpdatedBattles.isEmpty) {
-              dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
-              defaultSchedule()
-            }
-            else {
-              Await.ready(saveToGameHistory(scUpdatedBattles.toSeq), Duration.Inf)
-              Await.ready(insertOrUpdateSystemProcess(scUpdatedBattles.toSeq), Duration.Inf)
-              // wait prev txs finished and removed SC Battle Counter
-              scUpdatedBattles.clear()
-              for {
-                // clean back the database table for characters.
-                _ <- characterService.removeAllGhostQuestCharacter
-                // get all characters on smartcontract, ready to save into DB..
-                updatedCharacters <- {
-                  gameService.getAllCharacters.map(_.map(_.map(_.game_data.characters).flatten))
-                }
-                // fetch smartcontract with updated data
-                _ <- Future.successful {
-                  updatedCharacters.map { characters =>
-                    for {
-                      // filter characters that has no life
-                      noLifeCharacters <- Future.successful(characters.filter(_.value.character_life == 0))
-                      // remove from smartcontract and successful removed
-                      // will be added to character history
-                      _ <- Future.successful {
-                        noLifeCharacters.map { character =>
-                          gameService.eliminate(character.value.owner_id, character.key).map {
-                            case Some(hash) =>
-                              characterService.insertGhostQuestCharacterHistory(character.toHistory())
-                            case None => ()
-                          }
-                        }
-                      }
-                    } yield ()
-                  }
-                }
-              } yield (defaultSchedule())
+            gameService.battleResult(counter.id.toString, (winner._1, winner._2._1), (loser._1, loser._2._1)).map {
+              case Some(e) => GhostQuestSchedulerActor.scUpdatedBattles.addOne(e, counter)
+              case e => ()
             }
           }
         }, Duration.Inf)
-      } yield ()
-
+        _ <- Await.ready(Future.successful {
+          if (battles.isEmpty || GhostQuestSchedulerActor.scUpdatedBattles.isEmpty)
+            dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
+          Thread.sleep(5000)
+        }, Duration.Inf)
+        _ <- Await.ready(insertOrUpdateSystemProcess(GhostQuestSchedulerActor.scUpdatedBattles.toSeq), Duration.Inf)
+        _ <- Await.ready(saveToGameHistory(GhostQuestSchedulerActor.scUpdatedBattles.toSeq), Duration.Inf)
+        // to make sure no characters without life will be removed on the next battle
+        _ <- Await.ready(removeNoLifeCharacters(), Duration.Inf)
+      } yield (defaultSchedule())
 		case _ => ()
 	}
   // challengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double)
@@ -157,8 +122,40 @@ class GhostQuestSchedulerActor @Inject()(
       }
     }
   }
+  // returns Option[Future[Seq[Future[Int]]]]
+  private def removeNoLifeCharacters() = {
+    for {
+      // clean back the database table for characters.
+      _ <- characterService.removeAllGhostQuestCharacter
+      // get all characters on smartcontract, ready to save into DB..
+      updatedCharacters <- {
+        gameService.getAllCharacters.map(_.map(_.map(_.game_data.characters).flatten))
+      }
+      // fetch smartcontract with updated data
+      updatedContract <- Future.successful {
+        updatedCharacters.map { characters =>
+          for {
+            // filter characters that has no life
+            noLifeCharacters <- Future.successful(characters.filter(_.value.character_life == 0))
+            // remove from smartcontract and successful removed
+            // will be added to character history
+            removed <- Future.sequence {
+              noLifeCharacters.map { character =>
+                gameService.eliminate(character.value.owner_id, character.key).map {
+                  case Some(hash) =>
+                    characterService.insertGhostQuestCharacterHistory(character.toHistory())
+                  case None => Future(0)
+                }
+              }
+            }
+          } yield (removed)
+        }
+      }
+    } yield (updatedContract)
+  }
 
   private def saveToGameHistory(data: Seq[(String, GhostQuestBattleResult)]): Future[Seq[Any]] = Future.sequence {
+    println("saveToGameHistory", data.size)
     data.map { case (txHash, result) =>
       val gameID = result.id
       val winner = result.characters.filter(_._2._2).head
@@ -196,6 +193,7 @@ class GhostQuestSchedulerActor @Inject()(
                         time)), Duration.Inf)
       .map {
         case ((winner, loser), character) =>
+          println(winner.id, loser.id)
           // insert Tx and character contineously
           // broadcast game result to connected users
           // use live data to feed on history update..
@@ -211,15 +209,14 @@ class GhostQuestSchedulerActor @Inject()(
       }
     }
   }
-  private def battleProcess(v: HashMap[String, GhostQuestCharacter]): Future[HashMap[String, GhostQuestCharacterValue]] = Future.successful {
+  private def battleProcess(v: HashMap[String, GhostQuestCharacter]): Future[Unit] = Future.successful {
     val characters: HashMap[String, GhostQuestCharacter] = v
-    val noEnemy: HashMap[String, GhostQuestCharacterValue] = HashMap.empty[String, GhostQuestCharacterValue]
     // val battleCounter = HashMap.empty[UUID, GhostQuestBattleResult]
     do {
       val player: (String, GhostQuestCharacter) = characters.head
       if (characters.size == 1) {
         characters.remove(player._1)
-        noEnemy.addOne(player._1, player._2.value)
+        GhostQuestSchedulerActor.noEnemy.addOne(player._1, player._2.value)
       }
       else {
         val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
@@ -250,8 +247,10 @@ class GhostQuestSchedulerActor @Inject()(
               // make sure battle of characters are not yet exists in GQBattleScheduler.battleCounter
               val battle = new GhostQuestBattleCalculation[GhostQuestCharacter](player._2, enemy._2)
               // save result into battleCounter, if failed save into noEenmy
+              // println(battle.result.equals(None))
+              // println(battle.result.map(_.characters.size).getOrElse(0) < 2)
               if (battle.result.equals(None) || battle.result.map(_.characters.size).getOrElse(0) < 2)
-                noEnemy ++= List(player._1 -> player._2.value, enemy._1 -> enemy._2.value)
+                GhostQuestSchedulerActor.noEnemy ++= List(player._1 -> player._2.value, enemy._1 -> enemy._2.value)
               // insert into battle result table..
               else battle.result.map(gameService.insertBattleResult(_))
               // remove both characters into the current battle processs..
@@ -260,21 +259,22 @@ class GhostQuestSchedulerActor @Inject()(
             }
             else {
               characters.remove(player._1)
-              noEnemy.addOne(player._1, player._2.value)
+              GhostQuestSchedulerActor.noEnemy.addOne(player._1, player._2.value)
             }
           }
         } yield (), Duration.Inf)
       }
     } while (!characters.isEmpty);
-    (noEnemy)
+    // (noEnemy)
   }
 
   private def systemBattleScheduler(timer: FiniteDuration): Unit = {
-    system.scheduler.scheduleOnce(timer) {
-      println("GQ BattleScheduler Starting")
-      GhostQuestSchedulerActor.nextBattle = 0
-      self ! "REQUEST_BATTLE_NOW"
-    }
+    self ! "REQUEST_BATTLE_NOW"
+    // system.scheduler.scheduleOnce(timer) {
+    //   println("GQ BattleScheduler Starting")
+    //   GhostQuestSchedulerActor.nextBattle = 0
+    //   self ! "REQUEST_BATTLE_NOW"
+    // }
   }
   private def defaultSchedule(): Unit = {
     GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
