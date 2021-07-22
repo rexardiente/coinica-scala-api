@@ -89,27 +89,28 @@ class GhostQuestSchedulerActor @Inject()(
             val winner = counter.characters.filter(_._2._2).head
             val loser = counter.characters.filter(!_._2._2).head
 
-            gameService.battleResult(counter.id.toString, (winner._1, winner._2._1), (loser._1, loser._2._1)).map {
+            Await.ready(gameService.battleResult(counter.id.toString, (winner._1, winner._2._1), (loser._1, loser._2._1)).map {
               case Some(e) => GhostQuestSchedulerActor.scUpdatedBattles.addOne(e, counter)
               case e => ()
-            }
+            }, Duration.Inf)
           }
         }, Duration.Inf)
-        _ <- Await.ready(Future.successful {
+        _ <- Await.ready(Future {
           if (battles.isEmpty || GhostQuestSchedulerActor.scUpdatedBattles.isEmpty)
             dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
           Thread.sleep(5000)
         }, Duration.Inf)
-        _ <- Await.ready(insertOrUpdateSystemProcess(GhostQuestSchedulerActor.scUpdatedBattles.toSeq), Duration.Inf)
-        _ <- Await.ready(saveToGameHistory(GhostQuestSchedulerActor.scUpdatedBattles.toSeq), Duration.Inf)
+        _ <- Await.ready(insertOrUpdateSystemProcess(), Duration.Inf)
+        _ <- Await.ready(saveToGameHistory(), Duration.Inf)
         // to make sure no characters without life will be removed on the next battle
-        _ <- Await.ready(removeNoLifeCharacters(), Duration.Inf)
+        _ <- removeNoLifeCharacters()
+        _ <- Future(GhostQuestSchedulerActor.scUpdatedBattles.clear())
       } yield (defaultSchedule())
 		case _ => ()
 	}
   // challengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double)
-  private def insertOrUpdateSystemProcess(seq: Seq[(String, GhostQuestBattleResult)]): Future[Seq[Unit]] = Future.successful {
-    seq.map { case (hash, result) =>
+  private def insertOrUpdateSystemProcess(): Future[Seq[Unit]] = Future.successful {
+    GhostQuestSchedulerActor.scUpdatedBattles.toSeq.map { case (hash, result) =>
       result.characters.map { v =>
         val gameID: Int = v._2._1
         // find account by gameID
@@ -154,9 +155,11 @@ class GhostQuestSchedulerActor @Inject()(
     } yield (updatedContract)
   }
 
-  private def saveToGameHistory(data: Seq[(String, GhostQuestBattleResult)]): Future[Seq[Any]] = Future.sequence {
-    println("saveToGameHistory", data.size)
-    data.map { case (txHash, result) =>
+  private def saveToGameHistory(): Future[Seq[Any]] = Future.sequence {
+    println("saveToGameHistory", GhostQuestSchedulerActor.scUpdatedBattles.toSeq.size)
+    // Aadd delay to make sure that past process are finished
+    Thread.sleep(3000)
+    GhostQuestSchedulerActor.scUpdatedBattles.toSeq.map { case (txHash, result) =>
       val gameID = result.id
       val winner = result.characters.filter(_._2._2).head
       val loser = result.characters.filter(!_._2._2).head
@@ -197,11 +200,11 @@ class GhostQuestSchedulerActor @Inject()(
           // insert Tx and character contineously
           // broadcast game result to connected users
           // use live data to feed on history update..
-          Await.ready(for {
-            _ <- characterService.insertGameHistory(character)
-            _ <- historyService.addOverAllHistory(winner)
-            _ <- historyService.addOverAllHistory(loser)
-          } yield (), Duration.Inf)
+          for {
+            _ <- Await.ready(characterService.insertGameHistory(character), Duration.Inf)
+            _ <- Await.ready(historyService.addOverAllHistory(winner), Duration.Inf)
+            _ <- Await.ready(historyService.addOverAllHistory(loser), Duration.Inf)
+          } yield ()
           // broadcast GQ game result
           // Thread.sleep(1000)
           dynamicBroadcast ! Array(winner, loser)
@@ -209,7 +212,7 @@ class GhostQuestSchedulerActor @Inject()(
       }
     }
   }
-  private def battleProcess(v: HashMap[String, GhostQuestCharacter]): Future[Unit] = Future.successful {
+  private def battleProcess(v: HashMap[String, GhostQuestCharacter]): Future[Unit] = Future {
     val characters: HashMap[String, GhostQuestCharacter] = v
     // val battleCounter = HashMap.empty[UUID, GhostQuestBattleResult]
     do {
