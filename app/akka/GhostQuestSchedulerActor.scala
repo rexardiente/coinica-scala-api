@@ -269,12 +269,11 @@ class GhostQuestSchedulerActor @Inject()(
   }
 
   private def systemBattleScheduler(timer: FiniteDuration): Unit = {
-    self ! "REQUEST_BATTLE_NOW"
-    // system.scheduler.scheduleOnce(timer) {
-    //   println("GQ BattleScheduler Starting")
-    //   GhostQuestSchedulerActor.nextBattle = 0
-    //   self ! "REQUEST_BATTLE_NOW"
-    // }
+    system.scheduler.scheduleOnce(timer) {
+      println("GQ BattleScheduler Starting")
+      GhostQuestSchedulerActor.nextBattle = 0
+      self ! "REQUEST_BATTLE_NOW"
+    }
   }
   private def defaultSchedule(): Unit = {
     GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
