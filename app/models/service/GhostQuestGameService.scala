@@ -166,9 +166,8 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
     val tupled: Future[Seq[(JsValue, JsValue)]] =
       Future.sequence(characters.map({ character =>
         val seqHistory: Future[Seq[GhostQuestCharacterGameHistory]] = getHistoryByCharacterID(character.key)
-        val seqLogs: Future[Seq[GhostQuestCharacterGameLog]] = seqHistory.map(_.map(_.logs).flatten)
 
-        seqLogs.map(v => (Json.toJson(character), Json.toJson(v)))
+        seqHistory.map(v => (Json.toJson(character), Json.toJson(v)))
       }))
     // convert Seq[JSON] to JsArray
     tupled.map(x => Json.toJson(x))
