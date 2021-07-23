@@ -138,11 +138,11 @@ class UserAccountService @Inject()(
         hasWallet.map { wallet =>
           currency match {
             case "ETH" =>
-              val newBalance: BigDecimal = (wallet.eth.amount + totalAmount)
-              wallet.copy(eth=Coin("ETH", newBalance))
+              wallet.copy(eth=Coin("ETH", wallet.eth.amount + totalAmount))
             case "USDC" =>
-              val newBalance: BigDecimal = (wallet.usdc.amount + totalAmount)
-              wallet.copy(usdc=Coin("USDC", newBalance))
+              wallet.copy(usdc=Coin("USDC", wallet.usdc.amount + totalAmount))
+            case "BTC" =>
+              wallet.copy(btc=Coin("BTC", wallet.btc.amount + totalAmount))
           }
         }
       }
@@ -168,6 +168,8 @@ class UserAccountService @Inject()(
               wallet.copy(eth=Coin("ETH", wallet.eth.amount - totalAmount))
             case "USDC" =>
               wallet.copy(usdc=Coin("USDC", wallet.usdc.amount - totalAmount))
+            case "BTC" =>
+              wallet.copy(btc=Coin("BTC", wallet.btc.amount - totalAmount))
           }
           userWalletRepo.update(updatedBalance)
         }.getOrElse(Future(0))
@@ -183,6 +185,7 @@ class UserAccountService @Inject()(
     val baseAmount: BigDecimal = currency match {
       case "ETH" => wallet.eth.amount
       case "USDC" => wallet.usdc.amount
+      case "BTC" => wallet.btc.amount
       case _ => 0 // unknown currency
     }
     if (baseAmount >= amount) true else false
@@ -218,6 +221,8 @@ class UserAccountService @Inject()(
                   .walletWithdrawETH(id, destination, amount, coin.gasPrice)
                   .map(_.getOrElse(0))
               else Future(0)
+            // no BTC withdraw support for now..
+            case "BTC" => Future(0)
 
             case _ => Future(0)
           }
