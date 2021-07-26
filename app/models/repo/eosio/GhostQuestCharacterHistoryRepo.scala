@@ -40,4 +40,6 @@ class GhostQuestCharacterHistoryRepo @Inject()(
 
   def findByOwnerIDAndID(id: Int, key: String): Future[Seq[GhostQuestCharacterHistory]] =
     db.run(dao.Query.filter(x => x.owner_id === id && x.key === key).result)
+  def findByKey(key: String): Future[Seq[GhostQuestCharacterHistory]] =
+    db.run(dao.Query.filter(_.key === key).result)
 }

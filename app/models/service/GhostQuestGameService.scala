@@ -161,6 +161,29 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       }
     } yield logs
   }
+
+  def getCharactInfoByKey(key: String): Future[JsValue] = {
+    for {
+      // check if character already eliminate
+      eliminated <- ghostQuestCharacterService
+          .getGhostQuestCharacterHistoryByKey(key)
+          .map(_.map(_.toCharacterData))
+      // check if character still in-battle
+      smartContractCharacters <- getAllCharacters()
+      alive <- Future.successful {
+        smartContractCharacters.map { gameTable =>
+          val seqGameTable: Seq[GhostQuestTableGameData] = gameTable
+          // val aa: Option[Seq[GhostQuestCharacter]] =
+          gameTable.map(_.game_data.characters.filter(_.key == key)).headOption
+        }
+        .getOrElse(None)
+      }
+      logs <- {
+        val characters: Seq[GhostQuestCharacter] = mergeSeq[GhostQuestCharacter, Seq[GhostQuestCharacter]](alive.getOrElse(Seq.empty), eliminated)
+        getGameLogsOfCharacters(characters)
+      }
+    } yield logs
+  }
   def getGameLogsOfCharacters(characters: Seq[GhostQuestCharacter]): Future[JsValue] = {
     // iterate each characters games history..
     val tupled: Future[Seq[(JsValue, JsValue)]] =
