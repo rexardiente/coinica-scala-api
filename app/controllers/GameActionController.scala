@@ -344,23 +344,18 @@ class GameActionController @Inject()(
       .map(account => ghostQuestService.getAliveCharacters(account.userGameID).map(Ok(_)))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def ghostQuestGetCharacterByID(key: String) = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map(account => ghostQuestService.getCharacterDataByID(account.userGameID, key).map(Ok(_)))
-      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
-  // def ghostQuestGetCharacterByUserAndID(userID: UUID, id: String) = SecureUserAction.async { implicit request =>
+  // def ghostQuestGetCharacterByID(key: String) = SecureUserAction.async { implicit request =>
   //   request
   //     .account
-  //     .map { account =>
-  //       if (account.id == userID)
-  //         ghostQuestService.getCharacterByUserAndID(userID, id).map(Ok(_))
-  //       else
-  //         Future(Unauthorized(views.html.defaultpages.unauthorized()))
-  //     }
+  //     .map(account => ghostQuestService.getCharacterDataByID(account.userGameID, key).map(Ok(_)))
   //     .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   // }
+  def getCharactInfoByOwnerIDAndKey(id: String) = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(account => ghostQuestService.getCharactInfoByKey(id).map(Ok(_)))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def ghostQuestGetCharacterHistoryByUser() = SecureUserAction.async { implicit request =>
     request
       .account

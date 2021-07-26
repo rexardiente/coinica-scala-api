@@ -66,8 +66,9 @@ POST  /donut/api/v1/game/ghost-quest/generate/character 					controllers.GameAct
 POST  /donut/api/v1/game/ghost-quest/add-life 										controllers.GameActionController.ghostQuestAddLife
 POST  /donut/api/v1/game/ghost-quest/withdraw 										controllers.GameActionController.ghostQuestWithdraw
 
-GET   /donut/api/v1/game/ghost-quest/character/:id   							controllers.GameActionController.ghostQuestGetCharacterByID(id: String)
-#GET   /donut/api/v1/game/ghost-quest/character/:user/:id 					controllers.GameActionController.ghostQuestGetCharacterByUserAndID(user: UUID, id: String)
+#GET   /donut/api/v1/game/ghost-quest/character/:id   							controllers.GameActionController.ghostQuestGetCharacterByID(id: String)
+GET   /donut/api/v1/game/ghost-quest/character/:id   							controllers.GameActionController.getCharactInfoByOwnerIDAndKey(id: String)
+#GET   /donut/api/v1/game/ghost-quest/character/:user/:id 				controllers.GameActionController.ghostQuestGetCharacterByUserAndID(user: UUID, id: String)
 GET   /donut/api/v1/game/ghost-quest/characters/alive     				controllers.GameActionController.ghostQuestGetAliveCharactersByUser
 GET   /donut/api/v1/game/ghost-quest/characters/all 				controllers.GameActionController.ghostQuestGetAllCharactersByUser
 GET   /donut/api/v1/game/ghost-quest/history/characters  		controllers.GameActionController.ghostQuestGetCharacterHistoryByUser()

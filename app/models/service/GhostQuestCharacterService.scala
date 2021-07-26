@@ -86,4 +86,6 @@ class GhostQuestCharacterService @Inject()(
     characterHistory.findByOwnerID(ownerID)
   def getGhostQuestCharacterHistoryByOwnerIDAndID(ownerID: Int, key: String): Future[Seq[GhostQuestCharacterHistory]] =
     characterHistory.findByOwnerIDAndID(ownerID, key)
+  def getGhostQuestCharacterHistoryByKey(key: String): Future[Seq[GhostQuestCharacterHistory]] =
+    characterHistory.findByKey(key)
 }
