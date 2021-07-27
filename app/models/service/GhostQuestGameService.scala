@@ -386,12 +386,17 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
 
   def winStreakPerDay(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
     val today: Long = Instant.now().getEpochSecond
-    for {
-      history <- gameHistoryRepo.getGameHistoryByDateRange(today - (24*60*60), today)
-      separatedHistory <- Future.successful(separateHistoryByCharID(history))
-      calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
-      result <- calcStreakToStreakObject(calcWinStreak)
-    } yield result
+     try {
+        println("calcWinStreak")
+        for {
+          history <- gameHistoryRepo.getGameHistoryByDateRange(today - (24*60*60), today)
+          separatedHistory <- Future.successful(separateHistoryByCharID(history))
+          calcWinStreak <- Future.successful(calcWinStreak(separatedHistory))
+          result <- calcStreakToStreakObject(calcWinStreak)
+        } yield result
+      } catch {
+        case e: Throwable => Future(List.empty)
+      }
   }
 
   def winStreakPerWeekly(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
@@ -429,20 +434,17 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
             winstreak <- Future.successful {
               if (!isAlive.isEmpty)
                 isAlive.map { info =>
-                  new GhostQuestCharactersRankByWinStreak(key,
-                                                          info.value.ghost_id,
-                                                          info.value.owner_id,
-                                                          info.value.rarity,
-                                                          ownerID)
+                  new GhostQuestCharactersRankByWinStreak(key, info.value.ghost_id, info.value.owner_id, info.value.rarity, ownerID)
                 }.toSeq
               else
                 isEliminated.map { info =>
                   new GhostQuestCharactersRankByWinStreak(key, info.ghost_id, info.owner_id, info.rarity, ownerID)
                 }.toSeq
             }
-          } yield (winstreak.headOption.getOrElse(null))
-        }.toList
+          } yield (winstreak)
+        }
     }
+    .map(_.headOption.getOrElse(List.empty).toList)
   }
   def insertBattleResult(v: GhostQuestBattleResult): Future[Int] = battleResult.insert(v)
   def removeAllBattleResult(): Future[Int] = battleResult.removeAll()
