@@ -36,52 +36,53 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					.map { hash =>
 						gameData
 							.map { data =>
-								// if process succesful then proceed checking if win or lose
-								if (data.hi_lo_result == 3) {
-									for {
-										// check if tx_hash already exists to DB history..
-										isExists <- overAllHistory.gameIsExistsByTxHash(hash)
-										// return true if successful adding to DB else false
-										onSaveHistory <- {
-											if (!isExists) {
-												val gameID: String = data.game_id
-												val prediction: Int = data.prediction
-					              val result: Int = data.hi_lo_outcome
-					              val betAmount: Double = data.hi_lo_stake.toDouble
-					              val prize: Double = 0
-					              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
-				              																					"standard_tile" -> data.standard_tile)
-												// create OverAllGameHistory object..
-												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-					                                                                      hash,
-					                                                                      gameID,
-					                                                                      MJHilo_CODE,
-					                                                                      IntPredictions(username,
-					                                                                                    prediction,
-					                                                                                    result,
-					                                                                                    betAmount,
-					                                                                                  	prize,
-					                                                                                  	Some(predictionTiles)),
-					                                                                      true,
-					                                                                      Instant.now.getEpochSecond)
+								val gameID: String = data.game_id
+								val prediction: Int = data.prediction
+	              val result: Int = data.hi_lo_outcome
+	              val betAmount: Double = data.hi_lo_stake.toDouble
+	              val prize: Double = 0
+	              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
+              																					"standard_tile" -> data.standard_tile)
 
+								for {
+									// fetch table history if exists..
+									hasHistory <- historyRepo.findByUserGameIDAndGameID(userGameID, gameID)
+									predictionProcess <- Future.successful {
+										val newPredictions = (prediction, result, data.current_tile, data.standard_tile)
+										hasHistory
+											.map(v => v.copy(predictions = (v.predictions :+ newPredictions)))
+											.getOrElse(null)
+									}
+									// update table history..
+									isUpdated <- {
+										if (predictionProcess != null)
+											historyRepo.update(predictionProcess)
+										else Future(0)
+									}
+									isAdded <- {
+										if (isUpdated > 0) {
+											// if process succesful then proceed checking if win or lose
+											if (data.hi_lo_result == 3) {
 												for {
-													// fetch table history if exists..
-													hasHistory <- historyRepo.findByUserGameIDAndGameID(userGameID, gameID)
-													predictionProcess <- Future.successful {
-														val newPredictions = (prediction, result, data.current_tile, data.standard_tile)
-														hasHistory
-															.map(v => v.copy(predictions = (v.predictions :+ newPredictions)))
-															.getOrElse(null)
-													}
-													// update table history..
-													isUpdated <- {
-														if (predictionProcess != null)
-															historyRepo.update(predictionProcess)
-														else Future(0)
-													}
-													isAdded <- {
-														if (isUpdated > 0)
+													// check if tx_hash already exists to DB history..
+													isExists <- overAllHistory.gameIsExistsByTxHash(hash)
+													// return true if successful adding to DB else false
+													onSaveHistory <- {
+														if (!isExists) {
+															// create OverAllGameHistory object..
+															val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
+								                                                                      hash,
+								                                                                      gameID,
+								                                                                      MJHilo_CODE,
+								                                                                      IntPredictions(username,
+								                                                                                    prediction,
+								                                                                                    result,
+								                                                                                    betAmount,
+								                                                                                  	prize,
+								                                                                                  	Some(predictionTiles)),
+								                                                                      true,
+								                                                                      Instant.now.getEpochSecond)
+
 															overAllHistory
 																.gameAdd(gameHistory)
 																.map { x =>
@@ -93,15 +94,14 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 													        }
 													      	else (3)
 												      	}
-												    else Future(3)
+														}
+														else Future(3)
 													}
-												} yield (isAdded)
-											}
-											else Future(3)
-										}
-									} yield (onSaveHistory)
-								}
-								else Future(1)
+												} yield (onSaveHistory)
+											} else Future(1)
+										} else Future(3)
+									}
+								} yield (isAdded)
 							}
 							.getOrElse(Future(3))
 					}
