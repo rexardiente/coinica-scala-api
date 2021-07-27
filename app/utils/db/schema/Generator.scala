@@ -24,6 +24,7 @@ class Generator @Inject()(
     ghostQuestCharacterHistoryDAO: GhostQuestCharacterHistoryDAO,
     ghostQuestCharacterGameHistoryDAO: GhostQuestCharacterGameHistoryDAO,
     ghostQuestBattleResultDAO: GhostQuestBattleResultDAO,
+    mahjongHiloHistoryDAO: MahjongHiloHistoryDAO,
     vipBenefit: VIPBenefitDAO,
     news: NewsDAO,
     overAllGameHistory: OverAllGameHistoryDAO,
@@ -54,6 +55,7 @@ class Generator @Inject()(
       ghostQuestCharacterHistoryDAO.Query.schema ++
       ghostQuestCharacterGameHistoryDAO.Query.schema ++
       ghostQuestBattleResultDAO.Query.schema ++
+      mahjongHiloHistoryDAO.Query.schema ++
       vipBenefit.Query.schema ++
       news.Query.schema ++
       overAllGameHistory.Query.schema
