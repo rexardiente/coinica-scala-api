@@ -15,7 +15,8 @@ import models.domain.eosio.{
     Receipt,
     Trace,
     GhostQuestCharacterGameLog,
-    GhostQuestCharacterValue }
+    GhostQuestCharacterValue,
+    MahjongHiloGameData }
 import models.domain.{ ChallengeTracker, TransactionType, RankType }
 import models.domain.wallet.support.{ Coin, CryptoJsonRpcHistory }
 import models.domain.enum._
@@ -48,6 +49,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val transactionTypeColumnMapper = MappedColumnType.base[TransactionType, JsValue](
      s => s.toJson(),
      i => i.as[TransactionType])
+  implicit val mahjongHiloGameDataColumnMapper = MappedColumnType.base[MahjongHiloGameData, JsValue](
+     s => s.toJson(),
+     i => i.as[MahjongHiloGameData])
   implicit val ghostQuestCharacterValueColumnMapper = MappedColumnType.base[GhostQuestCharacterValue, JsValue](
      s => s.toJson(),
      i => i.as[GhostQuestCharacterValue])
@@ -75,6 +79,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val seqUUIDMapper = MappedColumnType.base[Seq[UUID], JsValue](
     s => JsArray(s.map(Json.toJson(_))),
     i => i.as[Seq[UUID]])
+  implicit val seqIntMapper = MappedColumnType.base[Seq[(Int, Int, Int, Int)], JsValue](
+    s => JsArray(s.map(Json.toJson(_))),
+    i => i.as[Seq[(Int, Int, Int, Int)]])
   implicit val seqRankTypeMapper = MappedColumnType.base[Seq[RankType], JsValue](
     s => JsArray(s.map(Json.toJson(_))),
     i => i.as[Seq[RankType]])

@@ -667,11 +667,36 @@ trait CommonImplicits {
 			"last_match" -> v.last_match,
 			"enemy_fought" -> v.enemy_fought)
 	}
+	implicit val implMahjongHiloHistoryReads: Reads[MahjongHiloHistory] = new Reads[MahjongHiloHistory] {
+		override def reads(js: JsValue): JsResult[MahjongHiloHistory] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(MahjongHiloHistory(
+						(json \ "game_id").as[String],
+						(json \ "user_game_id").as[Int],
+						(json \ "predictions").as[Seq[(Int, Int, Int, Int)]],
+						(json \ "game_data").asOpt[MahjongHiloGameData],
+						(json \ "status").as[Boolean]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implMahjongHiloHistoryWrites = new Writes[MahjongHiloHistory] {
+	  def writes(v: MahjongHiloHistory): JsValue = Json.obj(
+			"game_id" -> v.gameID,
+			"user_game_id" -> v.userGameID,
+			"predictions" -> v.predictions,
+			"game_data" -> v.gameData,
+			"status" -> v.status)
+	}
 	implicit def implicitGhostQuestCharacter = Json.format[GhostQuestCharacter]
 	implicit def implicitGhostQuestGameData = Json.format[GhostQuestGameData]
 	implicit def implicitGhostQuestTableGameData = Json.format[GhostQuestTableGameData]
 	implicit def implicitGhostQuestCharacterHistory = Json.format[GhostQuestCharacterHistory]
 	implicit def implicitGhostQuestCharacterGameLog = Json.format[GhostQuestCharacterGameLog]
 	implicit def implicitGhostQuestCharacterGameHistory = Json.format[GhostQuestCharacterGameHistory]
-implicit def implicitGhostQuestBattleResult = Json.format[GhostQuestBattleResult]
+	implicit def implicitGhostQuestBattleResult = Json.format[GhostQuestBattleResult]
 }

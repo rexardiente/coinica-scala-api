@@ -41,3 +41,27 @@ case class MahjongHiloGameData(game_id: String,
                               final_score: Int) {
    def toJson(): JsValue = Json.toJson(this)
 }
+// table that will keep on track user gamedata
+// predictions: Seq[(Int, Int, Int, Int)] -> (prediction, result, predictionTiles)
+object MahjongHiloHistory extends utils.CommonImplicits {
+  val tupled = (apply: (String,
+                        Int,
+                        Seq[(Int, Int, Int, Int)],
+                        Option[MahjongHiloGameData],
+                        Boolean) => MahjongHiloHistory).tupled
+  def apply(gameID: String, userGameID: Int): MahjongHiloHistory =
+    new MahjongHiloHistory(gameID, userGameID, Seq.empty, None, false)
+  def apply(gameID: String,
+            userGameID: Int,
+            predictions: Seq[(Int, Int, Int, Int)],
+            gameData: Option[MahjongHiloGameData],
+            status: Boolean): MahjongHiloHistory =
+    new MahjongHiloHistory(gameID, userGameID, predictions, gameData, status)
+}
+case class MahjongHiloHistory(gameID: String,
+                              userGameID: Int,
+                              predictions: Seq[(Int, Int, Int, Int)],
+                              gameData: Option[MahjongHiloGameData],
+                              status: Boolean) {
+  def toJson(): JsValue = Json.toJson(this)
+}
