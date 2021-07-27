@@ -144,8 +144,18 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			// processHistory.map(historyRepo.insert(_)).getOrElse(Future(0))
 		} yield (isUpdated)
 	}
-	def quit(userGameID: Int): Future[Boolean] =
-		contract.quit(userGameID)
+	def quit(userGameID: Int): Future[Int] = {
+		for {
+			isGameEnded <- contract.quit(userGameID)
+			gameData <- getUserData(userGameID)
+			processHistory <- Future.successful {
+				if (isGameEnded) gameData.map(v => MahjongHiloHistory(v.game_id, userGameID))
+				else None
+			}
+			// add into the DB history
+			isAdded <- processHistory.map(historyRepo.insert(_)).getOrElse(Future(0))
+		} yield (isAdded)
+	}
 	def addBet(id: UUID, userGameID: Int, currency: String, quantity: Int): Future[Int] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
