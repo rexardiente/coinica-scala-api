@@ -132,7 +132,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .quit(account.userGameID)
-          .map(x => Ok(JsBoolean(x)))
+          .map(x => Ok(JsBoolean(if (x > 0) true else false)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloAddBet = SecureUserAction.async { implicit request =>
