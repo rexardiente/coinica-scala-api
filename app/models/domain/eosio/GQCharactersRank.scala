@@ -22,13 +22,15 @@ case class GhostQuestCharactersLifeTimeWinStreak(character_id: String,
 	def toJson(): JsValue = Json.toJson(this)
 }
 
-case class GhostQuestCharactersRankByEarned(id: String,
+case class GhostQuestCharactersRankByEarned(key: String,
+																						ghost_id: Int,
 																						owner: Int,
 																						rarity: Int,
 																						earned: Double) {
 	def toJson(): JsValue = Json.toJson(this)
 }
-case class GhostQuestCharactersRankByWinStreak(id: String,
+case class GhostQuestCharactersRankByWinStreak(key: String,
+																							ghost_id: Int,
 																							owner: Int,
 																							rarity: Int,
 																							win_streak: Int) {

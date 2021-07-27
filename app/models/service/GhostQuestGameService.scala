@@ -213,7 +213,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       }
       ranks <- Future.successful {
         getCharaterInfo.map {
-          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.owner_id, c.value.rarity, amount)
+          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.ghost_id, c.value.owner_id, c.value.rarity, amount)
         }
       }
     } yield ranks
@@ -236,7 +236,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       }
       ranks <- Future.successful {
         getCharaterInfo.map {
-          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.owner_id, c.value.rarity, amount)
+          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.ghost_id, c.value.owner_id, c.value.rarity, amount)
         }
       }
     } yield ranks
@@ -259,7 +259,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       }
       ranks <- Future.successful {
         getCharaterInfo.map {
-          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.owner_id, c.value.rarity, amount)
+          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.ghost_id, c.value.owner_id, c.value.rarity, amount)
         }
       }
     } yield ranks
@@ -428,9 +428,17 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
             // either <- Future.successful(al.getOrElse(el.get))
             winstreak <- Future.successful {
               if (!isAlive.isEmpty)
-                isAlive.map(info => GhostQuestCharactersRankByWinStreak(key, info.value.owner_id, info.value.rarity, ownerID)).toSeq
+                isAlive.map { info =>
+                  new GhostQuestCharactersRankByWinStreak(key,
+                                                          info.value.ghost_id,
+                                                          info.value.owner_id,
+                                                          info.value.rarity,
+                                                          ownerID)
+                }.toSeq
               else
-                isEliminated.map(info => GhostQuestCharactersRankByWinStreak(key, info.owner_id, info.rarity, ownerID)).toSeq
+                isEliminated.map { info =>
+                  new GhostQuestCharactersRankByWinStreak(key, info.ghost_id, info.owner_id, info.rarity, ownerID)
+                }.toSeq
             }
           } yield (winstreak.headOption.getOrElse(null))
         }.toList
