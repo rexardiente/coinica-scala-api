@@ -676,7 +676,8 @@ trait CommonImplicits {
 						(json \ "user_game_id").as[Int],
 						(json \ "predictions").as[Seq[(Int, Int, Int, Int)]],
 						(json \ "game_data").asOpt[MahjongHiloGameData],
-						(json \ "status").as[Boolean]))
+						(json \ "status").as[Boolean],
+						(json \ "created_at").as[Instant]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -690,7 +691,8 @@ trait CommonImplicits {
 			"user_game_id" -> v.userGameID,
 			"predictions" -> v.predictions,
 			"game_data" -> v.gameData,
-			"status" -> v.status)
+			"status" -> v.status,
+			"created_at" -> v.createdAt)
 	}
 	implicit def implicitGhostQuestCharacter = Json.format[GhostQuestCharacter]
 	implicit def implicitGhostQuestGameData = Json.format[GhostQuestGameData]
