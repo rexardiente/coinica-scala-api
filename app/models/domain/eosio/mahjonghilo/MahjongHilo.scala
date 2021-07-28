@@ -64,4 +64,5 @@ case class MahjongHiloHistory(gameID: String,
                               gameData: Option[MahjongHiloGameData],
                               status: Boolean) {
   def toJson(): JsValue = Json.toJson(this)
+  def toTrimmedJson(): JsValue = Json.obj("game_id" -> gameID, "user" -> userGameID, "predictions" -> predictions)
 }

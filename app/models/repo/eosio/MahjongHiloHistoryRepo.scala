@@ -16,11 +16,17 @@ class MahjongHiloHistoryRepo @Inject()(
   def insert(data: MahjongHiloHistory): Future[Int] =
     db.run(dao.Query += data)
 
+  def delete(gameID: String): Future[Int] =
+    db.run(dao.Query(gameID).delete)
+
   def update(v: MahjongHiloHistory): Future[Int] =
     db.run(dao.Query.filter(_.gameID === v.gameID).update(v))
 
   def findByUserGameIDAndGameID(userGameID: Int, gameID: String): Future[Option[MahjongHiloHistory]] =
-    db.run(dao.Query.filter(x => x.userGameID === userGameID && x.gameID === gameID).result.headOption)
+    db.run(dao.Query.filter(x => x.userGameID === userGameID && x.gameID === gameID && x.status === false).result.headOption)
+
+  def getByUserGameID(userGameID: Int): Future[Seq[MahjongHiloHistory]] =
+    db.run(dao.Query.filter(x => x.userGameID === userGameID).result)
 
   def all(): Future[Seq[MahjongHiloHistory]] =
     db.run(dao.Query.result)
