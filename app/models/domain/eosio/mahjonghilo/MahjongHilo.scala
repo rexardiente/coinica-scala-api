@@ -1,6 +1,5 @@
 package models.domain.eosio
 
-import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -48,20 +47,28 @@ object MahjongHiloHistory extends utils.CommonImplicits {
                         Int,
                         Seq[(Int, Int, Int, Int)],
                         Option[MahjongHiloGameData],
-                        Boolean) => MahjongHiloHistory).tupled
+                        Boolean,
+                        Instant) => MahjongHiloHistory).tupled
   def apply(gameID: String, userGameID: Int): MahjongHiloHistory =
-    new MahjongHiloHistory(gameID, userGameID, Seq.empty, None, false)
+    new MahjongHiloHistory(gameID, userGameID, Seq.empty, None, false, Instant.now)
   def apply(gameID: String,
             userGameID: Int,
             predictions: Seq[(Int, Int, Int, Int)],
             gameData: Option[MahjongHiloGameData],
-            status: Boolean): MahjongHiloHistory =
-    new MahjongHiloHistory(gameID, userGameID, predictions, gameData, status)
+            status: Boolean,
+            createdAt: Instant): MahjongHiloHistory =
+    new MahjongHiloHistory(gameID, userGameID, predictions, gameData, status, createdAt)
 }
 case class MahjongHiloHistory(gameID: String,
                               userGameID: Int,
                               predictions: Seq[(Int, Int, Int, Int)],
                               gameData: Option[MahjongHiloGameData],
-                              status: Boolean) {
+                              status: Boolean,
+                              createdAt: Instant) {
   def toJson(): JsValue = Json.toJson(this)
+  def toTrimmedJson(): JsValue = Json.obj("game_id" -> gameID,
+                                          "user" -> userGameID,
+                                          "predictions" -> predictions,
+                                          "status" -> status,
+                                          "created_at" -> createdAt)
 }

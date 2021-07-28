@@ -126,15 +126,15 @@ class GameActionController @Inject()(
           .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloQuit = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { account =>
-        mjHiloGameService
-          .quit(account.userGameID)
-          .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
-      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
+  // def mahjongHiloQuit = SecureUserAction.async { implicit request =>
+  //   request
+  //     .account
+  //     .map { account =>
+  //       mjHiloGameService
+  //         .quit(account.userGameID)
+  //         .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
+  //     }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  // }
   def mahjongHiloAddBet = SecureUserAction.async { implicit request =>
     request
       .account
@@ -184,7 +184,15 @@ class GameActionController @Inject()(
           .map(x => Ok(Json.toJson(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-
+  def mahjongHiloGetUserGameHistory = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .getUserGameHistory(account.userGameID)
+          .map(x => Ok(Json.toJson(x.map(_.toTrimmedJson()))))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def treasureHuntGameData() = SecureUserAction.async { implicit request =>
     request
       .account

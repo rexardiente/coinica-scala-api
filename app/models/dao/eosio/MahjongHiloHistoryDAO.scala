@@ -19,8 +19,9 @@ final class MahjongHiloHistoryDAO @Inject()(
     def predictions = column[Seq[(Int, Int, Int, Int)]] ("PREDICTIONS")
     def gameData = column[Option[MahjongHiloGameData]] ("GAME_DATA")
     def status = column[Boolean] ("GAME_STATUS")
+    def createdAt = column[Instant] ("CREATED_AT")
 
-    def * = (gameID, userGameID, predictions, gameData, status) <> (MahjongHiloHistory.tupled, MahjongHiloHistory.unapply)
+    def * = (gameID, userGameID, predictions, gameData, status, createdAt) <> (MahjongHiloHistory.tupled, MahjongHiloHistory.unapply)
   }
 
   object Query extends TableQuery(new MahjongHiloHistoryTable(_)) {

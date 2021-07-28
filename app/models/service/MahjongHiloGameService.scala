@@ -58,6 +58,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 										if (predictionProcess != null) historyRepo.update(predictionProcess)
 										else Future(0)
 									}
+									// process for overall history...
 									isAdded <- {
 										if (isUpdated > 0) {
 											// if process succesful then proceed checking if win or lose
@@ -134,20 +135,19 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 				if (hasHistory != None) {
 					val updatedHistory: MahjongHiloHistory = hasHistory.get.copy(gameData = currentGameData, status = true)
 					historyRepo.update(updatedHistory)
+					// if predictions is empty remove it from DB else insert
+					hasHistory.map { history =>
+						if (history.predictions.isEmpty) historyRepo.delete(history.gameID)
+						else historyRepo.update(updatedHistory)
+					}
+					.getOrElse(Future(0))
 				}
-				// if not found then add to DB
-				else {
-					currentGameData
-						.map { v =>
-							val newHistory: MahjongHiloHistory = new MahjongHiloHistory(v.game_id, userGameID, Seq.empty, currentGameData, true)
-							historyRepo.insert(newHistory)
-						}
-						.getOrElse(Future(0))
-				}
+				else Future(1)
 			}
 			// check if DB has been update and proceed to reseting the gamedata
 			isReseted <- if (isUpdated > 0) contract.reset(userGameID) else Future(false)
 			newGameData <- getUserData(userGameID)
+			// every game reset insert new gamedata into DB..
 			process <- {
 				if (isReseted)
 					newGameData
@@ -269,6 +269,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	}
 	def getUserData(userGameID: Int): Future[Option[MahjongHiloGameData]] =
 		contract.getUserData(userGameID)
+	def getUserGameHistory(userGameID: Int): Future[Seq[MahjongHiloHistory]] =
+		historyRepo.getByUserGameID(userGameID)
 	def getHiLoWinRate() = ???
 	def getMaxPayout() = ???
 	def getConsecutiveHilo() = ???
