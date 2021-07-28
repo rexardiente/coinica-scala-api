@@ -55,8 +55,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 									}
 									// update table history..
 									isUpdated <- {
-										if (predictionProcess != null)
-											historyRepo.update(predictionProcess)
+										if (predictionProcess != null) historyRepo.update(predictionProcess)
 										else Future(0)
 									}
 									isAdded <- {
@@ -124,25 +123,39 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	}
 	def reset(userGameID: Int): Future[Int] = {
 		for {
-			isReseted <- contract.reset(userGameID)
-			gameData <- getUserData(userGameID)
+			currentGameData <- getUserData(userGameID)
 			hasHistory <- {
-				if (isReseted)
-					gameData
-						.map(v => historyRepo.findByUserGameIDAndGameID(userGameID, v.game_id))
-						.getOrElse(Future(None))
-				else Future(None)
+				currentGameData
+					.map(v => historyRepo.findByUserGameIDAndGameID(userGameID, v.game_id))
+					.getOrElse(Future(None))
 			}
 			// update DB history gamedata
 			isUpdated <- {
 				if (hasHistory != None) {
-					val newHistory: MahjongHiloHistory = hasHistory.get.copy(gameData = gameData, status = true)
-					historyRepo.update(newHistory)
+					val updatedHistory: MahjongHiloHistory = hasHistory.get.copy(gameData = currentGameData, status = true)
+					historyRepo.update(updatedHistory)
 				}
+				// if not found then add to DB
+				else {
+					currentGameData
+						.map { v =>
+							val newHistory: MahjongHiloHistory = new MahjongHiloHistory(v.game_id, userGameID, Seq.empty, currentGameData, true)
+							historyRepo.insert(newHistory)
+						}
+						.getOrElse(Future(0))
+				}
+			}
+			// check if DB has been update and proceed to reseting the gamedata
+			isReseted <- if (isUpdated > 0) contract.reset(userGameID) else Future(false)
+			newGameData <- getUserData(userGameID)
+			process <- {
+				if (isReseted)
+					newGameData
+						.map(v => historyRepo.insert(MahjongHiloHistory(v.game_id, userGameID)))
+						.getOrElse(Future(0))
 				else Future(0)
 			}
-			// processHistory.map(historyRepo.insert(_)).getOrElse(Future(0))
-		} yield (isUpdated)
+		} yield (process)
 	}
 	def quit(userGameID: Int): Future[Int] = {
 		for {
