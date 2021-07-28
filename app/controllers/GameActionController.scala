@@ -114,7 +114,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .initialize(account.userGameID)
-          .map(x => Ok(JsBoolean(if (x > 0) true else false)))
+          .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloReset = SecureUserAction.async { implicit request =>
@@ -123,7 +123,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .reset(account.userGameID)
-          .map(x => Ok(JsBoolean(if (x > 0) true else false)))
+          .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloQuit = SecureUserAction.async { implicit request =>
@@ -132,7 +132,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .quit(account.userGameID)
-          .map(x => Ok(JsBoolean(if (x > 0) true else false)))
+          .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloAddBet = SecureUserAction.async { implicit request =>
