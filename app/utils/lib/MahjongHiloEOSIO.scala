@@ -71,7 +71,7 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id, "option" -> option))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(""))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }
@@ -156,7 +156,7 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(""))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }

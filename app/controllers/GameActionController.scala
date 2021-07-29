@@ -43,7 +43,34 @@ class GameActionController @Inject()(
   private val ghostQuestGenerateCharacterForm = Form(tuple("currency" -> nonEmptyText, "quantity" -> number, "limit" -> number))
   private val ghostQuestKeyForm = Form(single("key" -> nonEmptyText))
 
-  def mahjongHiloResetBet = SecureUserAction.async { implicit request =>
+  def mahjongHiloGetTotalPlayed() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .getTotalPlayed(account.userGameID)
+          .map(x => Ok(JsNumber(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloGetConsecutiveHilo() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .getConsecutiveHilo(account.userGameID)
+          .map(x => Ok(JsNumber(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloGetMaxPayout() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .getMaxPayout(account.userGameID)
+          .map(x => Ok(JsNumber(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloResetBet() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -52,7 +79,7 @@ class GameActionController @Inject()(
           .map(x => Ok(JsBoolean(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloDeclareWinHand = SecureUserAction.async { implicit request =>
+  def mahjongHiloDeclareWinHand() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -61,7 +88,7 @@ class GameActionController @Inject()(
           .map(x => Ok(JsBoolean(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloDeclareKong = SecureUserAction.async { implicit request =>
+  def mahjongHiloDeclareKong() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -74,7 +101,7 @@ class GameActionController @Inject()(
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloDiscardTile = SecureUserAction.async { implicit request =>
+  def mahjongHiloDiscardTile() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -87,7 +114,7 @@ class GameActionController @Inject()(
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloPlayHilo = SecureUserAction.async { implicit request =>
+  def mahjongHiloPlayHilo() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -108,7 +135,7 @@ class GameActionController @Inject()(
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloInitialize = SecureUserAction.async { implicit request =>
+  def mahjongHiloInitialize() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -117,7 +144,7 @@ class GameActionController @Inject()(
           .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloReset = SecureUserAction.async { implicit request =>
+  def mahjongHiloReset() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -290,7 +317,7 @@ class GameActionController @Inject()(
         { case (sets)  =>
           treasureHuntGameService
             .autoPlay(account.userGameID, account.username, sets)
-            .map(x => Ok(JsBoolean(x)))
+            .map(x => Ok(JsString(x.getOrElse(null))))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }

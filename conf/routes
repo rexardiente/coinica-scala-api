@@ -105,13 +105,16 @@ POST  /donut/api/v1/game/mahjong-hilo/discard-tile 			controllers.GameActionCont
 POST  /donut/api/v1/game/mahjong-hilo/play-hilo 				controllers.GameActionController.mahjongHiloPlayHilo
 GET  	/donut/api/v1/game/mahjong-hilo/init 							controllers.GameActionController.mahjongHiloInitialize
 GET  	/donut/api/v1/game/mahjong-hilo/reset 						controllers.GameActionController.mahjongHiloReset
-#GET  	/donut/api/v1/game/mahjong-hilo/quit 							controllers.GameActionController.mahjongHiloQuit
+#GET  	/donut/api/v1/game/mahjong-hilo/quit 						controllers.GameActionController.mahjongHiloQuit
 POST  /donut/api/v1/game/mahjong-hilo/add/bet 					controllers.GameActionController.mahjongHiloAddBet
 GET  	/donut/api/v1/game/mahjong-hilo/start-game 				controllers.GameActionController.mahjongHiloStart
 GET  	/donut/api/v1/game/mahjong-hilo/transfer 					controllers.GameActionController.mahjongHiloTransfer
 GET  	/donut/api/v1/game/mahjong-hilo/withdraw 					controllers.GameActionController.mahjongHiloWithdraw
 GET  	/donut/api/v1/game/mahjong-hilo/game/data 				controllers.GameActionController.mahjongHiloGetUserData
 GET  	/donut/api/v1/game/mahjong-hilo/game/history 			controllers.GameActionController.mahjongHiloGetUserGameHistory
+GET  	/donut/api/v1/game/mahjong-hilo/consecutive-hilo 	controllers.GameActionController.mahjongHiloGetConsecutiveHilo
+GET  	/donut/api/v1/game/mahjong-hilo/max-payout 				controllers.GameActionController.mahjongHiloGetMaxPayout
+GET  	/donut/api/v1/game/mahjong-hilo/total-hilo-played controllers.GameActionController.mahjongHiloGetTotalPlayed
 
 # Overall History
 #GET   /donut/api/v1/game/all/history 									controllers.SecureActionController.overAllHistory(limit: Int ?= 10)
