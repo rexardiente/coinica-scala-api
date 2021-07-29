@@ -43,6 +43,24 @@ class GameActionController @Inject()(
   private val ghostQuestGenerateCharacterForm = Form(tuple("currency" -> nonEmptyText, "quantity" -> number, "limit" -> number))
   private val ghostQuestKeyForm = Form(single("key" -> nonEmptyText))
 
+  def mahjongHiloGetMonthlyRanking() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .getMonthlyRanking()
+          .map(x => Ok(Json.toJson(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
+  def mahjongHiloGetHiLoWinRate() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .getHiLoWinRate(account.userGameID)
+          .map(x => Ok(JsNumber(x)))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def mahjongHiloGetTotalPlayed() = SecureUserAction.async { implicit request =>
     request
       .account
@@ -235,7 +253,7 @@ class GameActionController @Inject()(
       .map { account =>
         treasureHuntGameService
           .initialize(account.userGameID, account.username)
-          .map(x => Ok(JsBoolean(x)))
+          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def treasureHuntQuit() = SecureUserAction.async { implicit request =>
@@ -244,7 +262,7 @@ class GameActionController @Inject()(
       .map { account =>
         treasureHuntGameService
           .quit(account.userGameID, account.username)
-          .map(x => Ok(JsBoolean(x)))
+          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def treasureHuntSetGamePanel() = SecureUserAction.async { implicit request =>
@@ -253,7 +271,7 @@ class GameActionController @Inject()(
       .map { account =>
         treasureHuntGameService
           .setGamePanel(account.userGameID, account.username)
-          .map(x => Ok(JsBoolean(x)))
+          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def treasureHuntSetDestination() = SecureUserAction.async { implicit request =>
@@ -265,7 +283,7 @@ class GameActionController @Inject()(
         { case (destination)  =>
           treasureHuntGameService
             .setDestination(account.userGameID, account.username, destination)
-            .map(x => Ok(JsBoolean(x)))
+            .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -278,7 +296,7 @@ class GameActionController @Inject()(
         { case (enemyCount)  =>
           treasureHuntGameService
             .setEnemy(account.userGameID, account.username, enemyCount)
-            .map(x => Ok(JsBoolean(x)))
+            .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }

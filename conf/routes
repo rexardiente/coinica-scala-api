@@ -115,6 +115,8 @@ GET  	/donut/api/v1/game/mahjong-hilo/game/history 			controllers.GameActionCont
 GET  	/donut/api/v1/game/mahjong-hilo/consecutive-hilo 	controllers.GameActionController.mahjongHiloGetConsecutiveHilo
 GET  	/donut/api/v1/game/mahjong-hilo/max-payout 				controllers.GameActionController.mahjongHiloGetMaxPayout
 GET  	/donut/api/v1/game/mahjong-hilo/total-hilo-played controllers.GameActionController.mahjongHiloGetTotalPlayed
+GET  	/donut/api/v1/game/mahjong-hilo/ranking/monthly 	controllers.GameActionController.mahjongHiloGetMonthlyRanking
+GET  	/donut/api/v1/game/mahjong-hilo/hilo-winrate 			controllers.GameActionController.mahjongHiloGetHiLoWinRate
 
 # Overall History
 #GET   /donut/api/v1/game/all/history 									controllers.SecureActionController.overAllHistory(limit: Int ?= 10)

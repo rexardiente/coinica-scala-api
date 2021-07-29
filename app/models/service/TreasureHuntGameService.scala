@@ -145,15 +145,15 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 			}
 		} yield (onProcess, isOpenTile.getOrElse(null), gameData)
 	}
-	def setEnemy(gameID: Int, username: String, count: Int): Future[Boolean] =
+	def setEnemy(gameID: Int, username: String, count: Int): Future[Option[String]] =
 		contract.treasureHuntSetEnemy(gameID, username, count)
-	def setDestination(gameID: Int, username: String, destination: Int): Future[Boolean] =
+	def setDestination(gameID: Int, username: String, destination: Int): Future[Option[String]] =
 		contract.treasureHuntSetDestination(gameID, username, destination)
-	def setGamePanel(gameID: Int, username: String): Future[Boolean] =
+	def setGamePanel(gameID: Int, username: String): Future[Option[String]] =
 		contract.treasureHuntSetGamePanel(gameID, username)
-	def quit(gameID: Int, username: String): Future[Boolean] =
+	def quit(gameID: Int, username: String): Future[Option[String]] =
 		contract.treasureHuntQuit(gameID, username)
-	def initialize(gameID: Int, username: String): Future[Boolean] =
+	def initialize(gameID: Int, username: String): Future[Option[String]] =
 		contract.treasureHuntInitialize(gameID, username)
 	def gameStart(id: UUID, gameID: Int, currency: String, quantity: Int): Future[Int] = {
 		for {
@@ -168,12 +168,13 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       // if has enough balance send tx on smartcontract, else do nothing
       initGame <- {
         if (hasEnoughBalance) contract.treasureHuntGameStart(gameID, quantity)
-        else Future(false)
+        else Future(None)
       }
       // deduct balance on the account
       updateBalance <- {
-        if (initGame) userAccountService.deductBalanceByCurrency(id, currency, currentValue)
-        else Future(0)
+      	initGame
+      		.map(_ => userAccountService.deductBalanceByCurrency(id, currency, currentValue))
+      		.getOrElse(Future(0))
       }
     } yield (updateBalance)
 	}
