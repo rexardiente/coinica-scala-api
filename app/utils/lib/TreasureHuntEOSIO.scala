@@ -40,7 +40,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else None
       }.recover { case e: Exception => None }
   }
-  def treasureHuntSetEnemy(id: Int, username: String, count: Int): Future[Boolean] =  {
+  def treasureHuntSetEnemy(id: Int, username: String, count: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/setenemy")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -49,11 +49,12 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest
       .post(Json.obj("id" -> id, "username" -> username, "enemy_count" -> count))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def treasureHuntSetDestination(id: Int, username: String, destination: Int): Future[Boolean] =  {
+  def treasureHuntSetDestination(id: Int, username: String, destination: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/destination")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -62,11 +63,12 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest
       .post(Json.obj("id" -> id, "username" -> username, "destination" -> destination))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def treasureHuntSetGamePanel(id: Int, username: String): Future[Boolean] =  {
+  def treasureHuntSetGamePanel(id: Int, username: String): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/setpanel")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -75,11 +77,12 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest
       .post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def treasureHuntQuit(id: Int, username: String): Future[Boolean] =  {
+  def treasureHuntQuit(id: Int, username: String): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/end")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -88,11 +91,12 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest
       .post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def treasureHuntInitialize(id: Int, username: String): Future[Boolean] =  {
+  def treasureHuntInitialize(id: Int, username: String): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/initialize")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -101,9 +105,10 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest
       .post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
   def treasureHuntGetUserData(id: Int): Future[Option[TreasureHuntGameData]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/get_data")
@@ -119,7 +124,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else None
       }.recover { case e: Exception => None }
   }
-  def treasureHuntGameStart(id: Int, quantity: Int): Future[Boolean] =  {
+  def treasureHuntGameStart(id: Int, quantity: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/gamestart")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -128,9 +133,10 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest
       .post(Json.obj("id" -> id, "quantity" -> quantity))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
   def treasureHuntWithdraw(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/withdraw")

@@ -320,24 +320,72 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	// 4 wins
 	// 6 loses
 	// 4 / 10 * 100
-	def getMonthlyRanking() = {
+	def getMonthlyRanking(): Future[Seq[JsValue]] = {
 		for {
 			histories <- historyRepo.all()
 			// group history by user
 			// scala.collection.immutable.Map[Int,Seq[models.domain.eosio.MahjongHiloHistory]]
 			groupedByUser <- Future(histories.groupBy(_.userGameID))
-			userTotalPayout <- Future.sequence(groupedByUser.map { case (id, history) => getMaxPayout(id).map((id, _)) })
-			process <- Future.successful {
-				userTotalPayout.filter(_._2 > 0)
-			// 	histories.map { history =>
-			// 		// prediction, result, currentTile, standardTile
-			// 		val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
-			// 		gameResults.filter(_ == true).size
-			// 	}
+			// returns userGameID, totalPayout and WinRate
+			getPayoutAndWinRate <- Future.sequence {
+				groupedByUser
+					.map { case (id, histories) =>
+						for {
+							totalPayout <- calculateTotalPayoutOnSeqOfHistory(histories)
+							winRate <- Future.successful(calculateWinRateOnSeqOfHistory(histories))
+						} yield (id, totalPayout, winRate)
+					}
+					.toSeq
 			}
-		} yield ()
+			// sort by totalpayout and take only 10 results
+			sortedRanking <- Future.successful(getPayoutAndWinRate.sortBy(_._2).take(10))
+			// process sorted results and get account details
+			processed <- Future.sequence {
+				sortedRanking.map { case (id, totalPayout, winRate) =>
+					for {
+						hasAccount <- userAccountService.getAccountByGameID(id)
+						json <- Future.successful {
+							hasAccount
+								.map { acc =>
+									Json.obj("username" -> acc.username,
+													"total_payout" -> totalPayout,
+													"win_rate" -> winRate)
+								}
+								.getOrElse(JsNull)
+						}
+					} yield (json)
+				}
+				// remove JsNull just in case account not found..
+				.filter(_ != Future(JsNull))
+			}
+		} yield (processed)
 	}
-	def getHiLoWinRate(userGameID: Int) = ???
+	def calculateTotalPayoutOnSeqOfHistory(v: Seq[MahjongHiloHistory]): Future[Double] = {
+		for {
+			seqOfGameIDs <- Future.successful(v.map(_.gameID))
+			histories <- overAllHistory.getOverallGameHistoryByGameID(seqOfGameIDs)
+			seqAmount <- Future.successful(histories.map(_.info.amount))
+		} yield (seqAmount.sum)
+	}
+	def calculateWinRateOnSeqOfHistory(v: Seq[MahjongHiloHistory]): Int = {
+		val processedGameResult: Seq[(Int,
+							Int)] =
+			v.map { history =>
+				val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
+				val totalWin: List[Boolean] = gameResults.filter(_ == true)
+				// (totalWin.size / gameResults.size) * 100
+				(gameResults.size, totalWin.size)
+			}
+		val totalGamesPlayed: Int = processedGameResult.map(_._1).sum
+		val totalWins: Int = processedGameResult.map(_._2).sum
+		((totalWins / totalGamesPlayed) * 100)
+	}
+	def getHiLoWinRate(userGameID: Int): Future[Int] = {
+		for {
+			histories <- historyRepo.getByUserGameID(userGameID)
+			winRate <- Future.successful(calculateWinRateOnSeqOfHistory(histories))
+		} yield (winRate)
+	}
 	// def getWinRate(userGameID: Int) = ???
 	def splitConsecutiveValue[T](list: List[T]) : List[List[T]] = list match {
 	  case h::t =>
