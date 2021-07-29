@@ -317,7 +317,7 @@ class GameActionController @Inject()(
         { case (sets)  =>
           treasureHuntGameService
             .autoPlay(account.userGameID, account.username, sets)
-            .map(x => Ok(JsString(x.getOrElse(null))))
+            .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
