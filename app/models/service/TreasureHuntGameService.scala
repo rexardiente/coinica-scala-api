@@ -19,7 +19,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 																				@Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
 	def userData(gameID: Int): Future[Option[TreasureHuntGameData]] =
 		contract.treasureHuntGetUserData(gameID)
-	def autoPlay(gameID: Int, username: String, sets: Seq[Int]): Future[Boolean] =
+	def autoPlay(gameID: Int, username: String, sets: Seq[Int]): Future[Option[String]] =
 		contract.treasureHuntAutoPlay(gameID, username, sets)
 	def openTile(id: UUID, gameID: Int, username: String, index: Int): Future[(Int, String, Option[TreasureHuntGameData])] = {
 		for {

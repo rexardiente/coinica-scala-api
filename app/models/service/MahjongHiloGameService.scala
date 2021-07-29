@@ -5,8 +5,10 @@ import java.util.UUID
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.language.postfixOps
 import akka.actor.ActorRef
 import play.api.libs.json._
+import Ordering.Double.IeeeOrdering
 import utils.Config.{ SUPPORTED_SYMBOLS, MJHilo_CODE, MJHilo_GAME_ID }
 import models.domain._
 import models.domain.eosio.{ MahjongHiloGameData, MahjongHiloHistory }
@@ -271,15 +273,76 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		contract.getUserData(userGameID)
 	def getUserGameHistory(userGameID: Int): Future[Seq[MahjongHiloHistory]] =
 		historyRepo.getByUserGameID(userGameID)
-	def getHiLoWinRate() = ???
-	def getMaxPayout() = ???
-	def getConsecutiveHilo() = ???
-	def getTotalPlayed() = ???
-	def getWinRate() = ???
-	def getTotalWin() = ???
-	def getAvgWinScore() = ???
-	def getAvgWinRound() = ???
-	def getShortestWinRound() = ???
-	def getMonthlyRanking() = ???
-
+	def getMaxPayout(userGameID: Int): Future[Double] = {
+		for {
+			// get all history and extract game ID
+			seqOfGameIDs <- historyRepo.getByUserGameID(userGameID).map(_.map(_.gameID))
+			// fetch overall history data using seqOfGameIDs
+			histories <- overAllHistory.getOverallGameHistoryByGameID(seqOfGameIDs)
+			seqAmount <- Future.successful(histories.map(_.info.amount))
+		} yield (seqAmount.max)
+	}
+	def getConsecutiveHilo(userGameID: Int): Future[Int] = {
+		for {
+			histories <- historyRepo.getByUserGameID(userGameID)
+			process <- Future.successful {
+				histories.map { history =>
+					// prediction, result, currentTile, standardTile
+					val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
+					// grouping consecutive identical elements
+					val split: List[List[Boolean]] = splitConsecutiveValue(gameResults)
+					split.map(_.size).max
+				}
+			}
+		} yield (process.max)
+	}
+	def getTotalPlayed(userGameID: Int): Future[Int] =
+		historyRepo
+			.getByUserGameID(userGameID)
+			.map(_.map(_.predictions.size).sum)
+	def getHiloTotalWin(userGameID: Int): Future[Int] = {
+		for {
+			histories <- historyRepo.getByUserGameID(userGameID)
+			process <- Future.successful {
+				histories.map { history =>
+					// prediction, result, currentTile, standardTile
+					val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
+					gameResults.filter(_ == true).size
+				}
+			}
+		} yield (process.max)
+	}
+	def getHiloAvgWinScore(userGameID: Int) = ???
+	def getHiloAvgWinRound(userGameID: Int) = ???
+	def getShortestWinRound(userGameID: Int) = ???
+	// top 10 players on the month based on earnings//
+	// Ex: games 10
+	// 4 wins
+	// 6 loses
+	// 4 / 10 * 100
+	def getMonthlyRanking() = {
+		for {
+			histories <- historyRepo.all()
+			// group history by user
+			// scala.collection.immutable.Map[Int,Seq[models.domain.eosio.MahjongHiloHistory]]
+			groupedByUser <- Future(histories.groupBy(_.userGameID))
+			userTotalPayout <- Future.sequence(groupedByUser.map { case (id, history) => getMaxPayout(id).map((id, _)) })
+			process <- Future.successful {
+				userTotalPayout.filter(_._2 > 0)
+			// 	histories.map { history =>
+			// 		// prediction, result, currentTile, standardTile
+			// 		val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
+			// 		gameResults.filter(_ == true).size
+			// 	}
+			}
+		} yield ()
+	}
+	def getHiLoWinRate(userGameID: Int) = ???
+	// def getWinRate(userGameID: Int) = ???
+	def splitConsecutiveValue[T](list: List[T]) : List[List[T]] = list match {
+	  case h::t =>
+	  	val segment = list takeWhile {h ==}
+	    segment :: splitConsecutiveValue(list drop segment.length)
+	  case Nil => Nil
+	}
 }

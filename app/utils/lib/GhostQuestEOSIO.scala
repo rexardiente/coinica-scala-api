@@ -48,7 +48,7 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }
@@ -64,7 +64,7 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
                                 "limit" -> limit))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }
@@ -77,7 +77,7 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id, "key" -> key))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }
@@ -90,7 +90,7 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id, "key" -> key))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }
@@ -103,7 +103,7 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest.post(Json.obj("id" -> id, "key" -> key))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }
@@ -121,7 +121,7 @@ class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       ))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(null))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }

@@ -21,6 +21,16 @@ class OverAllHistoryService @Inject()(
   //     hasNext <- Future(size - (offset + limit) > 0)
   //   } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   // }
+  def getOverallGameHistoryByGameID(seq: Seq[String]): Future[Seq[OverAllGameHistory]] = {
+    for {
+      histories <- Future.sequence(seq.map(getOverallGameHistoryByGameID(_)))
+      // remove none results
+      process <- Future.successful(histories.flatten)
+    } yield(process)
+  }
+  def getOverallGameHistoryByGameID(id: String): Future[Option[OverAllGameHistory]] =
+    overallGameHistory.getByGameID(id)
+
   def all(limit: Int): Future[Seq[OverAllGameHistory]] = overallGameHistory.all(limit)
   // get latest 10 result for history..
   def gameHistoryByGameID(id: UUID): Future[Seq[OverAllGameHistory]] = {

@@ -12,17 +12,19 @@ import models.domain.eosio.TreasureHuntGameData
 class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
 
-  def treasureHuntAutoPlay(id: Int, username: String, sets: Seq[Int]): Future[Boolean] =  {
+  def treasureHuntAutoPlay(id: Int, username: String, sets: Seq[Int]): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/autoplay")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    complexRequest.post(Json.obj("id" -> id, "username" -> username, "panelset" -> sets))
+    complexRequest
+      .post(Json.obj("id" -> id, "username" -> username, "panelset" -> sets))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
   def treasureHuntOpenTile(id: Int, username: String, index: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/opentile")
@@ -30,10 +32,11 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    complexRequest.post(Json.obj("id" -> id, "username" -> username, "index" -> index))
+    complexRequest
+      .post(Json.obj("id" -> id, "username" -> username, "index" -> index))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(""))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }
@@ -43,7 +46,8 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    complexRequest.post(Json.obj("id" -> id, "username" -> username, "enemy_count" -> count))
+    complexRequest
+      .post(Json.obj("id" -> id, "username" -> username, "enemy_count" -> count))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
@@ -55,7 +59,8 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    complexRequest.post(Json.obj("id" -> id, "username" -> username, "destination" -> destination))
+    complexRequest
+      .post(Json.obj("id" -> id, "username" -> username, "destination" -> destination))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
@@ -67,7 +72,8 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    complexRequest.post(Json.obj("id" -> id, "username" -> username))
+    complexRequest
+      .post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
@@ -79,7 +85,8 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    complexRequest.post(Json.obj("id" -> id, "username" -> username))
+    complexRequest
+      .post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
@@ -91,7 +98,8 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    complexRequest.post(Json.obj("id" -> id, "username" -> username))
+    complexRequest
+      .post(Json.obj("id" -> id, "username" -> username))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
         else false
@@ -103,7 +111,8 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
 
-    complexRequest.post(Json.obj("id" -> id))
+    complexRequest
+      .post(Json.obj("id" -> id))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
           (v.json \ "data" \ "game_data").asOpt[TreasureHuntGameData]
@@ -133,7 +142,7 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
       .post(Json.obj("id" -> id))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-          Some((v.json \ "data" \ "transaction_id").asOpt[String].getOrElse(""))
+          (v.json \ "data" \ "transaction_id").asOpt[String]
         else None
       }.recover { case e: Exception => None }
   }
