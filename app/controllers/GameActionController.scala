@@ -289,9 +289,8 @@ class GameActionController @Inject()(
         thOpenTileForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (tile)  =>
-          val gameID: Int = account.userGameID
           for {
-            (isWin, hash, gameData) <- treasureHuntGameService.openTile(account.id, gameID, account.username, tile)
+            (isWin, hash, gameData) <- treasureHuntGameService.openTile(account.id, account.userGameID, account.username, tile)
             process <- Future.successful {
               // isWin = 1 is win
               // isWin = 2 is lost
@@ -315,9 +314,21 @@ class GameActionController @Inject()(
         thAutoPlayForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (sets)  =>
-          treasureHuntGameService
-            .autoPlay(account.userGameID, account.username, sets)
-            .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
+          for {
+            (isWin, hash, gameData) <- treasureHuntGameService.autoPlay(account.id, account.userGameID, account.username, sets)
+            process <- Future.successful {
+              // isWin = 1 is win
+              // isWin = 2 is lost
+              // return true=win or false=lose
+              if (isWin <= 2) {
+                gameData
+                  .map(v => Ok(v.toJson.as[JsObject] + ("transaction_id" -> JsString(hash))))
+                  .getOrElse(InternalServerError)
+              }
+              // isWin = 3 server error
+              else InternalServerError
+            }
+          } yield (process)
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
