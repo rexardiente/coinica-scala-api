@@ -31,12 +31,18 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		contract.discardTile(userGameID, index)
 	def playHilo(id: UUID, username: String, userGameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
 		for {
-			onPlay <- contract.playHilo(userGameID, option)
-			gameData <- getUserData(userGameID)
+			currentGameData <- getUserData(userGameID)
+			hasHistory <- {
+				currentGameData
+					.map(x => historyRepo.findByUserGameIDAndGameID(userGameID, x.game_id))
+					.getOrElse(Future(None))
+			}
+			onPlay <- hasHistory.map(_ => contract.playHilo(userGameID, option)).getOrElse(Future(None))
+			updatedGamData <- getUserData(userGameID)
 			onProcess <- {
 				onPlay
 					.map { hash =>
-						gameData
+						updatedGamData
 							.map { data =>
 								val gameID: String = data.game_id
 								val prediction: Int = data.prediction
@@ -109,7 +115,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					}
 					.getOrElse(Future(3))
 			}
-		} yield ((onProcess, onPlay.getOrElse(null), gameData))
+		} yield ((onProcess, onPlay.getOrElse(null), updatedGamData))
 	}
 	// initialize game data and mahjong game table
 	def initialize(userGameID: Int): Future[Int] = {
@@ -315,11 +321,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	def getHiloAvgWinScore(userGameID: Int) = ???
 	def getHiloAvgWinRound(userGameID: Int) = ???
 	def getShortestWinRound(userGameID: Int) = ???
-	// top 10 players on the month based on earnings//
-	// Ex: games 10
-	// 4 wins
-	// 6 loses
-	// 4 / 10 * 100
+	// top 10 players on the month based on earnings
 	def getMonthlyRanking(): Future[Seq[JsValue]] = {
 		for {
 			histories <- historyRepo.all()
@@ -337,8 +339,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					}
 					.toSeq
 			}
-			// sort by totalpayout and take only 10 results
-			sortedRanking <- Future.successful(getPayoutAndWinRate.sortBy(_._2).take(10))
+			// remove 0 total payout, sort by totalpayout and take only 10 results
+			sortedRanking <- Future.successful(getPayoutAndWinRate.filter(_._2 > 0).sortBy(_._2).take(10))
 			// process sorted results and get account details
 			processed <- Future.sequence {
 				sortedRanking.map { case (id, totalPayout, winRate) =>
