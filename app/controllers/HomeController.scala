@@ -113,6 +113,10 @@ class HomeController @Inject()(
     }
   }
 
+  def redirect(to: String): Action[AnyContent] = Action.async { implicit request =>
+    Future.successful(Redirect(to))
+  }
+
   def index() = Action.async { implicit request =>
     Future.successful(Ok(JsString("ok")))
   }
@@ -135,7 +139,7 @@ class HomeController @Inject()(
                       val newAccount = acc.copy(password = encryptKey.toSHA256(password))
                       accountService
                         .updateUserAccount(newAccount)
-                        .map(x => if (x > 0) Redirect(routes.HomeController.index()) else InternalServerError)
+                        .map(x => if (x > 0) Redirect(routes.Default.redirect()) else InternalServerError)
                     }
                     else  Future(InternalServerError)
                   }
