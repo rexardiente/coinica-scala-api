@@ -136,6 +136,27 @@ class SecureActionController @Inject()(
         } yield (process)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
+  // def updateEmailAccount() = SecureUserAction.async { implicit request =>
+  //   request
+  //     .account
+  //     .map { account =>
+  //       emailForm.bindFromRequest.fold(
+  //       formErr => Future.successful(BadRequest("Invalid Email Address")),
+  //       { case (email)  =>
+  //         for {
+  //           // remove reset email token
+  //           removed <- accountService.removeEmailTokenByID(account.id)
+  //           result <- {
+  //             if (removed > 0)
+  //               accountService
+  //                 .addOrUpdateEmailAccount(account.id, email)
+  //                 .map(x => if (x > 0) Redirect(routes.HomeController.index()) else Conflict)
+  //             else  Future(InternalServerError)
+  //           }
+  //         } yield (result)
+  //       })
+  //     }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  // }
   def updateEmailAccount() = SecureUserAction.async { implicit request =>
     request
       .account
@@ -143,17 +164,24 @@ class SecureActionController @Inject()(
         emailForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid Email Address")),
         { case (email)  =>
-          for {
-            // remove reset email token
-            removed <- accountService.removeEmailTokenByID(account.id)
-            result <- {
-              if (removed > 0)
-                accountService
-                  .addOrUpdateEmailAccount(account.id, email)
-                  .map(x => if (x > 0) Redirect(routes.HomeController.index()) else Conflict)
-              else  Future(InternalServerError)
+          if (Some(email) == account.email) Future(Conflict)
+          else {
+            try {
+              for {
+                userToken <- accountService.getUserTokenByID(account.id)
+                // update its email token limit
+                updated <- accountService
+                  .updateUserToken(userToken.map(_.copy(email = Some(Config.MAIL_EXPIRATION)))
+                  .getOrElse(null))
+                // send email confirmation link
+                result <- {
+                  if (updated > 0) mailerService.sendUpdateEmailAddress(account, email).map(_ => Created)
+                  else Future(InternalServerError)
+                }
+              } yield (result)
             }
-          } yield (result)
+            catch { case _: Throwable => Future(InternalServerError) }
+          }
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -175,7 +203,7 @@ class SecureActionController @Inject()(
                   .getOrElse(null))
                 // send email confirmation link
                 result <- {
-                  if (updated > 0) mailerService.sendUpdateEmailAddress(account, email).map(_ => Created)
+                  if (updated > 0) mailerService.sendAddEmailAddress(account, email).map(_ => Created)
                   else Future(InternalServerError)
                 }
               } yield (result)
