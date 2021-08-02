@@ -22,7 +22,7 @@
           data: JSON.stringify({'email': "@email"}),
           contentType: "application/json; charset=utf-8",
           headers: { 'CLIENT_ID': params.id, 'CLIENT_TOKEN': params.token, 'Content-Type':'application/json' },
-          url: "@routes.SecureActionController.updateEmailAccount()",
+          url: "@routes.SecureActionController.addEmailAccount()",
           success: function(res) { window.location="@routes.Default.redirect()"; },
           error: function(err) { window.location="@routes.Default.redirect()"; }
         });
