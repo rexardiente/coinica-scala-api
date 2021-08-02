@@ -52,8 +52,8 @@ object Config {
 	val MAILER_PORT: Int = serverAllPorts(0)
 	val MAILER_PROTOCOL: String = serverAllowedProtocols(0)
 
-	val EGS_WEB_HOST = serverAllowedURLs(2)
-	val EGS_WEB_PORT: Int = serverAllPorts(1)
-	val EGS_WEB_PROTOCOL: String = serverAllowedProtocols(0)
+	val COINICA_WEB_HOST = serverAllowedURLs(2)
+	val COINICA_WEB_PORT: Int = serverAllPorts(1)
+	val COINICA_WEB_PROTOCOL: String = serverAllowedProtocols(0)
 
 }

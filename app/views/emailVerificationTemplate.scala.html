@@ -1,4 +1,4 @@
-@(u: String, p: String, email: String) @main("EGS - User Email Confirmation") {
+@(u: String, p: String, email: String) @main("Coinica - Email Confirmation") {
     <script type="text/javascript">
       window.onload = function() { verifyAccount() };
 
@@ -10,10 +10,8 @@
           headers: { 'Content-Type':'application/json' },
           // contentType: "application/json; charset=utf-8",
           url: "@routes.HomeController.signIn(true)",
-          success: function(response) {
-            setTimeout(function() { confirmEmail(response); }, 1000);
-          },
-          error: function(err) { setTimeout(function() { window.close(); }, 1000); }
+          success: function(response) { confirmEmail(response); },
+          error: function(err) { window.location="@routes.Default.redirect()"; }
         });
       };
 
@@ -25,10 +23,8 @@
           contentType: "application/json; charset=utf-8",
           headers: { 'CLIENT_ID': params.id, 'CLIENT_TOKEN': params.token, 'Content-Type':'application/json' },
           url: "@routes.SecureActionController.updateEmailAccount()",
-          success: function(res) {
-            window.location="@routes.HomeController.index()";
-          },
-          error: function(err) { setTimeout(function() { window.close(); }, 1000); }
+          success: function(res) { window.location="@routes.Default.redirect()"; },
+          error: function(err) { window.location="@routes.Default.redirect()"; }
         });
       };
     </script>
