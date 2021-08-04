@@ -34,7 +34,7 @@ object Config {
 	val MJHilo_GAME_ID: UUID = UUID.fromString(MJHilo(3))
 	val MJHilo_GAME_CODE: String = MJHilo(4)
 
-	val NODE_SERVER_URI: String = config.getString("eosio.eosjs.node.server.uri")
+	// val NODE_SERVER_URI: String = config.getString("eosio.eosjs.node.server.uri")
 	val EOS_TO_USD_CONVERSION: Double = config.getDouble("platform.EOS_TO_USD_CONVERSION")
 
 	// Email Configs
@@ -44,16 +44,13 @@ object Config {
 	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
 
 	// Server Host URL
-	private val serverAllowedURLs: List[String] = config.getStringList("play.filters.hosts.host").asScala.toList
-	private val serverAllPorts: List[Int] = config.getIntList("play.filters.hosts.port").asScala.map(_.toInt).toList
+	private val serverAllowedURLs: List[String] = config.getStringList("play.filters.hosts.url").asScala.toList
 	private val serverAllowedProtocols: List[String] = config.getStringList("play.filters.hosts.protocol").asScala.toList
 
-	val MAILER_HOST: String = serverAllowedURLs(1)
-	val MAILER_PORT: Int = serverAllPorts(0)
-	val MAILER_PROTOCOL: String = serverAllowedProtocols(0)
-
+	val PROTOCOL: String = serverAllowedProtocols(0)
+	val NODE_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(1)}"
+	val MAILER_HOST: String = serverAllowedURLs(0)
 	val COINICA_WEB_HOST = serverAllowedURLs(2)
-	val COINICA_WEB_PORT: Int = serverAllPorts(1)
-	val COINICA_WEB_PROTOCOL: String = serverAllowedProtocols(0)
+	// val COINICA_WEB_PROTOCOL: String = serverAllowedProtocols(0)
 
 }
