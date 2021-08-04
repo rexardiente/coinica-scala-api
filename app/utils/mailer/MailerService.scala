@@ -16,9 +16,7 @@ class MailerService @Inject()(mailerClient: MailerClient) {
   	// default constructors
   	val mailerAddress: String = Config.MAILER_ADDRESS
     val url: String = Config.MAILER_HOST
-    val port: Int = Config.MAILER_PORT
-    val protocol: String = Config.MAILER_PROTOCOL
-    val host: String = s"${protocol}://${url}:${port}"
+    val protocol: String = Config.PROTOCOL
   	// compose code for email link
   	val username: String = account.username
     val password: String = account.password
@@ -26,7 +24,7 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // val expiration: Long = Instant.now.getEpochSecond + (60 * mailExpiration)
     val randomString: String  = Random.alphanumeric.dropWhile(_.isDigit).take(Config.MAIL_RANDOM_CODE_LIMIT).mkString
     val code: String = s"${password}${randomString}_${newEmail}_${username}"
-    val codeURL: String = s"${host}/donut/api/v1/user/email/confirm?code=${code}"
+    val codeURL: String = s"${protocol}://${url}/donut/api/v1/user/email/confirm?code=${code}"
     // compose body of the email in template and render as String
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639
     val emailBody: String = views.html.emailConfirmationTemplate.render(username, code, codeURL).toString()
@@ -50,9 +48,7 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // default constructors
     val mailerAddress: String = Config.MAILER_ADDRESS
     val url: String = Config.MAILER_HOST
-    val port: Int = Config.MAILER_PORT
-    val protocol: String = Config.MAILER_PROTOCOL
-    val host: String = s"${protocol}://${url}:${port}"
+    val protocol: String = Config.PROTOCOL
     // compose code for email link
     val username: String = account.username
     val password: String = account.password
@@ -60,7 +56,7 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // val expiration: Long = Instant.now.getEpochSecond + (60 * mailExpiration)
     val randomString: String  = Random.alphanumeric.dropWhile(_.isDigit).take(Config.MAIL_RANDOM_CODE_LIMIT).mkString
     val code: String = s"${password}${randomString}_${newEmail}_${username}"
-    val codeURL: String = s"${host}/donut/api/v1/user/email/confirm?code=${code}"
+    val codeURL: String = s"${protocol}://${url}/donut/api/v1/user/email/confirm?code=${code}"
     // compose body of the email in template and render as String
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639
     val emailBody: String = views.html.emailConfirmationTemplate.render(username, code, codeURL).toString()
@@ -85,9 +81,7 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // default constructors
     val mailerAddress: String = Config.MAILER_ADDRESS
     val url: String = Config.MAILER_HOST
-    val port: Int = Config.MAILER_PORT
-    val protocol: String = Config.MAILER_PROTOCOL
-    val host: String = s"${protocol}://${url}:${port}"
+    val protocol: String = Config.PROTOCOL
     // compose code for email link
     val username: String = account.username
     val password: String = account.password
@@ -95,7 +89,7 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // val expiration: Long = Instant.now.getEpochSecond + (60 * mailExpiration)
     val randomString: String  = Random.alphanumeric.dropWhile(_.isDigit).take(Config.MAIL_RANDOM_CODE_LIMIT).mkString
     val code: String = s"${password}${randomString}_${username}"
-    val codeURL: String = s"${host}/donut/api/v1/user/password/reset/confirm?code=${code}"
+    val codeURL: String = s"${protocol}://${url}/donut/api/v1/user/password/reset/confirm?code=${code}"
     // compose body of the email in template and render as String
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639
     val emailBody: String = views.html.resetPasswordEmailConfirmation.render(username, code, codeURL).toString()
