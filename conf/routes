@@ -155,5 +155,5 @@ GET   /donut/api/v1/user/password/reset/confirm 		controllers.HomeController.res
 POST  /donut/api/v1/user/password/reset/submit 			controllers.HomeController.submitNewPassword()
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /s1/assets/*file               								controllers.Assets.versioned(path="/public", file: Asset)
-GET     /s1/stylesheets/*file          								controllers.Assets.at(path="/public/stylesheets", file)
+GET   /assets/*file               								controllers.Assets.versioned(path="/public", file: Asset)
+GET   /stylesheets/*file          								controllers.Assets.at(path="/public/stylesheets", file)
