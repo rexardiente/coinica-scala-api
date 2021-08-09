@@ -29,10 +29,10 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639
     val emailBody: String = views.html.emailConfirmationTemplate.render(username, code, codeURL).toString()
   	val email: Email = new Email(
-      "EMAIL VERIFICATION",
+      "Email Verification",
       mailerAddress,
       Seq(newEmail),
-      Some("EMAIL VERIFICATION"),
+      Some("Email Verification"),
       Some(emailBody),
       None,
       Seq.empty,
@@ -94,10 +94,10 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639
     val emailBody: String = views.html.resetPasswordEmailConfirmation.render(username, code, codeURL).toString()
     val email: Email = new Email(
-      "RESET PASSWORD",
+      "Reset Password",
       mailerAddress,
       Seq(address),
-      Some("RESET PASSWORD"),
+      Some("Reset Password"),
       Some(emailBody),
       None,
       Seq.empty,
