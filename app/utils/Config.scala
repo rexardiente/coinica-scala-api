@@ -50,8 +50,8 @@ object Config {
 	val PROTOCOL: String = serverAllowedProtocols(0)
 	val NODE_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(1)}"
 	val SCALA_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(0)}"
+	val COINICA_WEB_HOST: String = s"${PROTOCOL}://${serverAllowedURLs(2)}"
 	val MAILER_HOST: String = serverAllowedURLs(0)
-	val COINICA_WEB_HOST = s"${PROTOCOL}://${serverAllowedURLs(2)}"
 	// val COINICA_WEB_PROTOCOL: String = serverAllowedProtocols(0)
 
 }
