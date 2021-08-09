@@ -157,7 +157,7 @@ class SecureActionController @Inject()(
   //       })
   //     }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   // }
-  def updateEmailAccount() = SecureUserAction.async { implicit request =>
+  def confirmedUpdateEmailAccount() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -166,21 +166,10 @@ class SecureActionController @Inject()(
         { case (email)  =>
           if (Some(email) == account.email) Future(Conflict)
           else {
-            try {
-              for {
-                userToken <- accountService.getUserTokenByID(account.id)
-                // update its email token limit
-                updated <- accountService
-                  .updateUserToken(userToken.map(_.copy(email = Some(Config.MAIL_EXPIRATION)))
-                  .getOrElse(null))
-                // send email confirmation link
-                result <- {
-                  if (updated > 0) mailerService.sendUpdateEmailAddress(account, email).map(_ => Created)
-                  else Future(InternalServerError)
-                }
-              } yield (result)
-            }
-            catch { case _: Throwable => Future(InternalServerError) }
+            val updatedAccount = account.copy(email = Some(email))
+            accountService
+              .updateUserAccount(updatedAccount)
+              .map(x => if (x > 0) Created else InternalServerError)
           }
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
