@@ -9,9 +9,9 @@
           data: JSON.stringify({'username':"@u",'password':"@p" }),
           headers: { 'Content-Type':'application/json' },
           // contentType: "application/json; charset=utf-8",
-          url: "@routes.HomeController.signIn(true)",
+          url: "/s1/donut/api/v1/sign-in?verify=true",
           success: function(response) { confirmEmail(response); },
-          error: function(err) { window.location="@routes.Default.redirect()"; }
+          error: function(err) { window.location="@utils.Config.COINICA_WEB_HOST"; }
         });
       };
 
@@ -22,9 +22,9 @@
           data: JSON.stringify({'email': "@email"}),
           contentType: "application/json; charset=utf-8",
           headers: { 'CLIENT_ID': params.id, 'CLIENT_TOKEN': params.token, 'Content-Type':'application/json' },
-          url: "@routes.SecureActionController.addEmailAccount()",
-          success: function(res) { window.location="@routes.Default.redirect()"; },
-          error: function(err) { window.location="@routes.Default.redirect()"; }
+          url: "/s1/donut/api/v1/user/email/add",
+          success: function(res) { window.location="@utils.Config.COINICA_WEB_HOST"; },
+          error: function(err) { window.location="@utils.Config.COINICA_WEB_HOST"; }
         });
       };
     </script>
