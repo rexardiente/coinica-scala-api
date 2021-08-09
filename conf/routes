@@ -146,7 +146,7 @@ GET   /donut/api/v1/vip 														controllers.SecureActionController.vipUser
 
 # Add Email Address Email Confirmation
 GET   /donut/api/v1/user/email/confirm 							controllers.HomeController.emailVerification(code: String)
-#POST  /donut/api/v1/user/email/update 							controllers.SecureActionController.updateEmailAccount()
+POST  /donut/api/v1/user/email/confirm-update 			controllers.SecureActionController.confirmedUpdateEmailAccount()
 POST  /donut/api/v1/user/email/add 									controllers.SecureActionController.addEmailAccount()
 # Reset Password Email Confirmation
 #GET   /donut/api/v1/user/reset/password/confirm 		controllers.HomeController.resetPasswordVerification(code: String)

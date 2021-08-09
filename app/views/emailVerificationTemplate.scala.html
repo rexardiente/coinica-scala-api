@@ -22,7 +22,7 @@
           data: JSON.stringify({'email': "@email"}),
           contentType: "application/json; charset=utf-8",
           headers: { 'CLIENT_ID': params.id, 'CLIENT_TOKEN': params.token, 'Content-Type':'application/json' },
-          url: "/s1/donut/api/v1/user/email/add",
+          url: "/s1/donut/api/v1/user/email/confirm-update",
           success: function(res) { window.location="@utils.Config.COINICA_WEB_HOST"; },
           error: function(err) { window.location="@utils.Config.COINICA_WEB_HOST"; }
         });
