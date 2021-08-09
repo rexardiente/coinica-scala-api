@@ -5,7 +5,7 @@
 GET     /ws                                 			controllers.HomeController.socket
 
 GET     /                           							controllers.HomeController.index()
-GET  		/coinica  																controllers.Default.redirect(to = utils.Config.COINICA_WEB_HOST)
+GET  		/coinica  																controllers.Default.redirect(to = "http://coinica.net")
 # Login API
 
 POST   	/donut/api/v1/sign-in            					controllers.HomeController.signIn(verify: Boolean ?= false)
