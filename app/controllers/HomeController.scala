@@ -139,7 +139,7 @@ class HomeController @Inject()(
                       val newAccount = acc.copy(password = encryptKey.toSHA256(password))
                       accountService
                         .updateUserAccount(newAccount)
-                        .map(x => if (x > 0) Redirect(utils.Config.COINICA_WEB_HOST) else InternalServerError)
+                        .map(x => if (x > 0) Redirect("http://coinica.net") else InternalServerError)
                     }
                     else  Future(InternalServerError)
                   }
