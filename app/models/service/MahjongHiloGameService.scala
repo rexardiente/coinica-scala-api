@@ -47,17 +47,17 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 								val gameID: String = data.game_id
 								val prediction: Int = data.prediction
 	              val result: Int = data.hi_lo_outcome
-	              val betAmount: Double = data.hi_lo_stake.toDouble
+	              val betAmount: Double = data.hi_lo_bet.toDouble
 	              val prize: Double = 0
 	              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
               																					"standard_tile" -> data.standard_tile)
 
 								for {
 									// fetch table history if exists..
-									hasHistory <- historyRepo.findByUserGameIDAndGameID(userGameID, gameID)
+									updatedHistory <- historyRepo.findByUserGameIDAndGameID(userGameID, gameID)
 									predictionProcess <- Future.successful {
 										val newPredictions = (prediction, result, data.current_tile, data.standard_tile)
-										hasHistory
+										updatedHistory
 											.map(v => v.copy(predictions = (v.predictions :+ newPredictions)))
 											.getOrElse(null)
 									}
