@@ -286,7 +286,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			// fetch overall history data using seqOfGameIDs
 			histories <- overAllHistory.getOverallGameHistoryByGameID(seqOfGameIDs)
 			seqAmount <- Future.successful(histories.map(_.info.amount))
-		} yield (seqAmount.max)
+		} yield (if (seqAmount.isEmpty) 0D else seqAmount.max)
 	}
 	def getConsecutiveHilo(userGameID: Int): Future[Int] = {
 		for {
@@ -300,7 +300,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					split.map(_.size).max
 				}
 			}
-		} yield (process.max)
+		} yield (if (process.isEmpty) 0 else process.max)
 	}
 	def getTotalPlayed(userGameID: Int): Future[Int] =
 		historyRepo
@@ -316,7 +316,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					gameResults.filter(_ == true).size
 				}
 			}
-		} yield (process.max)
+		} yield (if (process.isEmpty) 0 else process.max)
 	}
 	def getHiloAvgWinScore(userGameID: Int) = ???
 	def getHiloAvgWinRound(userGameID: Int) = ???
