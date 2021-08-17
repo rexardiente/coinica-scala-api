@@ -286,7 +286,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			// fetch overall history data using seqOfGameIDs
 			histories <- overAllHistory.getOverallGameHistoryByGameID(seqOfGameIDs)
 			seqAmount <- Future.successful(histories.map(_.info.amount))
-		} yield (seqAmount.max)
+		} yield (if (seqAmount.isEmpty) 0D else seqAmount.max)
 	}
 	def getConsecutiveHilo(userGameID: Int): Future[Int] = {
 		for {
@@ -300,7 +300,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					split.map(_.size).max
 				}
 			}
-		} yield (process.max)
+		} yield (if (process.isEmpty) 0 else process.max)
 	}
 	def getTotalPlayed(userGameID: Int): Future[Int] =
 		historyRepo
@@ -316,7 +316,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					gameResults.filter(_ == true).size
 				}
 			}
-		} yield (process.max)
+		} yield (if (process.isEmpty) 0 else process.max)
 	}
 	def getHiloAvgWinScore(userGameID: Int) = ???
 	def getHiloAvgWinRound(userGameID: Int) = ???
@@ -370,16 +370,20 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		} yield (seqAmount.sum)
 	}
 	def calculateWinRateOnSeqOfHistory(v: Seq[MahjongHiloHistory]): Double = {
-		val processedGameResult: Seq[(Int, Int)] =
-			v.map { history =>
-				val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
-				val totalWin: List[Boolean] = gameResults.filter(_ == true)
-				// (totalWin.size / gameResults.size) * 100
-				(gameResults.size, totalWin.size)
-			}
-		val totalGamesPlayed: Double = processedGameResult.map(_._1).sum
-		val totalWins: Double = processedGameResult.map(_._2).sum
-		((totalWins / totalGamesPlayed) * 100)
+		try {
+			val processedGameResult: Seq[(Int, Int)] =
+				v.map { history =>
+					val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
+					val totalWin: List[Boolean] = gameResults.filter(_ == true)
+					// (totalWin.size / gameResults.size) * 100
+					(gameResults.size, totalWin.size)
+				}
+			val totalGamesPlayed: Int = processedGameResult.map(_._1).sum
+			val totalWins: Int = processedGameResult.map(_._2).sum
+			((totalWins / totalGamesPlayed).toDouble * 100)
+		} catch {
+			case e : Throwable => 0D
+		}
 	}
 	def getHiLoWinRate(userGameID: Int): Future[Double] = {
 		for {
