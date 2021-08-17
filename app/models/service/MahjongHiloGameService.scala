@@ -370,16 +370,20 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		} yield (seqAmount.sum)
 	}
 	def calculateWinRateOnSeqOfHistory(v: Seq[MahjongHiloHistory]): Double = {
-		val processedGameResult: Seq[(Int, Int)] =
-			v.map { history =>
-				val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
-				val totalWin: List[Boolean] = gameResults.filter(_ == true)
-				// (totalWin.size / gameResults.size) * 100
-				(gameResults.size, totalWin.size)
-			}
-		val totalGamesPlayed: Double = processedGameResult.map(_._1).sum
-		val totalWins: Double = processedGameResult.map(_._2).sum
-		((totalWins / totalGamesPlayed) * 100)
+		try {
+			val processedGameResult: Seq[(Int, Int)] =
+				v.map { history =>
+					val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
+					val totalWin: List[Boolean] = gameResults.filter(_ == true)
+					// (totalWin.size / gameResults.size) * 100
+					(gameResults.size, totalWin.size)
+				}
+			val totalGamesPlayed: Int = processedGameResult.map(_._1).sum
+			val totalWins: Int = processedGameResult.map(_._2).sum
+			((totalWins / totalGamesPlayed).toDouble * 100)
+		} catch {
+			case e : Throwable => 0D
+		}
 	}
 	def getHiLoWinRate(userGameID: Int): Future[Double] = {
 		for {
