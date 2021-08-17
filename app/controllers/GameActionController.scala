@@ -94,7 +94,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .resetBet(account.userGameID)
-          .map(x => Ok(JsBoolean(x)))
+          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloDeclareWinHand() = SecureUserAction.async { implicit request =>
@@ -103,7 +103,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .declareWinHand(account.userGameID)
-          .map(x => Ok(JsBoolean(x)))
+          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloDeclareKong() = SecureUserAction.async { implicit request =>
@@ -115,7 +115,7 @@ class GameActionController @Inject()(
         { case (sets)  =>
           mjHiloGameService
             .declareKong(account.userGameID, sets)
-            .map(x => Ok(JsBoolean(x)))
+            .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -128,7 +128,7 @@ class GameActionController @Inject()(
         { case (tile)  =>
           mjHiloGameService
             .discardTile(account.userGameID, tile)
-            .map(x => Ok(JsBoolean(x)))
+            .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -199,7 +199,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .start(account.userGameID)
-          .map(x => Ok(JsBoolean(x)))
+          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloTransfer = SecureUserAction.async { implicit request =>
@@ -208,7 +208,7 @@ class GameActionController @Inject()(
       .map { account =>
         mjHiloGameService
           .transfer(account.userGameID)
-          .map(x => Ok(JsBoolean(x)))
+          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def mahjongHiloWithdraw = SecureUserAction.async { implicit request =>

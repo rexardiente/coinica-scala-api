@@ -21,13 +21,13 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 																			overAllHistory: OverAllHistoryService,
 																			@Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
 																			@Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
-	def declareWinHand(userGameID: Int): Future[Boolean] =
+	def declareWinHand(userGameID: Int): Future[Option[String]] =
 		contract.declareWinHand(userGameID)
-	def resetBet(userGameID: Int): Future[Boolean] =
+	def resetBet(userGameID: Int): Future[Option[String]] =
 		contract.resetBet(userGameID)
-	def declareKong(userGameID: Int, sets: Seq[Int]): Future[Boolean] =
+	def declareKong(userGameID: Int, sets: Seq[Int]): Future[Option[String]] =
 		contract.declareKong(userGameID, sets)
-	def discardTile(userGameID: Int, index: Int): Future[Boolean] =
+	def discardTile(userGameID: Int, index: Int): Future[Option[String]] =
 		contract.discardTile(userGameID, index)
 	def playHilo(id: UUID, username: String, userGameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
 		for {
@@ -123,8 +123,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			isInitialized <- contract.initialize(userGameID)
 			gameData <- getUserData(userGameID)
 			processHistory <- Future.successful {
-				if (isInitialized) gameData.map(v => MahjongHiloHistory(v.game_id, userGameID))
-				else None
+				isInitialized.map(_ => gameData.map(v => MahjongHiloHistory(v.game_id, userGameID))).getOrElse(None)
 			}
 			// add into the DB history
 			isAdded <- processHistory.map(historyRepo.insert(_)).getOrElse(Future(0))
@@ -153,15 +152,16 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 				else Future(1)
 			}
 			// check if DB has been update and proceed to reseting the gamedata
-			isReseted <- if (isUpdated > 0) contract.reset(userGameID) else Future(false)
+			isReseted <- if (isUpdated > 0) contract.reset(userGameID) else Future(None)
 			newGameData <- getUserData(userGameID)
 			// every game reset insert new gamedata into DB..
 			process <- {
-				if (isReseted)
-					newGameData
-						.map(v => historyRepo.insert(MahjongHiloHistory(v.game_id, userGameID)))
-						.getOrElse(Future(0))
-				else Future(0)
+				isReseted
+					.map { _ =>
+						newGameData
+							.map(v => historyRepo.insert(MahjongHiloHistory(v.game_id, userGameID)))
+							.getOrElse(Future(0))
+					}.getOrElse(Future(0))
 			}
 		} yield (process)
 	}
@@ -170,8 +170,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			isGameEnded <- contract.quit(userGameID)
 			gameData <- getUserData(userGameID)
 			processHistory <- Future.successful {
-				if (isGameEnded) gameData.map(v => MahjongHiloHistory(v.game_id, userGameID))
-				else None
+				isGameEnded.map(_ => gameData.map(v => MahjongHiloHistory(v.game_id, userGameID))).getOrElse(None)
 			}
 			// add into the DB history
 			isAdded <- processHistory.map(historyRepo.insert(_)).getOrElse(Future(0))
@@ -190,19 +189,20 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       // if has enough balance send tx on smartcontract, else do nothing
       isAdded <- {
         if (hasEnoughBalance) contract.addBet(userGameID, quantity)
-        else Future(false)
+        else Future(None)
       }
       // deduct balance on the account
       updateBalance <- {
-        if (isAdded) userAccountService.deductBalanceByCurrency(id, currency, currentValue)
-        else Future(0)
+      	isAdded
+      		.map(_ => userAccountService.deductBalanceByCurrency(id, currency, currentValue))
+      		.getOrElse(Future(0))
       }
     } yield (updateBalance)
 	}
 
-	def start(userGameID: Int): Future[Boolean] =
+	def start(userGameID: Int): Future[Option[String]] =
 		contract.start(userGameID)
-	def transfer(userGameID: Int): Future[Boolean] =
+	def transfer(userGameID: Int): Future[Option[String]] =
 		contract.transfer(userGameID)
 	def withdraw(id: UUID, username: String, userGameID: Int): Future[(Boolean, String)] = {
 		for {
