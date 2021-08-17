@@ -14,7 +14,7 @@ import models.domain.eosio.MahjongHiloGameData
 class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
   val nodeServerURI: String = utils.Config.NODE_SERVER_URI
 
-  def declareWinHand(id: Int): Future[Boolean] =  {
+  def declareWinHand(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/declare-win-hand")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -22,11 +22,12 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def resetBet(id: Int): Future[Boolean] =  {
+  def resetBet(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/reset-bet")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -34,11 +35,12 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def declareKong(id: Int, sets: Seq[Int]): Future[Boolean] =  {
+  def declareKong(id: Int, sets: Seq[Int]): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/declare-kong")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -46,11 +48,12 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "idx" -> sets))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def discardTile(id: Int, index: Int): Future[Boolean] =  {
+  def discardTile(id: Int, index: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/discard-tile")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -58,9 +61,10 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "idx" -> index))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
   def playHilo(id: Int, option: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/play-hilo")
@@ -75,7 +79,7 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else None
       }.recover { case e: Exception => None }
   }
-  def initialize(id: Int): Future[Boolean] =  {
+  def initialize(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/start")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -83,11 +87,12 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def reset(id: Int): Future[Boolean] =  {
+  def reset(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/reset")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -95,11 +100,12 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def quit(id: Int): Future[Boolean] =  {
+  def quit(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/end")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -107,11 +113,12 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def addBet(id: Int, quantity: Int): Future[Boolean] =  {
+  def addBet(id: Int, quantity: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/addbet")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -119,11 +126,12 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id, "quantity" -> quantity))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def start(id: Int): Future[Boolean] =  {
+  def start(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/bet-token")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -131,11 +139,12 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
-  def transfer(id: Int): Future[Boolean] =  {
+  def transfer(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/transfer-token")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
@@ -143,9 +152,10 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
 
     complexRequest.post(Json.obj("id" -> id))
       .map { v =>
-        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200) true
-        else false
-      }.recover { case e: Exception => false }
+        if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
+          (v.json \ "data" \ "transaction_id").asOpt[String]
+        else None
+      }.recover { case e: Exception => None }
   }
   def withdraw(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/withdraw-token")
