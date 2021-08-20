@@ -105,9 +105,9 @@ class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
     complexRequest
       .post(Json.obj("gameID" -> gameID,
                      "destination" -> quantity,
-                     "enemy_count" -> quantity,
-                     "panels" -> quantity,
-                     "quantity" -> quantity))
+                     "enemy_count" -> destination,
+                     "panels" -> enemy,
+                     "quantity" -> sets))
       .map { v =>
         if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
           (v.json \ "data" \ "transaction_id").asOpt[String]
