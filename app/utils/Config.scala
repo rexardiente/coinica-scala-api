@@ -15,24 +15,18 @@ object Config {
 	// Ghost Quest
 	val GQ: List[String] = config.getStringList("platform.games.contracts.ghostquest").asScala.toList
 	val GQ_CODE: String = GQ(0)
-	val GQ_TABLE: String = GQ(1)
-	val GQ_SCOPE: String = GQ(2)
-	val GQ_GAME_ID: UUID = UUID.fromString(GQ(3))
-	val GQ_GAME_CODE: String = GQ(4)
+	val GQ_GAME_ID: UUID = UUID.fromString(GQ(1))
+	val GQ_GAME_CODE: String = GQ(2)
 	// Treasure Hunt
 	val TH: List[String] = config.getStringList("platform.games.contracts.treasurehunt").asScala.toList
 	val TH_CODE: String = TH(0)
-	val TH_TABLE: String = TH(1)
-	val TH_SCOPE: String = TH(2)
-	val TH_GAME_ID: UUID = UUID.fromString(TH(3))
-	val TH_GAME_CODE: String = TH(4)
+	val TH_GAME_ID: UUID = UUID.fromString(TH(1))
+	val TH_GAME_CODE: String = TH(2)
 	// Mahjong Hilo
 	val MJHilo: List[String] = config.getStringList("platform.games.contracts.mahjonghilo").asScala.toList
 	val MJHilo_CODE: String = MJHilo(0)
-	val MJHilo_TABLE: String = MJHilo(1)
-	val MJHilo_SCOPE: String = MJHilo(2)
-	val MJHilo_GAME_ID: UUID = UUID.fromString(MJHilo(3))
-	val MJHilo_GAME_CODE: String = MJHilo(4)
+	val MJHilo_GAME_ID: UUID = UUID.fromString(MJHilo(1))
+	val MJHilo_GAME_CODE: String = MJHilo(2)
 
 	// val NODE_SERVER_URI: String = config.getString("eosio.eosjs.node.server.uri")
 	val EOS_TO_USD_CONVERSION: Double = config.getDouble("platform.EOS_TO_USD_CONVERSION")
