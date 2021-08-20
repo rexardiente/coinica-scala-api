@@ -255,7 +255,7 @@ class GameActionController @Inject()(
         formErr => Future.successful(BadRequest("Invalid request")),
         { case (currency, quantity, destination, enemy)  =>
           treasureHuntGameService
-            .initialize(account.id, account.userGameID, currency, quantity, destination, enemy)
+            .initialize(account.id, account.userGameID, currency.toUpperCase, quantity, destination, enemy)
             .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
