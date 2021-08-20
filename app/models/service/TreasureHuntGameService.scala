@@ -147,13 +147,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 	}
 	def quit(gameID: Int, username: String): Future[Option[String]] =
 		contract.treasureHuntQuit(gameID, username)
-	def initialize(id: UUID,
-								gameID: Int,
-								currency: String,
-								quantity: Int,
-								destination: Int,
-								enemy: Int,
-								sets: Seq[Int]): Future[Option[String]] = {
+	def initialize(id: UUID, gameID: Int, currency: String, quantity: Int, destination: Int, enemy: Int): Future[Option[String]] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       currentValue <- userAccountService.getGameQuantityAmount(currency, quantity)
@@ -165,7 +159,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       }
       // if has enough balance send tx on smartcontract, else do nothing
       initGame <- {
-        if (hasEnoughBalance) contract.treasureHuntInitialize(gameID, quantity, destination, enemy, sets)
+        if (hasEnoughBalance) contract.treasureHuntInitialize(gameID, quantity, destination, enemy)
         else Future(None)
       }
       // deduct balance on the account
