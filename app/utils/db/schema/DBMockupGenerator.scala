@@ -9,6 +9,7 @@ import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.repo._
 import models.domain.enum._
 import models.domain._
+import utils.Config._
 
 @Singleton
 class DBMockupGenerator @Inject()(
@@ -25,18 +26,20 @@ class DBMockupGenerator @Inject()(
   import profile.api._
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
+  private val genreID: UUID = UUID.randomUUID
+  private def genreQuery(): Unit = genreRepo.add(new Genre(genreID, "LUCKY", None))
   private def gamesQuery(): Unit = {
-    val description: String = """Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."""
-    val genreID: UUID = UUID.fromString("7633f64d-2caa-472b-9da7-e0feb439aefe")
+    val GQ_DESCRIPTION: String = """Idle game with character-battle. You need only to draw loot box and summon ghosts and send them in battle field. If your ghost wins, you can get rewrard."""
+    val TH_DESCRIPTION: String = """Seeking for treasure in three different ocean maps without being spotted by rival pirates!"""
+    val MJ_DESCRIPTION: String = """High-low game with mahjong tiles, if you can complete a hand with 14 tiles until 33rd turn, you get a bonus according to your hand score ranking."""
+
     Seq(
-        new Game(UUID.fromString("0f335579-1bf8-4f9e-8ede-eb204f5c0cba"), "GHOST QUEST", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/GQ.jpeg", "/game/ghostquest", genreID, Some(description)),
-        new Game(UUID.fromString("1b977a2b-842e-430b-bd1b-c0bd3abe1c55"), "TREASURE HUNT", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/TH.jpeg", "/game/treasurehunt", genreID, Some(description)),
-        new Game(UUID.fromString("74cd374c-6126-495a-a8a3-33db87caa511"), "MAHJONG HILO", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/MJ.png", "/game/mahjong", genreID, Some(description))
+        new Game(GQ_GAME_ID, "GHOST QUEST", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/GQ.jpeg", "/game/ghostquest", genreID, Some(GQ_DESCRIPTION)),
+        new Game(TH_GAME_ID, "TREASURE HUNT", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/TH.jpeg", "/game/treasurehunt", genreID, Some(TH_DESCRIPTION)),
+        new Game(MJHilo_GAME_ID, "MAHJONG HILO", "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/MJ.png", "/game/mahjong", genreID, Some(MJ_DESCRIPTION))
     ).map(gameRepo.add(_))
   }
-  private def genreQuery(): Unit = {
-    genreRepo.add(new Genre(UUID.fromString("7633f64d-2caa-472b-9da7-e0feb439aefe"), "LUCKY", None))
-  }
+
   private def newsQuery(): Unit = {
     // temporary list of news and
     // add list to news tbl..
