@@ -33,8 +33,7 @@ class GameActionController @Inject()(
     "currency" -> nonEmptyText,
     "quantity" -> number,
     "destination" -> number,
-    "enemy" -> number,
-    "sets" -> list(number)))
+    "enemy" -> number))
   private val thAutoPlayForm = Form(single("sets" -> list(number)))
   private val thOpenTileForm = Form(single("tile" -> number))
   private val mjHiloDeclareKongForm = Form(single("sets" -> list(number)))
@@ -254,9 +253,9 @@ class GameActionController @Inject()(
       .map { account =>
         thInitForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid request")),
-        { case (currency, quantity, destination, enemy, sets)  =>
+        { case (currency, quantity, destination, enemy)  =>
           treasureHuntGameService
-            .initialize(account.id, account.userGameID, currency, quantity, destination, enemy, sets)
+            .initialize(account.id, account.userGameID, currency, quantity, destination, enemy)
             .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
