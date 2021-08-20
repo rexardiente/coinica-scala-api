@@ -85,14 +85,10 @@ GET   /donut/api/v1/game/ghost-quest/characters/rank/win-streak/lifetime 	contro
 
 # Treasurehunt API
 GET  	/donut/api/v1/game/treasurehunt/game/data 				controllers.GameActionController.treasureHuntGameData
-GET  	/donut/api/v1/game/treasurehunt/init 							controllers.GameActionController.treasureHuntInitialize
+POST  /donut/api/v1/game/treasurehunt/init 							controllers.GameActionController.treasureHuntInitialize
 GET  	/donut/api/v1/game/treasurehunt/quit 							controllers.GameActionController.treasureHuntQuit
-GET  	/donut/api/v1/game/treasurehunt/set/gamepanel 		controllers.GameActionController.treasureHuntSetGamePanel
-POST  /donut/api/v1/game/treasurehunt/set/destination 	controllers.GameActionController.treasureHuntSetDestination
-POST  /donut/api/v1/game/treasurehunt/set/enemy 				controllers.GameActionController.treasureHuntSetEnemy
 POST  /donut/api/v1/game/treasurehunt/opentile 					controllers.GameActionController.treasureHuntOpenTile
 POST  /donut/api/v1/game/treasurehunt/autoplay 					controllers.GameActionController.treasureHuntAutoPlay
-POST  /donut/api/v1/game/treasurehunt/start 						controllers.GameActionController.treasureHuntGameStart
 GET  	/donut/api/v1/game/treasurehunt/withdraw  				controllers.GameActionController.treasureHuntWithdraw
 
 # Mahjong Hilo

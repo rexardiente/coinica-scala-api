@@ -145,17 +145,15 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 			}
 		} yield (onProcess, isOpenTile.getOrElse(null), gameData)
 	}
-	def setEnemy(gameID: Int, username: String, count: Int): Future[Option[String]] =
-		contract.treasureHuntSetEnemy(gameID, username, count)
-	def setDestination(gameID: Int, username: String, destination: Int): Future[Option[String]] =
-		contract.treasureHuntSetDestination(gameID, username, destination)
-	def setGamePanel(gameID: Int, username: String): Future[Option[String]] =
-		contract.treasureHuntSetGamePanel(gameID, username)
 	def quit(gameID: Int, username: String): Future[Option[String]] =
 		contract.treasureHuntQuit(gameID, username)
-	def initialize(gameID: Int, username: String): Future[Option[String]] =
-		contract.treasureHuntInitialize(gameID, username)
-	def gameStart(id: UUID, gameID: Int, currency: String, quantity: Int): Future[Int] = {
+	def initialize(id: UUID,
+								gameID: Int,
+								currency: String,
+								quantity: Int,
+								destination: Int,
+								enemy: Int,
+								sets: Seq[Int]): Future[Option[String]] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       currentValue <- userAccountService.getGameQuantityAmount(currency, quantity)
@@ -167,7 +165,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       }
       // if has enough balance send tx on smartcontract, else do nothing
       initGame <- {
-        if (hasEnoughBalance) contract.treasureHuntGameStart(gameID, quantity)
+        if (hasEnoughBalance) contract.treasureHuntInitialize(gameID, quantity, destination, enemy, sets)
         else Future(None)
       }
       // deduct balance on the account
@@ -176,7 +174,8 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       		.map(_ => userAccountService.deductBalanceByCurrency(id, currency, currentValue))
       		.getOrElse(Future(0))
       }
-    } yield (updateBalance)
+      isConfirmed <- Future { if (updateBalance > 0) initGame else None }
+    } yield (isConfirmed)
 	}
 	def withdraw(id: UUID, username: String, gameID: Int): Future[(Boolean, String)] = {
 		for {
