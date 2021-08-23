@@ -91,6 +91,8 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 			(onProcess, gameData) <- {
 				isOpenTile
 					.map { hash =>
+						// add small delay for tx to reflect on the network
+						Thread.sleep(500)
 						for {
 							updatedGameData <- userData(gameID)
 							isWinOrLost <- {
