@@ -396,7 +396,7 @@ trait CommonImplicits {
 			case json: JsValue => {
 				try {
 					JsSuccess(ETHJsonRpcResult(
-						(json \ "accessList").as[Seq[JsValue]],
+						(json \ "accessList").asOpt[JsValue],
 						(json \ "blockHash").as[String],
 						(json \ "blockNumber").as[Long],
 						(json \ "chainId").asOpt[String],
@@ -404,7 +404,7 @@ trait CommonImplicits {
 						(json \ "creates").asOpt[String],
 						(json \ "from").as[String],
 						(json \ "gas").as[Long],
-						(json \ "gasPrice").as[Int],
+						(json \ "gasPrice").as[Double],
 						(json \ "hash").as[String],
 						(json \ "input").as[String],
 						(json \ "maxFeePerGas").asOpt[String],
