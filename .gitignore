@@ -68,6 +68,7 @@ lib_managed/
 src_managed/
 project/boot/
 project/plugins/project/
+conf/application.conf
 
 ### Play framework with reactjs UI
 *.vscode
