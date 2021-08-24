@@ -412,10 +412,11 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .filter(_._3 > 0)
             .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null)))
         }
+        currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(SUPPORTED_SYMBOLS(0))
         // total bet amount * (EOS price -> USD)
         wagered <- Future.sequence {
           processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum * EOS_TO_USD_CONVERSION) }
+            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum * currentUSDValue.toDouble) }
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)

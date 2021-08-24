@@ -28,13 +28,11 @@ object Config {
 	val MJHilo_GAME_ID: UUID = UUID.fromString(MJHilo(1))
 	val MJHilo_GAME_CODE: String = MJHilo(2)
 
-	// val NODE_SERVER_URI: String = config.getString("eosio.eosjs.node.server.uri")
-	val EOS_TO_USD_CONVERSION: Double = config.getDouble("platform.EOS_TO_USD_CONVERSION")
-
 	// Email Configs
 	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
 	// Instant + (limit * (60:1 minute))
-	def MAIL_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("play.mailer.expiration") * 60))
+	val MAIL_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("play.mailer.expiration") * 60))
+	val TOKEN_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("platform.token.expiration") * 60))
 	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
 
 	// Server Host URL
