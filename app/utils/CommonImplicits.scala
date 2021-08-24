@@ -396,6 +396,7 @@ trait CommonImplicits {
 			case json: JsValue => {
 				try {
 					JsSuccess(ETHJsonRpcResult(
+						(json \ "accessList").as[Seq[JsValue]],
 						(json \ "blockHash").as[String],
 						(json \ "blockNumber").as[Long],
 						(json \ "chainId").asOpt[String],
@@ -406,6 +407,8 @@ trait CommonImplicits {
 						(json \ "gasPrice").as[Int],
 						(json \ "hash").as[String],
 						(json \ "input").as[String],
+						(json \ "maxFeePerGas").asOpt[String],
+						(json \ "maxPriorityFeePerGas").asOpt[String],
 						(json \ "nonce").as[Int],
 						(json \ "publicKey").asOpt[String],
 						(json \ "raw").asOpt[String],
@@ -426,6 +429,7 @@ trait CommonImplicits {
 	}
 	implicit val implETHJsonRpcResultWrites = new Writes[ETHJsonRpcResult] {
 	  def writes(tx: ETHJsonRpcResult): JsValue = Json.obj(
+			"accessList" -> tx.accessList,
 			"blockHash" -> tx.blockHash,
 			"blockNumber" -> tx.blockNumber,
 			"chainId" -> tx.chainId,
@@ -436,6 +440,8 @@ trait CommonImplicits {
 			"gasPrice" -> tx.gasPrice,
 			"hash" -> tx.hash,
 			"input" -> tx.input,
+			"maxFeePerGas" -> tx.maxFeePerGas,
+			"maxPriorityFeePerGas" -> tx.maxPriorityFeePerGas,
 			"nonce" -> tx.nonce,
 			"publicKey" -> tx.publicKey,
 			"raw" -> tx.raw,
@@ -461,7 +467,7 @@ trait CommonImplicits {
 	  }
 	}
 	implicit val implicitCryptoJsonRpcHistoryReads: Reads[CryptoJsonRpcHistory] = {
-	  Json.format[ETHJsonRpcResult].map(x => x: CryptoJsonRpcHistory)
+		implETHJsonRpcResultReads.map(x => x: CryptoJsonRpcHistory)
 	}
 	implicit val implicitCryptoJsonRpcHistoryWrites = new Writes[CryptoJsonRpcHistory] {
 	  def writes(param: CryptoJsonRpcHistory): JsValue = {

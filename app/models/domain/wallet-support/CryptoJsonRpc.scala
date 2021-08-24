@@ -13,7 +13,8 @@ sealed trait CryptoJsonRpc {
 sealed trait CryptoJsonRpcHistory {
 	def toJson(): JsValue = Json.toJson(this)
 }
-case class ETHJsonRpcResult(blockHash: String,
+case class ETHJsonRpcResult(accessList: Seq[JsValue],
+														blockHash: String,
 											      blockNumber: Long,
 											      chainId: Option[String],
 											      condition: Option[String],
@@ -23,6 +24,8 @@ case class ETHJsonRpcResult(blockHash: String,
 											      gasPrice: Int,
 											      hash: String,
 											      input: String,
+											      maxFeePerGas: Option[String],
+											      maxPriorityFeePerGas: Option[String],
 											      nonce: Int,
 											      publicKey: Option[String],
 											      raw: Option[String],
