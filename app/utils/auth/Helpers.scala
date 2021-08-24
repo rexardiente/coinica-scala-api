@@ -28,25 +28,10 @@ class SecureUserAction @Inject()(
       .map(new SecureUserRequest(_, request))
   }
 
-  def generateLoginToken(user: UserToken): UserToken = {
+  def generateLoginToken[T <: UserToken](user: T) = {
     val token: String = s"==token${UUID.randomUUID().toString}"
-    // limit/expire session after 5 minutes of creation, else send renew session..
-    user.copy(token=Some(token), login=Some(Config.MAIL_EXPIRATION))
+    // limit/expire session after #minutes of creation,
+    // else send renew session..
+    user.copy(token=Some(token), login=Some(Config.TOKEN_EXPIRATION))
   }
 }
-
-// case class UserAccountSession(token: String, username: String, expiration: LocalDateTime)
-// object SecureUserAction {
-  // generate or replace new token
-  // Map token -> UserAccountSession
-  // private val sessions = mutable.Map.empty[String, UserAccountSession]
-  // def getSession(token: String): Option[UserAccountSession] = {
-  //   sessions.get(token)
-  // }
-  // def generateToken(username: String): String = {
-  //   // we use UUID to make sure randomness and uniqueness on tokens
-  //   val token = s"token-${UUID.randomUUID().toString}"
-  //   sessions.put(token, UserAccountSession(token, username, LocalDateTime.now().plusMinutes(5)))
-  //   token
-  // }
-// }

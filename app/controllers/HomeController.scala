@@ -278,7 +278,7 @@ class HomeController @Inject()(
                   userToken <- accountService.getUserTokenByID(account.get.id)
                   // update its password token limit
                   updated <- accountService
-                    .updateUserToken(userToken.map(_.copy(password = Some(Config.TOKEN_EXPIRATION)))
+                    .updateUserToken(userToken.map(_.copy(password = Some(Config.MAIL_EXPIRATION)))
                     .getOrElse(null))
                   // send email confirmation link
                   result <- {

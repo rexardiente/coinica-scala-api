@@ -212,7 +212,7 @@ class SecureActionController @Inject()(
             userSession.map { session =>
               val newUserToken: UserToken = SecureUserAction.generateLoginToken(session)
               accountService
-                .updateUserToken(newUserToken.copy(login = Some(Config.TOKEN_EXPIRATION)))
+                .updateUserToken(newUserToken)
                 .map(x => if (x > 0) Ok(Json.obj("token" -> newUserToken.token)) else InternalServerError)
             }
             .getOrElse(Future(NotFound))
