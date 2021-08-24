@@ -27,14 +27,6 @@ object Config {
 	val MJHilo_CODE: String = MJHilo(0)
 	val MJHilo_GAME_ID: UUID = UUID.fromString(MJHilo(1))
 	val MJHilo_GAME_CODE: String = MJHilo(2)
-
-	// Email Configs
-	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
-	// Instant + (limit * (60:1 minute))
-	val MAIL_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("play.mailer.expiration") * 60))
-	val TOKEN_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("platform.token.expiration") * 60))
-	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
-
 	// Server Host URL
 	private val serverAllowedURLs: List[String] = config.getStringList("play.filters.hosts.url").asScala.toList
 	private val serverAllowedProtocols: List[String] = config.getStringList("play.filters.hosts.protocol").asScala.toList
@@ -44,6 +36,10 @@ object Config {
 	val SCALA_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(0)}"
 	val COINICA_WEB_HOST: String = s"${PROTOCOL}://${serverAllowedURLs(2)}"
 	val MAILER_HOST: String = serverAllowedURLs(0)
-	// val COINICA_WEB_PROTOCOL: String = serverAllowedProtocols(0)
-
+	// Email Configs
+	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
+	// Instant + (limit * (60:1 minute))
+	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
+	def MAIL_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("play.mailer.expiration") * 60))
+	def TOKEN_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("platform.token.expiration") * 60))
 }
