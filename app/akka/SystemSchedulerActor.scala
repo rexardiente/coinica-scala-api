@@ -401,7 +401,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, v._2, v._3)).getOrElse(null)))
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, user.username, v._2, v._3)).getOrElse(null)))
         }
         // total bet amount - total win amount
         payout <- Future.sequence {
@@ -410,7 +410,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, v._2, v._3)).getOrElse(null)))
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, user.username, v._2, v._3)).getOrElse(null)))
         }
         currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(SUPPORTED_SYMBOLS(0))
         // total bet amount * (EOS price -> USD)
@@ -420,7 +420,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, v._2, v._3)).getOrElse(null)))
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, user.username, v._2, v._3)).getOrElse(null)))
         }
         // total win size
         multiplier <- Future.sequence {
@@ -429,7 +429,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .sortBy(-_._3)
             .take(10)
             .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, v._2, v._3)).getOrElse(null)))
+            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, user.username, v._2, v._3)).getOrElse(null)))
         }
         // save ranking to history..
         _ <- {

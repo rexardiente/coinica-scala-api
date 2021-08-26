@@ -11,20 +11,21 @@ object RankPayout
 object RankWagered
 object RankMultiplier
 sealed trait RankType {
-	def user: UUID
+	def id: UUID
+	def username: String
 	def bet: Double
 	def toJson(): JsValue = Json.toJson(this)
 }
-case class RankProfit(user: UUID, bet: Double, profit: Double) extends RankType {
+case class RankProfit(id: UUID, username: String, bet: Double, profit: Double) extends RankType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
-case class RankPayout(user: UUID, bet: Double, payout: Double) extends RankType {
+case class RankPayout(id: UUID, username: String, bet: Double, payout: Double) extends RankType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
-case class RankWagered(user: UUID, bet: Double, wagered: Double) extends RankType {
+case class RankWagered(id: UUID, username: String, bet: Double, wagered: Double) extends RankType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
-case class RankMultiplier(user: UUID, bet: Double, multiplier: Double) extends RankType {
+case class RankMultiplier(id: UUID, username: String, bet: Double, multiplier: Double) extends RankType {
 	override def toJson(): JsValue = Json.toJson(this)
 }
 case class RankingHistory(id: UUID,
