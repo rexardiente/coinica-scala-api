@@ -20,16 +20,26 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
       hasNext <- Future(size - (offset + limit) > 0)
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
-
   // prev 24hrs tx results
-  def getRankingDaily(): Future[Option[RankingHistory]] = {
+  // def getRankingDaily(): Future[Option[RankingHistory]] = {
+  //   val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
+  //   val end: Instant = now.plusDays(-1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
+
+  //   rankingHistoryRepo.getHistoryByDateRange(
+  //                       end.getEpochSecond,
+  //                       now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().getEpochSecond)
+  //                     .map(_.headOption)
+  // }
+  def getRankingDaily(): Future[RankingHistory] = {
     val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
     val end: Instant = now.plusDays(-1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
 
-    rankingHistoryRepo.getHistoryByDateRange(
-                        end.getEpochSecond,
-                        now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().getEpochSecond)
-                      .map(_.headOption)
+    Await.ready(for {
+      history <- rankingHistoryRepo.getHistoryByDateRange(
+                                      end.getEpochSecond,
+                                      now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().getEpochSecond)
+      calc <- calculateRankHistory(history)
+    } yield (calc), Duration.Inf)
   }
 
   def getRankingHistory(): Future[RankingHistory] = {
@@ -49,10 +59,10 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
     for {
       profit <- Future.successful {
         try {
-          v.map(_.profits).flatten.groupBy(_.user).map { case (id, seq) =>
+          v.map(_.profits).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalprofit = seq.asInstanceOf[Seq[RankProfit]].map(_.profit).sum
-            RankProfit(id, totalbet, totalprofit)
+            RankProfit(id, username, totalbet, totalprofit)
           }
           .toSeq
           .filter(_.profit > 0)
@@ -63,10 +73,10 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
       }
       payout <- Future.successful {
         try {
-          v.map(_.payouts).flatten.groupBy(_.user).map { case (id, seq) =>
+          v.map(_.payouts).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalpayout = seq.asInstanceOf[Seq[RankPayout]].map(_.payout).sum
-            RankPayout(id, totalbet, totalpayout)
+            RankPayout(id, username, totalbet, totalpayout)
           }
           .toSeq
           .filter(_.payout > 0)
@@ -77,10 +87,10 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
       }
       wagered <- Future.successful {
         try {
-          v.map(_.wagered).flatten.groupBy(_.user).map { case (id, seq) =>
+          v.map(_.wagered).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalwagered = seq.asInstanceOf[Seq[RankWagered]].map(_.wagered).sum
-            RankWagered(id, totalbet, totalwagered)
+            RankWagered(id, username, totalbet, totalwagered)
           }
           .toSeq
           .filter(_.wagered > 0)
@@ -91,10 +101,10 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
       }
       multiplier <- Future.successful {
         try {
-          v.map(_.multipliers).flatten.groupBy(_.user).map { case (id, seq) =>
+          v.map(_.multipliers).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalwagered = seq.asInstanceOf[Seq[RankMultiplier]].map(_.multiplier).sum
-            RankMultiplier(id, totalbet, totalwagered)
+            RankMultiplier(id, username, totalbet, totalwagered)
           }
           .toSeq
           .filter(_.multiplier > 0)
@@ -103,7 +113,7 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
           case _: Throwable => Seq.empty
         }
       }
-    } yield (RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, Instant.now.getEpochSecond))
+    } yield (RankingHistory(v.headOption.map(_.id).getOrElse(UUID.randomUUID), profit, payout, wagered, multiplier, Instant.now.getEpochSecond))
   }
   // def getRankingByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   // 	try {
