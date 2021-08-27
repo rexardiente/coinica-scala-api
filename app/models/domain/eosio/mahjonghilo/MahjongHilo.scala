@@ -9,6 +9,7 @@ case class MahjongHiloGameData(game_id: String,
                               deck_player: Seq[Int],
                               status: Int,
                               hi_lo_balance: BigDecimal,
+                              prediction: Int, // Int -> low, draw and high
                               hi_lo_result: Int, // Int -> 2 or 3
                               hi_lo_outcome: Int, // Int -> 2 or 3
                               hi_lo_bet: BigDecimal,
@@ -18,7 +19,6 @@ case class MahjongHiloGameData(game_id: String,
                               high_odds: BigDecimal,
                               bet_status: Int, // TODO: Int -> true or false
                               option_status: Int, // TODO: Int -> true or false
-                              prediction: Int, // Int -> low, draw and high
                               sumofvalue: Seq[Int],
                               prevalent_wind: Int,
                               seat_wind: Int,

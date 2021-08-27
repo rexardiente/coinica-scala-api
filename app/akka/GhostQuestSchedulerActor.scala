@@ -248,7 +248,7 @@ class GhostQuestSchedulerActor @Inject()(
             if (!finalCharactersToBattle.isEmpty && battles.filter(_.characters.map(_._1).toSeq.contains(player._1)).isEmpty) {
               val enemy: (String, GhostQuestCharacter) = finalCharactersToBattle.head
               // make sure battle of characters are not yet exists in GQBattleScheduler.battleCounter
-              val battle = new GhostQuestBattleCalculation[GhostQuestCharacter](player._2, enemy._2)
+              val battle = new GhostQuestGameplay[GhostQuestCharacter](player._2, enemy._2)
               // save result into battleCounter, if failed save into noEenmy
               // println(battle.result.equals(None))
               // println(battle.result.map(_.characters.size).getOrElse(0) < 2)
