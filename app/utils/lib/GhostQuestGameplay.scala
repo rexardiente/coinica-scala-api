@@ -6,7 +6,7 @@ import scala.collection.mutable.ListBuffer
 import models.domain.eosio._
 
 @javax.inject.Singleton
-class GhostQuestBattleCalculation[T <: GhostQuestCharacter](plyr1: T, plyr2: T) {
+class GhostQuestGameplay[T <: GhostQuestCharacter](plyr1: T, plyr2: T) {
 	// Initialize game default values..
 	private val gameID 			 : UUID = java.util.UUID.randomUUID
 	private val characters 	 : Map[String, T] =

@@ -1,7 +1,5 @@
 package models.domain.eosio
 
-import java.util.UUID
-import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
@@ -10,6 +8,7 @@ object GhostQuestCharacter extends utils.CommonImplicits
 object GhostQuestGameData extends utils.CommonImplicits
 object GhostQuestTableGameData extends utils.CommonImplicits
 object GhostQuestCharacterHistory extends utils.CommonImplicits
+
 case class GhostQuestCharacterValue(owner_id: Int,
 																		ghost_name: String,
 																		ghost_id: Int,
@@ -93,3 +92,4 @@ case class GhostQuestCharacterHistory(key: String,
 			last_match,
 			enemy_fought))
 }
+

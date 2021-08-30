@@ -1,16 +1,8 @@
 package models.domain.eosio
 
 import play.api.libs.json._
-// Ranking table
-// - character_id
-// - current_streak
-//   - game_id
-//   - time_executed
-// - highest_win_streak // if current will be higher than max then max = current_streak
-// - updated_at
-// - created_at
-// object GhostQuestCharactersWinStreakList extends utils.CommonImplicits
-// case class GhostQuestCharactersWinStreakList(game_id: List[String]) extends AnyVal
+import play.api.libs.functional.syntax._
+
 object GhostQuestCharactersLifeTimeWinStreak extends utils.CommonImplicits
 object GhostQuestCharactersRankByEarned extends utils.CommonImplicits
 object GhostQuestCharactersRankByWinStreak extends utils.CommonImplicits

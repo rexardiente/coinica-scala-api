@@ -3,7 +3,6 @@ package models.domain
 import java.time.Instant
 import java.util.UUID
 import play.api.libs.json._
-import utils.auth.EncryptKey
 import models.domain.wallet.support.Coin
 
 object UserAccount extends utils.CommonImplicits {
