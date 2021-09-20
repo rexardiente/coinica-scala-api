@@ -31,7 +31,7 @@ object Config {
 	private val serverAllowedURLs: List[String] = config.getStringList("play.filters.hosts.url").asScala.toList
 	private val serverAllowedProtocols: List[String] = config.getStringList("play.filters.hosts.protocol").asScala.toList
 
-	val PROTOCOL: String = serverAllowedProtocols(0)
+	val PROTOCOL: String = serverAllowedProtocols(1)
 	val NODE_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(1)}"
 	val SCALA_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(0)}"
 	val COINICA_WEB_HOST: String = s"${PROTOCOL}://${serverAllowedURLs(2)}"
