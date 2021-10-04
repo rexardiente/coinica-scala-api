@@ -241,20 +241,17 @@ class SecureActionController @Inject()(
     request
       .account
       .map { account =>
-        if (account.referralCode == code) {
-          for {
-            // change referralBy ID to username
-            refers <- referralHistory.getByCode(code)
-            acc <- Future.sequence {
-              refers.map { data =>
-                accountService
-                  .getAccountByID(data.applied_by)
-                  .map(x => data.toReferralHistoryJSON(x.map(_.username).getOrElse(null)))
-              }
+        for {
+          // change referralBy ID to username
+          refers <- referralHistory.getByCodeAndReferrentID(account.referralCode, account.id)
+          acc <- Future.sequence {
+            refers.map { data =>
+              accountService
+                .getAccountByID(data.applied_by)
+                .map(x => data.toReferralHistoryJSON(x.map(_.username).getOrElse(null)))
             }
-          } yield (Ok(Json.toJson(acc)))
-        }
-        else Future(Unauthorized(views.html.defaultpages.unauthorized()))
+          }
+        } yield (Ok(Json.toJson(acc)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def getTodayTaskUpdates(gameID: UUID) = SecureUserAction.async { implicit request =>

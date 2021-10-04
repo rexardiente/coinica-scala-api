@@ -433,7 +433,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
         }
         // save ranking to history..
         _ <- {
-          val rank = RankingHistory(UUID.randomUUID, profit, payout, wagered, multiplier, start.toInstant().getEpochSecond)
+          val rank: RankingHistory = RankingHistory(profit, payout, wagered, multiplier, start.toInstant().getEpochSecond)
           // insert into DB, if failed then re-insert
           Await.ready(rankingHistoryRepo.add(rank), Duration.Inf)
         }

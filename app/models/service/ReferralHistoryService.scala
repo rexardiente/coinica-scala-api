@@ -22,7 +22,6 @@ class ReferralHistoryService @Inject()(
   referralRepoHistory: ReferralHistoryRepo,
   vipUserRepo: VIPUserRepo) {
   def paginatedResult[T >: ReferralHistory](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
-
 	  for {
       tasks <- referralRepoHistory.findAll(limit, offset)
       size <- referralRepoHistory.getSize()
@@ -30,12 +29,12 @@ class ReferralHistoryService @Inject()(
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
 
-  def getByCode(code: String): Future[Seq[ReferralHistory]] =
+  def getByCodeAndReferrentID(code: String, referrentID: UUID): Future[Seq[ReferralHistory]] = {
     for {
-      // check if user exists else return seq empty
-      isExists <- userAccountRepo.isCodeExist(code)
-      result <- if (isExists) referralRepoHistory.getByCode(code) else Future(Seq.empty)
-    } yield result
+      isReferrer <- referralRepoHistory.getByCode(code)
+      isReferent <- referralRepoHistory.getByReferentID(referrentID)
+    } yield ((isReferrer ++ isReferent))
+  }
   // check if user exists and not referred by someone
   // make sure code doesn't belong to itself
   def applyReferralCode(appliedBy: UUID, code: String): Future[Int] = {

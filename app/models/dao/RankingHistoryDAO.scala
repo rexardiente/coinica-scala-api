@@ -25,7 +25,7 @@ final class RankingHistoryDAO @Inject()(
     				payouts,
     				wagered,
     				multipliers,
-    				createdAt) <> ((RankingHistory.apply _).tupled, RankingHistory.unapply)
+    				createdAt) <> (RankingHistory.tupled, RankingHistory.unapply)
   }
 
   object Query extends TableQuery(new RankingHistoryTable(_)) {
