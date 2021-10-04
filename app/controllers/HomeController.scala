@@ -339,7 +339,7 @@ class HomeController @Inject()(
   }
 
   def getChallenge(date: Option[Instant]) = Action.async { implicit req =>
-    challengeService.getChallenge(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
+    challengeService.getChallenge(date).map(Ok(_))
   }
 
   def getDailyRanksChallenge() = Action.async { implicit req =>
