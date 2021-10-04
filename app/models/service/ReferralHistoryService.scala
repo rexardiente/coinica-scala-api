@@ -29,7 +29,7 @@ class ReferralHistoryService @Inject()(
     } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   }
 
-  def getByCode(code: String, referrentID: UUID): Future[Seq[ReferralHistory]] = {
+  def getByCodeAndReferrentID(code: String, referrentID: UUID): Future[Seq[ReferralHistory]] = {
     for {
       isReferrer <- referralRepoHistory.getByCode(code)
       isReferent <- referralRepoHistory.getByReferentID(referrentID)

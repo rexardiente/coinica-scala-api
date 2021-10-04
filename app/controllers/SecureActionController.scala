@@ -243,7 +243,7 @@ class SecureActionController @Inject()(
       .map { account =>
         for {
           // change referralBy ID to username
-          refers <- referralHistory.getByCode(account.referralCode, account.id)
+          refers <- referralHistory.getByCodeAndReferrentID(account.referralCode, account.id)
           acc <- Future.sequence {
             refers.map { data =>
               accountService
