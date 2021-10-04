@@ -31,7 +31,7 @@ class ChallengeService @Inject()(
   }
 
   // get 12:00 AM of the day based on the date...
-  def getChallenge(date: Option[Instant]): Future[Option[ChallengeHistory]] = {
+  def getChallenge(date: Option[Instant]): Future[JsValue] = {
     // // get todays local time..
     // val today: LocalDate = LocalDate.now(defaultTimeZone)
     // // instance of MIDNIGHT time
@@ -47,17 +47,30 @@ class ChallengeService @Inject()(
     // convert LocalDatetime to Instant
     val todayEpoch: Long = todayMidnight.atZone(defaultTimeZone).toInstant().getEpochSecond
     // val todayEpoch: Long = todayInstant.getEpochSecond
-    history.findByDate(todayEpoch)
+    for {
+      history <- history.findByDate(todayEpoch)
+      process <- {
+        history.map { x =>
+          Future.sequence(x.rank_users.map { rank =>
+            // add username field on the JSON response..
+            userAccount
+              .getAccountByID(rank.user)
+              .map(acc => rank.toJson.as[JsObject] + ("username" -> Json.toJson(acc.map(_.username))))
+          })
+          .map(JsArray(_))
+        }.getOrElse(Future(JsNull))
+      }
+    } yield (process)
   }
   def getDailyRanksChallenge(): Future[JsArray] = {
     for {
       top10Res <- tracker.all.map(_.sortBy(-_.wagered).take(10))
       // add username field on the JSON response..
       newJSONObj <- Future.sequence {
-        top10Res.map { seq =>
+        top10Res.map { tracked =>
           userAccount
-            .getAccountByID(seq.user)
-            .map(x => seq.toJson.as[JsObject] + ("username" -> Json.toJson(x.map(_.username))))
+            .getAccountByID(tracked.user)
+            .map(x => tracked.toJson.as[JsObject] + ("username" -> Json.toJson(x.map(_.username))))
         }
       }
     } yield (JsArray(newJSONObj))
