@@ -20,7 +20,7 @@ import models.repo.eosio._
 import models.service._
 import models.domain.enum._
 import akka.WebSocketActor
-import utils.Config
+import utils.Config.{ COINICA_WEB_HOST, SUPPORTED_SYMBOLS, MAIL_EXPIRATION }
 import models.domain.wallet.support.Coin
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -126,24 +126,30 @@ class HomeController @Inject()(
       { case (username, password, confirm)  =>
         for {
           // get account by username
-          accountOpt <- accountService.getAccountByName(username)
+          hasAccount <- accountService.getAccountByName(username)
           // update account password if exists
           processed <- {
-            accountOpt
-              .map { acc =>
+            hasAccount
+              .map { account =>
                 for {
-                  // remove reset email token
-                  removed <- accountService.removePasswordTokenByID(acc.id)
-                  result <- {
-                    if (removed > 0) {
-                      val newAccount = acc.copy(password = encryptKey.toSHA256(password))
+                  // check first if has existing/valid update password token..
+                  tokens <- accountService.getUserTokenByID(account.id).map(_.map(_.password).getOrElse(None))
+                  // remove reset email token if token reset password is valid..
+                  removedToken <- {
+                    if (tokens != None && tokens.getOrElse(0L) >= Instant.now.getEpochSecond)
+                      accountService.removePasswordTokenByID(account.id)
+                    else Future(0)
+                  }
+                  accountUpdated <- {
+                    if (removedToken > 0) {
+                      val newAccount = account.copy(password = encryptKey.toSHA256(password))
                       accountService
                         .updateUserAccount(newAccount)
-                        .map(x => if (x > 0) Redirect(utils.Config.COINICA_WEB_HOST) else InternalServerError)
+                        .map(x => if (x > 0) Redirect(COINICA_WEB_HOST) else InternalServerError)
                     }
                     else  Future(InternalServerError)
                   }
-                } yield (result)
+                } yield (accountUpdated)
               }
               .getOrElse(Future(InternalServerError))
           }
@@ -169,7 +175,11 @@ class HomeController @Inject()(
                     _ <- accountService.newUserAcc(userAccount)
                     _ <- accountService.addUpdateUserToken(UserToken(userAccount.id))
                     _ <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
-                    _ <- accountService.addUserWallet(new UserAccountWallet(userAccount.id, Coin("BTC"), Coin("ETH"), Coin("USDC")))
+                    _ <- accountService.addUserWallet(new UserAccountWallet(
+                            userAccount.id,
+                            Coin(SUPPORTED_SYMBOLS(2)),
+                            Coin(SUPPORTED_SYMBOLS(1)),
+                            Coin(SUPPORTED_SYMBOLS(0))))
                     processCode <- {
                       if (code != None) {
                         for {
@@ -278,7 +288,7 @@ class HomeController @Inject()(
                   userToken <- accountService.getUserTokenByID(account.get.id)
                   // update its password token limit
                   updated <- accountService
-                    .updateUserToken(userToken.map(_.copy(password = Some(Config.MAIL_EXPIRATION)))
+                    .updateUserToken(userToken.map(_.copy(password = Some(MAIL_EXPIRATION)))
                     .getOrElse(null))
                   // send email confirmation link
                   result <- {

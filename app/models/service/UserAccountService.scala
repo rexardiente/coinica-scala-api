@@ -16,7 +16,7 @@ import models.repo.{
                 UserAccountWalletHistoryRepo,
                 FailedCoinDepositRepo }
 import utils.lib.MultiCurrencyHTTPSupport
-import utils.Config.DEFAULT_WEI_VALUE
+import utils.Config.{ DEFAULT_WEI_VALUE, SUPPORTED_SYMBOLS }
 
 @Singleton
 class UserAccountService @Inject()(
@@ -138,11 +138,11 @@ class UserAccountService @Inject()(
         hasWallet.map { wallet =>
           currency match {
             case "ETH" =>
-              wallet.copy(eth=Coin("ETH", wallet.eth.amount + totalAmount))
+              wallet.copy(eth=Coin(SUPPORTED_SYMBOLS(1), wallet.eth.amount + totalAmount))
             case "USDC" =>
-              wallet.copy(usdc=Coin("USDC", wallet.usdc.amount + totalAmount))
+              wallet.copy(usdc=Coin(SUPPORTED_SYMBOLS(0), wallet.usdc.amount + totalAmount))
             case "BTC" =>
-              wallet.copy(btc=Coin("BTC", wallet.btc.amount + totalAmount))
+              wallet.copy(btc=Coin(SUPPORTED_SYMBOLS(2), wallet.btc.amount + totalAmount))
           }
         }
       }
@@ -165,11 +165,11 @@ class UserAccountService @Inject()(
         hasWallet.map { wallet =>
           val updatedBalance: UserAccountWallet = currency match {
             case "ETH" =>
-              wallet.copy(eth=Coin("ETH", wallet.eth.amount - totalAmount))
+              wallet.copy(eth=Coin(SUPPORTED_SYMBOLS(1), wallet.eth.amount - totalAmount))
             case "USDC" =>
-              wallet.copy(usdc=Coin("USDC", wallet.usdc.amount - totalAmount))
+              wallet.copy(usdc=Coin(SUPPORTED_SYMBOLS(0), wallet.usdc.amount - totalAmount))
             case "BTC" =>
-              wallet.copy(btc=Coin("BTC", wallet.btc.amount - totalAmount))
+              wallet.copy(btc=Coin(SUPPORTED_SYMBOLS(2), wallet.btc.amount - totalAmount))
           }
           userWalletRepo.update(updatedBalance)
         }.getOrElse(Future(0))
