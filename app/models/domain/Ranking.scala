@@ -5,7 +5,22 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object RankType extends utils.CommonImplicits
-object RankingHistory extends utils.CommonImplicits
+object RankingHistory extends utils.CommonImplicits {
+	val tupled = (apply: (UUID, Seq[RankType], Seq[RankType], Seq[RankType], Seq[RankType], Long) => RankingHistory).tupled
+	def apply(id: UUID,
+						profits: Seq[RankType],
+						payouts: Seq[RankType],
+						wagered: Seq[RankType],
+						multipliers: Seq[RankType],
+						created_at: Long): RankingHistory =
+		new RankingHistory(id, profits, payouts, wagered, multipliers, created_at)
+	def apply(profits: Seq[RankType],
+						payouts: Seq[RankType],
+						wagered: Seq[RankType],
+						multipliers: Seq[RankType],
+						created_at: Long): RankingHistory =
+		new RankingHistory(UUID.randomUUID, profits, payouts, wagered, multipliers, created_at)
+}
 object RankProfit
 object RankPayout
 object RankWagered
