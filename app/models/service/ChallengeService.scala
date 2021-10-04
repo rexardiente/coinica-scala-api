@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import Ordering.Double.IeeeOrdering
-import play.api.libs.json.{ Json, JsValue }
+import play.api.libs.json._
 import models.domain.{ PaginatedResult, Challenge, ChallengeTracker, ChallengeHistory }
 import models.repo.{ ChallengeRepo, ChallengeTrackerRepo, ChallengeHistoryRepo }
 
@@ -18,7 +18,8 @@ import models.repo.{ ChallengeRepo, ChallengeTrackerRepo, ChallengeHistoryRepo }
 class ChallengeService @Inject()(
   challenge: ChallengeRepo,
   tracker: ChallengeTrackerRepo,
-  history: ChallengeHistoryRepo) {
+  history: ChallengeHistoryRepo,
+  userAccount: UserAccountService) {
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
 
   def paginatedResult[T >: Challenge](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
@@ -48,7 +49,17 @@ class ChallengeService @Inject()(
     // val todayEpoch: Long = todayInstant.getEpochSecond
     history.findByDate(todayEpoch)
   }
-
-  def getDailyRanksChallenge(): Future[Seq[ChallengeTracker]] =
-    tracker.all.map(_.sortBy(-_.wagered).take(10))
+  def getDailyRanksChallenge(): Future[JsArray] = {
+    for {
+      top10Res <- tracker.all.map(_.sortBy(-_.wagered).take(10))
+      // add username field on the JSON response..
+      newJSONObj <- Future.sequence {
+        top10Res.map { seq =>
+          userAccount
+            .getAccountByID(seq.user)
+            .map(x => seq.toJson.as[JsObject] + ("username" -> Json.toJson(x.map(_.username))))
+        }
+      }
+    } yield (JsArray(newJSONObj))
+  }
 }
