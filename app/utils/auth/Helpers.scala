@@ -8,7 +8,7 @@ import scala.collection.mutable
 import play.api.mvc._
 import models.domain.{ UserAccount, UserToken }
 import models.service.UserAccountService
-import utils.Config
+import utils.Config.TOKEN_EXPIRATION
 
 @Singleton
 class SecureUserRequest[A](val account: Option[UserAccount], request: Request[A]) extends WrappedRequest[A](request)
@@ -20,7 +20,7 @@ class SecureUserAction @Inject()(
 													extends ActionBuilder[SecureUserRequest, AnyContent]
 											    with ActionTransformer[Request, SecureUserRequest] {
   // get by session token but make sure token is not expired else return false.
-  def transform[A](request: Request[A]) = {
+  def transform[A](request: Request[A]): Future[SecureUserRequest[A]] = {
     accService
       .getUserAccountByIDAndToken(
         request.headers.get("CLIENT_ID").map(UUID.fromString(_)).getOrElse(UUID.randomUUID),
@@ -32,6 +32,6 @@ class SecureUserAction @Inject()(
     val token: String = s"==token${UUID.randomUUID().toString}"
     // limit/expire session after #minutes of creation,
     // else send renew session..
-    user.copy(token=Some(token), login=Some(Config.TOKEN_EXPIRATION))
+    user.copy(token=Some(token), login=Some(TOKEN_EXPIRATION))
   }
 }
