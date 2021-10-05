@@ -574,12 +574,12 @@ trait CommonImplicits {
 						(json \ "chow_count").as[Int],
 						(json \ "kong_count").as[Int],
 						(json \ "draw_count").as[Int],
-						(json \ "hand_player").as[Seq[Int]],
-						(json \ "discarded_tiles").as[Seq[Int]],
-						(json \ "reveal_kong").as[Seq[Int]],
-						(json \ "winning_hand").as[Seq[Int]],
-						(json \ "score_check").as[Seq[Int]],
-						(json \ "score_type").as[Seq[Int]],
+						(json \ "hand_player").as[JsValue],
+						(json \ "discarded_tiles").as[JsValue],
+						(json \ "reveal_kong").as[JsValue],
+						(json \ "winning_hand").as[JsValue],
+						(json \ "score_check").as[JsValue],
+						(json \ "score_type").as[JsValue],
 						(json \ "final_score").as[Int]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
