@@ -31,12 +31,12 @@ case class MahjongHiloGameData(game_id: String,
                               chow_count: Int,
                               kong_count: Int,
                               draw_count: Int,
-                              hand_player: JsValue,
-                              discarded_tiles: JsValue,
-                              reveal_kong: JsValue,
-                              winning_hand: JsValue,
-                              score_check: JsValue,
-                              score_type: JsValue,
+                              hand_player: Seq[Int],
+                              discarded_tiles: Seq[Int],
+                              reveal_kong: Seq[Int],
+                              winning_hand: Seq[Int],
+                              score_check: Seq[Int],
+                              score_type: Seq[Int],
                               final_score: Int) {
    def toJson(): JsValue = Json.toJson(this)
 }
