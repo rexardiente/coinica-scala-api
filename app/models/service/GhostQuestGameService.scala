@@ -195,6 +195,14 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
     // convert Seq[JSON] to JsArray
     tupled.map(x => Json.toJson(x))
   }
+  private def generateCharactersByRankEarned(v: Seq[(Option[models.domain.eosio.GhostQuestCharacter], Double)]):
+  Future[Seq[GhostQuestCharactersRankByEarned]] = Future.successful {
+    v.map {
+      case (Some(c), amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.ghost_id, c.value.owner_id, c.value.rarity, amount)
+      case (None, _) => null
+    }
+    .filterNot(_ == null)
+  }
   // Top 10 results of characters
   def highEarnCharactersAllTime(): Future[Seq[GhostQuestCharactersRankByEarned]] = {
     for {
@@ -208,17 +216,12 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
             eliminated <- ghostQuestCharacterService
               .getGhostQuestCharacterHistoryByOwnerIDAndID(ownerID, key)
               .map(_.map(_.toCharacterData))
-          } yield ((mergeSeq[GhostQuestCharacter, Seq[GhostQuestCharacter]](alive, eliminated)).head, amount)
+          } yield ((mergeSeq[GhostQuestCharacter, Seq[GhostQuestCharacter]](alive, eliminated)).headOption, amount)
         }
       }
-      ranks <- Future.successful {
-        getCharaterInfo.map {
-          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.ghost_id, c.value.owner_id, c.value.rarity, amount)
-        }
-      }
+      ranks <- generateCharactersByRankEarned(getCharaterInfo)
     } yield ranks
   }
-
   def highEarnCharactersDaily(): Future[Seq[GhostQuestCharactersRankByEarned]] = {
     for {
       txs <- gameHistoryRepo.getGameHistoryByDateRange(Instant.now.getEpochSecond - (24*60*60), Instant.now.getEpochSecond)
@@ -231,17 +234,12 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
             eliminated <- ghostQuestCharacterService
               .getGhostQuestCharacterHistoryByOwnerIDAndID(ownerID, key)
               .map(_.map(_.toCharacterData))
-          } yield ((mergeSeq[GhostQuestCharacter, Seq[GhostQuestCharacter]](alive, eliminated)).head, amount)
+          } yield ((mergeSeq[GhostQuestCharacter, Seq[GhostQuestCharacter]](alive, eliminated)).headOption, amount)
         }
       }
-      ranks <- Future.successful {
-        getCharaterInfo.map {
-          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.ghost_id, c.value.owner_id, c.value.rarity, amount)
-        }
-      }
+      ranks <- generateCharactersByRankEarned(getCharaterInfo)
     } yield ranks
   }
-
   def highEarnCharactersWeekly(): Future[Seq[GhostQuestCharactersRankByEarned]] = {
     for {
       txs <- gameHistoryRepo.getGameHistoryByDateRange(Instant.now.getEpochSecond - ((24*60*60) * 7), Instant.now.getEpochSecond)
@@ -254,17 +252,12 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
             eliminated <- ghostQuestCharacterService
               .getGhostQuestCharacterHistoryByOwnerIDAndID(ownerID, key)
               .map(_.map(_.toCharacterData))
-          } yield ((mergeSeq[GhostQuestCharacter, Seq[GhostQuestCharacter]](alive, eliminated)).head, amount)
+          } yield ((mergeSeq[GhostQuestCharacter, Seq[GhostQuestCharacter]](alive, eliminated)).headOption, amount)
         }
       }
-      ranks <- Future.successful {
-        getCharaterInfo.map {
-          case (c, amount) => new GhostQuestCharactersRankByEarned(c.key, c.value.ghost_id, c.value.owner_id, c.value.rarity, amount)
-        }
-      }
+      ranks <- generateCharactersByRankEarned(getCharaterInfo)
     } yield ranks
   }
-
   def classifyHighEarnCharacter(history: Seq[GhostQuestCharacterGameHistory], limit: Int): Seq[(String, (Int, Double))] = {
     val characters = HashMap.empty[String, (Int, Double)]
     history.map { tx =>
@@ -281,7 +274,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
     }
     characters.filter(_._2._2 > 0).toSeq.sortBy(- _._2._2).take(limit)
   }
-
   def getCharacterByUserAndID(ownerID: Int, id: String): Future[JsValue] = {
     for {
       // get all characters that are still alive
@@ -298,14 +290,12 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       }
     } yield logs
   }
-
   def getAliveCharacters(ownerID: Int): Future[JsValue] = {
     for {
       characters <- contract.getUserData(ownerID).map(_.map(_.characters).getOrElse(Seq.empty))
       logs <- getGameLogsOfCharacters(characters)
     } yield logs
   }
-
   def getCharacterDataByID(ownerID: Int, key: String): Future[JsValue] = {
       for {
         characters <- contract.getUserData(ownerID).map(_.map(_.characters).getOrElse(Seq.empty))
@@ -313,7 +303,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         logs <- getGameLogsOfCharacters(isExists.map(Seq(_)).getOrElse(Seq.empty))
       } yield logs
     }
-
   def getGhostQuestCharacterHistoryByOwnerIDAndID(ownerID: Int, key: String): Future[JsValue] = {
       for {
         characters <- ghostQuestCharacterService.getGhostQuestCharacterHistoryByOwnerIDAndID(ownerID, key)
@@ -321,7 +310,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         logs <- getGameLogsOfCharacters(characters.map(_.toCharacterData))
       } yield logs
     }
-
   def getAllEliminatedCharacters(ownerID: Int): Future[JsValue] = {
     for {
       characters <- ghostQuestCharacterService
@@ -330,7 +318,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       logs <- getGameLogsOfCharacters(characters)
     } yield logs
   }
-
   // TOD: scheduled process (Weekly for Lifetime Win Streak)
   // get overall history in a week, process and save it to WinStreak tbl
   // ghostQuestCharacterService.getGameHistoryByDateRange(from, to)
@@ -356,7 +343,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
     // remove has less than 1 amount
     counter // .filter(x => x._2.map(v => if (v._3 > 0) true else false).contains(false))
   }
-
   def calcWinStreak(characters: HashMap[String, ListBuffer[(String, Boolean, Long)]]): HashMap[String, Int] = {
     characters.map { character =>
       val status       : ListBuffer[(String, Boolean, Long)] = character._2
@@ -383,7 +369,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
     }
     .map { case (id, list) => (id, list.maxOption.getOrElse(0)) }
   }
-
   def winStreakPerDay(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
     val today: Long = Instant.now().getEpochSecond
      try {
@@ -398,7 +383,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         case e: Throwable => Future(List.empty)
       }
   }
-
   def winStreakPerWeekly(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
     val today: Long = Instant.now().getEpochSecond
     for {
@@ -408,7 +392,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       result <- calcStreakToStreakObject(calcWinStreak)
     } yield result
   }
-
   def winStreakLifeTime(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
     for {
       history <- gameHistoryRepo.getAllGameHistory()
