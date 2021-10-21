@@ -98,8 +98,7 @@ POST  /donut/api/v1/game/mahjong-hilo/declare/kong 			controllers.GameActionCont
 POST  /donut/api/v1/game/mahjong-hilo/discard-tile 			controllers.GameActionController.mahjongHiloDiscardTile
 POST  /donut/api/v1/game/mahjong-hilo/play-hilo 				controllers.GameActionController.mahjongHiloPlayHilo
 GET  	/donut/api/v1/game/mahjong-hilo/init 							controllers.GameActionController.mahjongHiloInitialize
-GET  	/donut/api/v1/game/mahjong-hilo/reset 						controllers.GameActionController.mahjongHiloReset
-#GET  	/donut/api/v1/game/mahjong-hilo/quit 						controllers.GameActionController.mahjongHiloQuit
+GET  	/donut/api/v1/game/mahjong-hilo/end 							controllers.GameActionController.mahjongHiloEnd
 POST  /donut/api/v1/game/mahjong-hilo/add/bet 					controllers.GameActionController.mahjongHiloAddBet
 GET  	/donut/api/v1/game/mahjong-hilo/start-game 				controllers.GameActionController.mahjongHiloStart
 GET  	/donut/api/v1/game/mahjong-hilo/transfer 					controllers.GameActionController.mahjongHiloTransfer
