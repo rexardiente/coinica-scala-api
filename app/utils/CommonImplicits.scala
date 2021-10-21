@@ -543,6 +543,8 @@ trait CommonImplicits {
 
 	implicit def implicitTreasureHuntGameDataPanelSet = Json.format[TreasureHuntGameDataPanelSet]
 	implicit def implicitTreasureHuntGameData = Json.format[TreasureHuntGameData]
+	implicit def implicitMahjongHiloScore = Json.format[MahjongHiloScore]
+	implicit def implicitMahjongHiloTile = Json.format[MahjongHiloTile]
 	implicit val implMahjongHiloGameDataReads: Reads[MahjongHiloGameData] = new Reads[MahjongHiloGameData] {
 		override def reads(js: JsValue): JsResult[MahjongHiloGameData] = js match {
 			case json: JsValue => {
@@ -562,48 +564,25 @@ trait CommonImplicits {
 						try { BigDecimal((json \ "high_odds").as[String]) } catch { case _: Throwable => 0 },
 						(json \ "bet_status").as[Int],
 						(json \ "option_status").as[Int],
+						(json \ "riichi_status").as[Int],
 						(json \ "sumofvalue").as[Seq[Int]],
 						(json \ "prevalent_wind").as[Int],
 						(json \ "seat_wind").as[Int],
 						(json \ "current_tile").as[Int],
 						(json \ "standard_tile").as[Int],
 						(json \ "eye_idx").as[Int],
-						(json \ "winnable").as[Int],
 						(json \ "pair_count").as[Int],
 						(json \ "pung_count").as[Int],
 						(json \ "chow_count").as[Int],
 						(json \ "kong_count").as[Int],
 						(json \ "draw_count").as[Int],
-						try {
-							(json \ "hand_player").as[Seq[Int]]
-						} catch {
-							case e: Throwable => Seq()
-						},
-						try {
-							(json \ "discarded_tiles").as[Seq[Int]]
-						} catch {
-							case e: Throwable => Seq()
-						},
-						try {
-							(json \ "reveal_kong").as[Seq[Int]]
-						} catch {
-							case e: Throwable => Seq()
-						},
-						try {
-							(json \ "winning_hand").as[Seq[Int]]
-						} catch {
-							case e: Throwable => Seq()
-						},
-						try {
-							(json \ "score_check").as[Seq[Int]]
-						} catch {
-							case e: Throwable => Seq()
-						},
-						try {
-							(json \ "score_type").as[Seq[Int]]
-						} catch {
-							case e: Throwable => Seq()
-						},
+						(json \ "hand_player").as[Seq[Int]],
+						(json \ "discarded_tiles").as[Seq[Int]],
+						(json \ "reveal_kong").as[Seq[Int]],
+						(json \ "winning_hand").as[Seq[Int]],
+						(json \ "score_check").as[Seq[Int]],
+						(json \ "score_type").as[Seq[MahjongHiloScore]],
+						(json \ "wintiles").as[Seq[MahjongHiloTile]],
 						(json \ "final_score").as[Int]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
@@ -628,13 +607,13 @@ trait CommonImplicits {
 			"high_odds" -> v.high_odds,
 			"bet_status" -> v.bet_status,
 			"option_status" -> v.option_status,
+			"riichi_status" -> v.riichi_status,
 			"sumofvalue" -> v.sumofvalue,
 			"prevalent_wind" -> v.prevalent_wind,
 			"seat_wind" -> v.seat_wind,
 			"current_tile" -> v.current_tile,
 			"standard_tile" -> v.standard_tile,
 			"eye_idx" -> v.eye_idx,
-			"winnable" -> v.winnable,
 			"pair_count" -> v.pair_count,
 			"pung_count" -> v.pung_count,
 			"chow_count" -> v.chow_count,
@@ -646,6 +625,7 @@ trait CommonImplicits {
 			"winning_hand" -> v.winning_hand,
 			"score_check" -> v.score_check,
 			"score_type" -> v.score_type,
+			"wintiles" -> v.wintiles,
 			"final_score" -> v.final_score)
 	}
 	implicit val implGhostQuestCharacterValueReads: Reads[GhostQuestCharacterValue] = new Reads[GhostQuestCharacterValue] {
