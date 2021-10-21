@@ -88,15 +88,6 @@ class GameActionController @Inject()(
           .map(x => Ok(JsNumber(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloResetBet() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { account =>
-        mjHiloGameService
-          .resetBet(account.userGameID)
-          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
-      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
   def mahjongHiloDeclareWinHand() = SecureUserAction.async { implicit request =>
     request
       .account
@@ -162,24 +153,24 @@ class GameActionController @Inject()(
           .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloReset() = SecureUserAction.async { implicit request =>
+  def mahjongHiloEnd() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
         mjHiloGameService
-          .reset(account.userGameID)
+          .end(account.userGameID)
           .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  // def mahjongHiloQuit = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map { account =>
-  //       mjHiloGameService
-  //         .quit(account.userGameID)
-  //         .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
-  //     }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
+  def mahjongHiloResetBet() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .resetBet(account.userGameID)
+          .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def mahjongHiloAddBet = SecureUserAction.async { implicit request =>
     request
       .account

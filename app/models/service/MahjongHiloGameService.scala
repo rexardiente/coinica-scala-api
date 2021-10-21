@@ -23,8 +23,6 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 																			@Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
 	def declareWinHand(userGameID: Int): Future[Option[String]] =
 		contract.declareWinHand(userGameID)
-	def resetBet(userGameID: Int): Future[Option[String]] =
-		contract.resetBet(userGameID)
 	def declareKong(userGameID: Int, sets: Seq[Int]): Future[Option[String]] =
 		contract.declareKong(userGameID, sets)
 	def discardTile(userGameID: Int, index: Int): Future[Option[String]] =
@@ -34,10 +32,10 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			currentGameData <- getUserData(userGameID)
 			hasHistory <- {
 				currentGameData
-					.map(x => historyRepo.findByUserGameIDAndGameID(userGameID, x.game_id))
-					.getOrElse(Future(None))
+					.map(x => historyRepo.findByUserGameIDAndGameID(x.game_id, userGameID))
+					.getOrElse(Future.successful(None))
 			}
-			onPlay <- hasHistory.map(_ => contract.playHilo(userGameID, option)).getOrElse(Future(None))
+			onPlay <- hasHistory.map(_ => contract.playHilo(userGameID, option)).getOrElse(Future.successful(None))
 			updatedGamData <- getUserData(userGameID)
 			onProcess <- {
 				onPlay
@@ -54,7 +52,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 
 								for {
 									// fetch table history if exists..
-									updatedHistory <- historyRepo.findByUserGameIDAndGameID(userGameID, gameID)
+									updatedHistory <- historyRepo.findByUserGameIDAndGameID(gameID, userGameID)
 									predictionProcess <- Future.successful {
 										val newPredictions = (prediction, result, data.current_tile, data.standard_tile)
 										updatedHistory
@@ -64,7 +62,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 									// update table history..
 									isUpdated <- {
 										if (predictionProcess != null) historyRepo.update(predictionProcess)
-										else Future(0)
+										else Future.successful(0)
 									}
 									// process for overall history...
 									isAdded <- {
@@ -103,17 +101,17 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 													      	else (3)
 												      	}
 														}
-														else Future(3)
+														else Future.successful(3)
 													}
 												} yield (onSaveHistory)
-											} else Future(1)
-										} else Future(3)
+											} else Future.successful(1)
+										} else Future.successful(3)
 									}
 								} yield (isAdded)
 							}
-							.getOrElse(Future(3))
+							.getOrElse(Future.successful(3))
 					}
-					.getOrElse(Future(3))
+					.getOrElse(Future.successful(3))
 			}
 		} yield ((onProcess, onPlay.getOrElse(null), updatedGamData))
 	}
@@ -122,60 +120,69 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		for {
 			isInitialized <- contract.initialize(userGameID)
 			gameData <- getUserData(userGameID)
-			processHistory <- Future.successful {
-				isInitialized.map(_ => gameData.map(v => MahjongHiloHistory(v.game_id, userGameID))).getOrElse(None)
+			// if success init then add to DB history
+			insertDB <- {
+				isInitialized
+					.map { _ =>
+						gameData
+							.map(v => historyRepo.insert(MahjongHiloHistory(v.game_id, userGameID)))
+							.getOrElse(Future.successful(0))
+					}.getOrElse(Future.successful(0))
 			}
-			// add into the DB history
-			isAdded <- processHistory.map(historyRepo.insert(_)).getOrElse(Future(0))
-		} yield (isAdded)
+			// if db insertion success, else remove from smartcontract..
+			allSuccess <- {
+				if (isInitialized != None && insertDB < 1) contract.end(userGameID).map(_.map(_ => 1).getOrElse(0))
+				else Future.successful(1)
+			}
+		} yield (allSuccess)
 	}
-	def reset(userGameID: Int): Future[Int] = {
+	def resetBet(userGameID: Int): Future[Int] = contract.resetBet(userGameID).map(_.map( _ => 1).getOrElse(0))
+	// def resetBet(userGameID: Int): Future[Int] = {
+	// 	for {
+	// 		isReseted <- contract.resetBet(userGameID)
+	// 		// get updated user gamedata
+	// 		newGameData <- getUserData(userGameID)
+	// 		// every game reset insert new gamedata into DB..
+	// 		process <- {
+	// 			isReseted
+	// 				.map { _ =>
+	// 					newGameData
+	// 						.map(v => historyRepo.insert(MahjongHiloHistory(v.game_id, userGameID)))
+	// 						.getOrElse(Future.successful(0))
+	// 				}.getOrElse(Future.successful(0))
+	// 		}
+	// 	} yield (process)
+	// }
+	def end(userGameID: Int): Future[Int] = {
 		for {
-			currentGameData <- getUserData(userGameID)
+			// if has existing game and wants to reset the game..
+			// update the existing game to done...
+			existingGameData <- getUserData(userGameID)
 			hasHistory <- {
-				currentGameData
-					.map(v => historyRepo.findByUserGameIDAndGameID(userGameID, v.game_id))
-					.getOrElse(Future(None))
+				existingGameData
+					.map(v => historyRepo.findByUserGameIDAndGameID(v.game_id, userGameID))
+					.getOrElse(Future.successful(None))
 			}
 			// update DB history gamedata
 			isUpdated <- {
-				if (hasHistory != None) {
-					val updatedHistory: MahjongHiloHistory = hasHistory.get.copy(gameData = currentGameData, status = true)
-					historyRepo.update(updatedHistory)
+				if (hasHistory == None) Future.successful(0) // no history found...
+				else {
 					// if predictions is empty remove it from DB else insert
 					hasHistory.map { history =>
+						val updatedHistory: MahjongHiloHistory = history.copy(gameData = existingGameData, status = true)
+
 						if (history.predictions.isEmpty) historyRepo.delete(history.gameID)
 						else historyRepo.update(updatedHistory)
 					}
-					.getOrElse(Future(0))
+					.getOrElse(Future.successful(0))
 				}
-				else Future(1)
 			}
-			// check if DB has been update and proceed to reseting the gamedata
-			isReseted <- if (isUpdated > 0) contract.reset(userGameID) else Future(None)
-			newGameData <- getUserData(userGameID)
-			// every game reset insert new gamedata into DB..
-			process <- {
-				isReseted
-					.map { _ =>
-						newGameData
-							.map(v => historyRepo.insert(MahjongHiloHistory(v.game_id, userGameID)))
-							.getOrElse(Future(0))
-					}.getOrElse(Future(0))
+			isGameEnded <- {
+				if (isUpdated > 0) contract.end(userGameID).map(_.map(_ => 1).getOrElse(0))
+				else Future.successful(0)
 			}
-		} yield (process)
+		} yield (isGameEnded)
 	}
-	// def quit(userGameID: Int): Future[Int] = {
-	// 	for {
-	// 		isGameEnded <- contract.quit(userGameID)
-	// 		gameData <- getUserData(userGameID)
-	// 		processHistory <- Future.successful {
-	// 			isGameEnded.map(_ => gameData.map(v => MahjongHiloHistory(v.game_id, userGameID))).getOrElse(None)
-	// 		}
-	// 		// add into the DB history
-	// 		isAdded <- processHistory.map(historyRepo.insert(_)).getOrElse(Future(0))
-	// 	} yield (isAdded)
-	// }
 	def addBet(id: UUID, userGameID: Int, currency: String, quantity: Int): Future[Int] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
@@ -189,13 +196,13 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       // if has enough balance send tx on smartcontract, else do nothing
       isAdded <- {
         if (hasEnoughBalance) contract.addBet(userGameID, quantity)
-        else Future(None)
+        else Future.successful(None)
       }
       // deduct balance on the account
       updateBalance <- {
       	isAdded
       		.map(_ => userAccountService.deductBalanceByCurrency(id, currency, currentValue))
-      		.getOrElse(Future(0))
+      		.getOrElse(Future.successful(0))
       }
     } yield (updateBalance)
 	}
@@ -213,16 +220,16 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       // save first to history before removing to smartcontract...
       processWithdraw <- {
       	if (getPrize > 0) contract.withdraw(userGameID)
-      	else Future(None)
+      	else Future.successful(None)
       }
       // if successful, add new balance to account..
       updateBalance <- {
       	hasWallet.map { _ =>
       		processWithdraw
       			.map(_ => userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize))
-      			.getOrElse(Future(0))
+      			.getOrElse(Future.successful(0))
       	}
-      	.getOrElse(Future(0))
+      	.getOrElse(Future.successful(0))
       }
       isSaveHistory <- {
       	if (updateBalance > 0) {
@@ -264,14 +271,14 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 										        true
 										      }
 											}
-											else Future(false)
+											else Future.successful(false)
 										}
 									} yield (processedHistory)
-	      				}.getOrElse(Future(false))
+	      				}.getOrElse(Future.successful(false))
       			}
-      			.getOrElse(Future(false))
+      			.getOrElse(Future.successful(false))
 				}
-				else Future(false)
+				else Future.successful(false)
       }
     } yield ((isSaveHistory, processWithdraw.getOrElse(null)))
 	}
@@ -327,7 +334,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			histories <- historyRepo.all()
 			// group history by user
 			// scala.collection.immutable.Map[Int,Seq[models.domain.eosio.MahjongHiloHistory]]
-			groupedByUser <- Future(histories.groupBy(_.userGameID))
+			groupedByUser <- Future.successful(histories.groupBy(_.userGameID))
 			// returns userGameID, totalPayout and WinRate
 			getPayoutAndWinRate <- Future.sequence {
 				groupedByUser
@@ -358,7 +365,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					} yield (json)
 				}
 				// remove JsNull just in case account not found..
-				.filter(_ != Future(JsNull))
+				.filter(_ != Future.successful(JsNull))
 			}
 		} yield (processed)
 	}
