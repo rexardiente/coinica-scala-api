@@ -30,12 +30,17 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	def playHilo(id: UUID, username: String, userGameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
 		for {
 			currentGameData <- getUserData(userGameID)
-			hasHistory <- {
-				currentGameData
-					.map(x => historyRepo.findByUserGameIDAndGameID(x.game_id, userGameID))
-					.getOrElse(Future.successful(None))
-			}
-			onPlay <- hasHistory.map(_ => contract.playHilo(userGameID, option)).getOrElse(Future.successful(None))
+			// hasHistory <- {
+			// 	currentGameData
+			// 		.map(x => historyRepo.findByUserGameIDAndGameID(x.game_id, userGameID))
+			// 		.getOrElse(Future.successful(None))
+			// }
+
+			// Oct 22, 2021:
+			// Due to failure of inserting the game into DB but initialized in smartcontract,
+			// its safer for checking directly on smartcontract tbl..
+			onPlay <- currentGameData.map(_ => contract.playHilo(userGameID, option)).getOrElse(Future.successful(None))
+			// hasHistory.map(_ => contract.playHilo(userGameID, option)).getOrElse(Future.successful(None))
 			updatedGamData <- getUserData(userGameID)
 			onProcess <- {
 				onPlay
@@ -130,11 +135,16 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					}.getOrElse(Future.successful(0))
 			}
 			// if db insertion success, else remove from smartcontract..
-			allSuccess <- {
-				if (isInitialized != None && insertDB < 1) contract.end(userGameID).map(_.map(_ => 1).getOrElse(0))
-				else Future.successful(1)
+			processValidated <- {
+				isInitialized
+					.map { _ =>
+						if (insertDB > 0) Future.successful(insertDB)
+						// remove from smartcontract but still return error code..
+						else contract.end(userGameID).map(_ => 0)
+					}
+					.getOrElse(Future.successful(0))
 			}
-		} yield (allSuccess)
+		} yield (processValidated)
 	}
 	def resetBet(userGameID: Int): Future[Int] = contract.resetBet(userGameID).map(_.map( _ => 1).getOrElse(0))
 	// def resetBet(userGameID: Int): Future[Int] = {
@@ -178,7 +188,12 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 				}
 			}
 			isGameEnded <- {
-				if (isUpdated > 0) contract.end(userGameID).map(_.map(_ => 1).getOrElse(0))
+				// if happens data is not inserted to DB but game is initialized
+				// still able to remove the game from smartcontract
+				if (existingGameData != None && hasHistory == None)
+					contract.end(userGameID).map(_.map(_ => 1).getOrElse(0))
+				else if (existingGameData != None && hasHistory != None && isUpdated > 0)
+					contract.end(userGameID).map(_.map(_ => 1).getOrElse(0))
 				else Future.successful(0)
 			}
 		} yield (isGameEnded)
