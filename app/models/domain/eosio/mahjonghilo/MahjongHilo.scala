@@ -40,7 +40,7 @@ case class MahjongHiloGameData(game_id: String,
                               winning_hand: Seq[Int],
                               score_check: Seq[Int],
                               score_type: Seq[MahjongHiloScore],
-                              wintiles: MahjongHiloWinnables,
+                              wintiles: Seq[MahjongHiloWinnables],
                               final_score: Int) {
    def toJson(): JsValue = Json.toJson(this)
 }

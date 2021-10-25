@@ -583,7 +583,7 @@ trait CommonImplicits {
 						(json \ "winning_hand").as[Seq[Int]],
 						(json \ "score_check").as[Seq[Int]],
 						(json \ "score_type").as[Seq[MahjongHiloScore]],
-						(json \ "wintiles").as[MahjongHiloWinnables],
+						(json \ "wintiles").as[Seq[MahjongHiloWinnables]],
 						(json \ "final_score").as[Int]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
