@@ -7,6 +7,7 @@ import play.api.libs.functional.syntax._
 object MahjongHiloGameData extends utils.CommonImplicits
 case class MahjongHiloScore(score_name: Int, value: Int)
 case class MahjongHiloTile(suit: Int, value: Int)
+case class MahjongHiloWinnables(index: Int, tileswin: Seq[MahjongHiloTile])
 case class MahjongHiloGameData(game_id: String,
                               deck_player: Seq[Int],
                               status: Int,
@@ -39,7 +40,7 @@ case class MahjongHiloGameData(game_id: String,
                               winning_hand: Seq[Int],
                               score_check: Seq[Int],
                               score_type: Seq[MahjongHiloScore],
-                              wintiles: Seq[MahjongHiloTile],
+                              wintiles: MahjongHiloWinnables,
                               final_score: Int) {
    def toJson(): JsValue = Json.toJson(this)
 }
