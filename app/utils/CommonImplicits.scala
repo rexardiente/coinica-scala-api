@@ -545,6 +545,7 @@ trait CommonImplicits {
 	implicit def implicitTreasureHuntGameData = Json.format[TreasureHuntGameData]
 	implicit def implicitMahjongHiloScore = Json.format[MahjongHiloScore]
 	implicit def implicitMahjongHiloTile = Json.format[MahjongHiloTile]
+	implicit def implicitMahjongHiloWinnables = Json.format[MahjongHiloWinnables]
 	implicit val implMahjongHiloGameDataReads: Reads[MahjongHiloGameData] = new Reads[MahjongHiloGameData] {
 		override def reads(js: JsValue): JsResult[MahjongHiloGameData] = js match {
 			case json: JsValue => {
@@ -582,7 +583,7 @@ trait CommonImplicits {
 						(json \ "winning_hand").as[Seq[Int]],
 						(json \ "score_check").as[Seq[Int]],
 						(json \ "score_type").as[Seq[MahjongHiloScore]],
-						(json \ "wintiles").as[Seq[MahjongHiloTile]],
+						(json \ "wintiles").as[MahjongHiloWinnables],
 						(json \ "final_score").as[Int]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
