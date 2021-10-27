@@ -316,7 +316,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			seqAmount <- Future.successful(histories.map(_.info.amount))
 		} yield (if (seqAmount.isEmpty) 0D else seqAmount.max)
 	}
-	def getConsecutiveHilo(userGameID: Int): Future[Int] = {
+	def getMaxConsecutiveHilo(userGameID: Int): Future[Int] = {
 		for {
 			histories <- historyRepo.getByUserGameID(userGameID)
 			process <- Future.successful {
@@ -325,7 +325,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					val gameResults: List[Boolean] = history.predictions.map(x => x._1 == x._2).toList
 					// grouping consecutive identical elements
 					val split: List[List[Boolean]] = splitConsecutiveValue(gameResults)
-					split.map(_.size).max
+					// remove consecutive loses from the list..
+					split.filterNot(_.contains(false)).map(_.size).maxOption.getOrElse(0)
 				}
 			}
 		} yield (if (process.isEmpty) 0 else process.max)
@@ -419,7 +420,6 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			winRate <- Future.successful(calculateWinRateOnSeqOfHistory(histories))
 		} yield (winRate)
 	}
-	// def getWinRate(userGameID: Int) = ???
 	def splitConsecutiveValue[T](list: List[T]) : List[List[T]] = list match {
 	  case h::t =>
 	  	val segment = list takeWhile {h ==}

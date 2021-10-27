@@ -75,7 +75,7 @@ class GameActionController @Inject()(
       .account
       .map { account =>
         mjHiloGameService
-          .getConsecutiveHilo(account.userGameID)
+          .getMaxConsecutiveHilo(account.userGameID)
           .map(x => Ok(JsNumber(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
