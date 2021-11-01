@@ -110,7 +110,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                                                                                 true,
                                                                                 Instant.now.getEpochSecond)
 
-                        overAllHistory.gameAdd(gameHistory)
+                        overAllHistory.addHistory(gameHistory)
                           .map { _ =>
                             dynamicBroadcast ! Array(gameHistory)
                             true
