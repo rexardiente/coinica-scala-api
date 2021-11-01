@@ -21,7 +21,7 @@ class OverAllHistoryService @Inject()(
   //     hasNext <- Future(size - (offset + limit) > 0)
   //   } yield PaginatedResult(tasks.size, tasks.toList, hasNext)
   // }
-  def getOverallGameHistoryByGameID(seq: Seq[String]): Future[Seq[OverAllGameHistory]] = {
+  def getOverallGameHistoryByGameIDs(seq: Seq[String]): Future[Seq[OverAllGameHistory]] = {
     for {
       histories <- Future.sequence(seq.map(getOverallGameHistoryByGameID(_)))
       // remove none results
@@ -69,5 +69,5 @@ class OverAllHistoryService @Inject()(
     } yield (txs)
   }
   def gameIsExistsByTxHash(txHash: String): Future[Boolean] = overallGameHistory.isExistsByTxHash(txHash)
-  def gameAdd(history: OverAllGameHistory): Future[Int] = overallGameHistory.add(history)
+  def addHistory(history: OverAllGameHistory): Future[Int] = overallGameHistory.add(history)
 }

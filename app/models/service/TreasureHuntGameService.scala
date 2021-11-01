@@ -59,7 +59,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 					                                                                      true,
 					                                                                      Instant.now.getEpochSecond)
 
-												overAllHistory.gameAdd(gameHistory)
+												overAllHistory.addHistory(gameHistory)
 													.map { isAdded =>
 									          if (isAdded > 0) {
 									          	dynamicBroadcast ! Array(gameHistory)
@@ -126,7 +126,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 							                                                                      true,
 							                                                                      Instant.now.getEpochSecond)
 
-														overAllHistory.gameAdd(gameHistory)
+														overAllHistory.addHistory(gameHistory)
 															.map { isAdded =>
 											          if (isAdded > 0) {
 											          	dynamicBroadcast ! Array(gameHistory)
@@ -226,7 +226,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 					                                                                      true,
 					                                                                      Instant.now.getEpochSecond)
 
-												overAllHistory.gameAdd(gameHistory)
+												overAllHistory.addHistory(gameHistory)
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
 									          dynamicProcessor ! DailyTask(id, TH_GAME_ID, 1)

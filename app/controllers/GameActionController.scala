@@ -220,12 +220,12 @@ class GameActionController @Inject()(
           .map(x => Ok(Json.toJson(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def mahjongHiloGetUserGameHistory = SecureUserAction.async { implicit request =>
+  def mahjongHiloGetUserGameHistory(limit: Int) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
         mjHiloGameService
-          .getUserGameHistory(account.userGameID)
+          .getUserGameHistory(account.userGameID, limit)
           .map(x => Ok(Json.toJson(x.map(_.toTrimmedJson()))))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }

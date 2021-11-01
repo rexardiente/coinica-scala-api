@@ -93,7 +93,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 								                                                                      Instant.now.getEpochSecond)
 
 															overAllHistory
-																.gameAdd(gameHistory)
+																.addHistory(gameHistory)
 																.map { x =>
 													        if(x > 0) {
 													          dynamicBroadcast ! Array(gameHistory)
@@ -284,7 +284,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					                                                                      true,
 					                                                                      Instant.now.getEpochSecond)
 
-												overAllHistory.gameAdd(gameHistory)
+												overAllHistory.addHistory(gameHistory)
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
 									          dynamicProcessor ! DailyTask(id, MJHilo_GAME_ID, 1)
@@ -305,14 +305,14 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	}
 	def getUserData(userGameID: Int): Future[Option[MahjongHiloGameData]] =
 		contract.getUserData(userGameID)
-	def getUserGameHistory(userGameID: Int): Future[Seq[MahjongHiloHistory]] =
-		historyRepo.getByUserGameID(userGameID)
+	def getUserGameHistory(userGameID: Int, limit: Int): Future[Seq[MahjongHiloHistory]] =
+		historyRepo.getByUserGameID(userGameID, limit)
 	def getMaxPayout(userGameID: Int): Future[Double] = {
 		for {
 			// get all history and extract game ID
 			seqOfGameIDs <- historyRepo.getByUserGameID(userGameID).map(_.map(_.gameID))
 			// fetch overall history data using seqOfGameIDs
-			histories <- overAllHistory.getOverallGameHistoryByGameID(seqOfGameIDs)
+			histories <- overAllHistory.getOverallGameHistoryByGameIDs(seqOfGameIDs)
 			seqAmount <- Future.successful(histories.map(_.info.amount))
 		} yield (if (seqAmount.isEmpty) 0D else seqAmount.max)
 	}
@@ -394,7 +394,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	def calculateTotalPayoutOnSeqOfHistory(v: Seq[MahjongHiloHistory]): Future[Double] = {
 		for {
 			seqOfGameIDs <- Future.successful(v.map(_.gameID))
-			histories <- overAllHistory.getOverallGameHistoryByGameID(seqOfGameIDs)
+			histories <- overAllHistory.getOverallGameHistoryByGameIDs(seqOfGameIDs)
 			seqAmount <- Future.successful(histories.map(_.info.amount))
 		} yield (seqAmount.sum)
 	}
@@ -427,3 +427,5 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	  case Nil => Nil
 	}
 }
+
+
