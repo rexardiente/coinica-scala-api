@@ -1,5 +1,5 @@
 @import utils.Config._
-@(username: String, code: String, url: String) @main("Coinica - Email Confirmation") {
+@(username: String, code: String, url: String, isUpdate: Boolean) @main("Coinica - Email Confirmation") {
 	<style type="text/css">
 	  a[x-apple-data-detectors] {color: inherit !important;}
 	</style>
@@ -16,22 +16,41 @@
 				  <tr>
 				    <td bgcolor="#ffffff" style="padding: 40px 30px 40px 30px;">
 				      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
-				        <tr>
-				          <td style="color: #153643; font-family: Arial, sans-serif;">
-				          	<h1 style="font-size: 24px; margin: 0; font-weight: bold;">Welcome to Coinica!</h1>
-				        </tr>
-				        <tr>
-				          <td style="color: #153643; font-family: Arial, sans-serif; font-size: 18px; line-height: 24px; padding: 20px 0 30px 0;">
-				            <p style="margin: 0;">
-											Thank you for signing up, just one more step. Click the button below to confirm your registration.
-				            </p>
-				          </td>
-				        </tr>
-				        <tr>
-				          <td style="color: #153643; font-family: Arial, sans-serif; font-size: 18px; line-height: 24px;">
+				      	@{
+				      		if (isUpdate) {
+				      			<tr>
+						          <td style="color: #153643; font-family: Arial, sans-serif;">
+						          	<h1 style="font-size: 24px; margin: 0; font-weight: bold;">Hi @{username}</h1>
+						          </td>
+						        </tr>
+						        <tr>
+						        	<td style="color: #153643; font-family: Arial, sans-serif; font-size: 18px; line-height: 24px; padding: 20px 0 30px 0;">
+						        		<p style="margin: 0;">
+													We noticed your Coinica account has requested to change your account email address. If this is not you, you can safely disregard this email or email <a href="mailto:support@@coinica.net">Coinica support</a> if you have any questions.
+						            </p>
+						        	</td>
+						        </tr>
+				      		}
+				      		else {
+				      			<tr>
+						          <td style="color: #153643; font-family: Arial, sans-serif;">
+						          	<h1 style="font-size: 24px; margin: 0; font-weight: bold;">Welcome to Coinica!</h1>
+						          </td>
+						        </tr>
+						        <tr>
+						          <td style="color: #153643; font-family: Arial, sans-serif; font-size: 18px; line-height: 24px; padding: 20px 0 30px 0;">
+						            <p style="margin: 0;">
+													Thank you for signing up, just one more step. Click the button below to confirm your registration.
+						            </p>
+						          </td>
+						        </tr>
+				      		}
+				      	}
+				      	<tr>
+				          <td style="color: #153643; font-family: Arial, sans-serif; font-size: 18px; line-height: 24px; ">
 				            <a href="@url"
-				            	style="padding: .5rem 1rem !important;
-												    font-size: 1.25rem !important;
+				            	style="padding: .3rem 1rem !important;
+												    font-size: 1.1rem !important;
 												    border-radius: .3rem !important;
 												    color: #fff !important;
 												    background-color: #0d6efd !important;
@@ -47,7 +66,7 @@
 												    -moz-user-select: none !important;
 												    user-select: none !important;
 												    border: 1px solid transparent !important;
-												    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;">Confirm Email</a>
+												    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;">CONFIRM EMAIL</a>
 				          </td>
 				        </tr>
 				      </table>
