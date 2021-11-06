@@ -1,7 +1,7 @@
 import com.typesafe.sbt.packager.docker.DockerChmodType
 
-name := """eos-game-store-api"""
-organization := "com.example"
+name := """coinica-scala-api"""
+organization := "net.coinica"
 version := "1.0-SNAPSHOT"
 scalaVersion := "2.13.1"
 

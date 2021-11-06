@@ -25,9 +25,10 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     val randomString: String  = Random.alphanumeric.dropWhile(_.isDigit).take(Config.MAIL_RANDOM_CODE_LIMIT).mkString
     val code: String = s"${password}${randomString}_${newEmail}_${username}"
     val codeURL: String = s"${protocol}://${url}/donut/api/v1/user/email/confirm?code=${code}"
+    val isUpdate: Boolean = account.email.map(_ => true).getOrElse(false)
     // compose body of the email in template and render as String
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639
-    val emailBody: String = views.html.emailConfirmationTemplate.render(username, code, codeURL).toString()
+    val emailBody: String = views.html.emailConfirmationTemplate.render(username, code, codeURL, isUpdate).toString()
   	val email: Email = new Email(
       "Email Verification",
       mailerAddress,
