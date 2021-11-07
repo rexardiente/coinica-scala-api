@@ -1,10 +1,10 @@
 @import utils.Config._
-@(username: String, code: String, url: String) @main("COINICA - Reset Password Confirmation") {
+@(code: Int) @main("Coinica - Email Confirmation") {
 	<style type="text/css">
 	  a[x-apple-data-detectors] {color: inherit !important;}
 	</style>
 	@defaultEmailTemplate() {
-		<tr style="border-collapse:collapse">
+    <tr style="border-collapse:collapse">
        <td style="padding-top:25px;padding-bottom:25px;padding-left:40px;padding-right:40px;background-color:#252d41;color:#79b9f4;" align="left">
           <table cellspacing="0" cellpadding="0" style="border-collapse:collapse;border-spacing:0px;float:left">
              <tbody>
@@ -48,19 +48,16 @@
                          <tbody>
                             <tr style="border-collapse:collapse">
                                <td align="left" style="padding:0;Margin:0">
-                                  <h1 style="Margin:0;line-height:48px;font-family:helvetica,'helvetica neue',arial,verdana,sans-serif;font-size:40px;font-style:normal;font-weight:normal;text-align:left"><b>Want to change your password?</b></h1>
+                                  <h1 style="Margin:0;line-height:48px;font-family:helvetica,'helvetica neue',arial,verdana,sans-serif;font-size:40px;font-style:normal;font-weight:normal;text-align:left"><b>2FA Code</b></h1>
                                </td>
                             </tr>
                             <tr style="border-collapse:collapse">
                                <td align="center" height="24" style="padding:0;Margin:0"></td>
                             </tr>
                             <tr style="border-collapse:collapse">
-                              <td align="left" style="padding:0;Margin:0">
-	      												<h1 style="font-size: 24px; margin-top: 10px;">Hi @{username}</h1>
-	      												<p style="padding-top: 15px;Margin:0;font-family:helvetica,'helvetica neue',arial,verdana,sans-serif;line-height:24px;font-size:16px;text-align: justify;">
-                                	We noticed your Coinica account has requested to change password. If this is not you, you can safely disregard this email or email <a href="mailto:support@@coinica.net">Coinica Support</a> if you have any questions.
-                                </p>
-                              </td>
+                               <td align="left" style="padding:0;Margin:0">
+                                  <p style="Margin:0;font-family:helvetica,'helvetica neue',arial,verdana,sans-serif;line-height:24px;font-size:16px">Here is your login verification code:</p>
+                               </td>
                             </tr>
                             <tr style="border-collapse:collapse">
                                <td align="center" height="24" style="padding:0;Margin:0"></td>
@@ -75,30 +72,40 @@
           <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;border-spacing:0px">
              <tbody>
                 <tr style="border-collapse:collapse">
-                   <td valign="top" style="padding-top:15px;Margin:0;width:520px">
-                   		<a href="@url"
-				            	style="padding: .3rem 1rem !important;
-												    font-size: 1.5rem !important;
-												    border-radius: .5rem !important;
-												    color: #79b9f4 !important;
-												    background-color: #151e2f !important;
-				            				display: inline-block !important;
-												    font-weight: 400 !important;
-												    line-height: 1.5 !important;
-												    text-align: center !important;
-												    text-decoration: none !important;
-												    vertical-align: middle !important;
-												    cursor: pointer !important;
-												    -webkit-user-select: none !important;
-												    -moz-user-select: none !important;
-												    user-select: none !important;
-												    border: 1px solid transparent !important;
-												    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;">
-												  RESET PASSWORD
-											</a>
+                   <td align="center" valign="top" style="padding:0;Margin:0;width:520px">
+                      <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:separate;border-spacing:0px;background-color:#151e2f;border-radius:4px" role="presentation">
+                         <tbody>
+                            <tr style="border-collapse:collapse">
+                               <td align="center" height="20" style="padding:0;Margin:0"></td>
+                            </tr>
+                            <tr style="border-collapse:collapse">
+                               <td align="center" height="4" style="padding:0;Margin:0"></td>
+                            </tr>
+                            <tr style="border-collapse:collapse">
+                               <td align="left" style="padding:0;Margin:0;padding-left:20px;padding-right:20px">
+                                  <h3 style="Margin:0;line-height:29px;font-family:helvetica,'helvetica neue',arial,verdana,sans-serif;font-size:24px;font-style:normal;font-weight:bold;color:#79b9f4">
+                                  	@{code}
+                                  </h3>
+                               </td>
+                            </tr>
+                            <tr style="border-collapse:collapse">
+                               <td align="center" height="20" style="padding:0;Margin:0"></td>
+                            </tr>
+                         </tbody>
+                      </table>
                    </td>
                 </tr>
-                @emailExpirationTemplate()
+                <tr style="border-collapse:collapse">
+                   <td align="center" height="24" style="padding:0;Margin:0"></td>
+                </tr>
+                <tr style="border-collapse:collapse">
+                   <td align="left" style="padding:0;Margin:0">
+                      <p style="Margin:0;font-family:helvetica,'helvetica neue',arial,verdana,sans-serif;line-height:24px;font-size:16px">Please make sure you never share this code with anyone.<br><b>Note:</b> The code will expire in 15 minutes.</p>
+                   </td>
+                </tr>
+                <tr style="border-collapse:collapse">
+                   <td align="center" height="24" style="padding:0;Margin:0"></td>
+                </tr>
              </tbody>
           </table>
        </td>
