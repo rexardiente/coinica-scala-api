@@ -347,9 +347,9 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			}
 		} yield (if (process.isEmpty) 0 else process.max)
 	}
-	def getHiloAvgWinScore(userGameID: Int) = ???
-	def getHiloAvgWinRound(userGameID: Int) = ???
-	def getShortestWinRound(userGameID: Int) = ???
+	// def getHiloAvgWinScore(userGameID: Int) = ???
+	// def getHiloAvgWinRound(userGameID: Int) = ???
+	// def getShortestWinRound(userGameID: Int) = ???
 	// top 10 players on the month based on earnings
 	def getMonthlyRanking(): Future[Seq[JsValue]] = {
 		for {

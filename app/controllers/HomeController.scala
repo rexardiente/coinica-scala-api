@@ -22,6 +22,7 @@ import models.domain.enum._
 import akka.WebSocketActor
 import utils.Config.{ COINICA_WEB_HOST, SUPPORTED_SYMBOLS, MAIL_EXPIRATION }
 import models.domain.wallet.support.Coin
+import utils.auth.AccountTokenSession.{ LOGIN, RESET_EMAIL, RESET_PASSWORD }
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -95,7 +96,7 @@ class HomeController @Inject()(
   private val emailForm = Form(single(
     "email" -> email.verifying(play.api.data.validation.Constraints.emailAddress)))
   private val resetPasswordForm = Form(tuple(
-    "username" -> nonEmptyText,
+    "accountid" -> uuid,
     "new_password" -> nonEmptyText,
     "confirm_password" -> nonEmptyText
   ).verifying("Password and Confirm password does not match", info => info._2 == info._3))
@@ -123,37 +124,39 @@ class HomeController @Inject()(
   def submitNewPassword() = Action.async { implicit request =>
     resetPasswordForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (username, password, confirm)  =>
+      { case (accountid, password, confirm)  =>
         for {
-          // get account by username
-          hasAccount <- accountService.getAccountByName(username)
-          // update account password if exists
-          processed <- {
-            hasAccount
-              .map { account =>
-                for {
-                  // check first if has existing/valid update password token..
-                  tokens <- accountService.getUserTokenByID(account.id).map(_.map(_.password).getOrElse(None))
-                  // remove reset email token if token reset password is valid..
-                  removedToken <- {
-                    if (tokens != None && tokens.getOrElse(0L) >= Instant.now.getEpochSecond)
-                      accountService.removePasswordTokenByID(account.id)
-                    else Future(0)
-                  }
-                  accountUpdated <- {
-                    if (removedToken > 0) {
-                      val newAccount = account.copy(password = encryptKey.toSHA256(password))
-                      accountService
-                        .updateUserAccount(newAccount)
-                        .map(x => if (x > 0) Redirect(COINICA_WEB_HOST) else InternalServerError)
-                    }
-                    else  Future(InternalServerError)
-                  }
-                } yield (accountUpdated)
-              }
-              .getOrElse(Future(InternalServerError))
+          // check if account has requested to reset password by accountid and still valid expiration time
+          hasSession <- Future.successful {
+            RESET_EMAIL.filter(x => x._1 == accountid && x._2._2 >= Instant.now.getEpochSecond).headOption
           }
-        } yield (processed)
+          // update account password if exists
+          isUpdated <- {
+            hasSession
+              .map { session =>
+                // all validation are success, we can now proceed updating the user account password..
+                  for {
+                    hasAccount <- accountService.getAccountByID(accountid)
+                    updateAccount <- {
+                      hasAccount
+                        .map { account =>
+                          accountService.updateUserAccount(account.copy(password = encryptKey.toSHA256(password)))
+                        }
+                        .getOrElse(Future.successful(0))
+                    }
+                  } yield (updateAccount)
+              }
+              .getOrElse(Future.successful(0))
+          }
+          isDone <- Future.successful {
+            if (isUpdated > 0) {
+              // if process successful, you can now remove the session token
+              RESET_EMAIL.remove(accountid)
+              Redirect(COINICA_WEB_HOST)
+            }
+            else Unauthorized(views.html.defaultpages.unauthorized())
+          }
+        } yield (isDone)
       })
   }
 
@@ -173,7 +176,6 @@ class HomeController @Inject()(
                   // generate User Account, VIP Account and User Wallet..
                   for {
                     _ <- accountService.newUserAcc(userAccount)
-                    _ <- accountService.addUpdateUserToken(UserToken(userAccount.id))
                     _ <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
                     _ <- accountService.addUserWallet(new UserAccountWallet(
                             userAccount.id,
@@ -233,29 +235,36 @@ class HomeController @Inject()(
             processed <- {
               // check if has existing token (UPDATE) else insert new and return to user..
               if (isAccountExists != None)  {
+                val accountID: UUID = isAccountExists.get.id
                 for {
                   // get account if has existing token..
-                  userToken <- accountService.getUserTokenByID(isAccountExists.get.id)
+                  userToken <- Future.successful(LOGIN.filter(_._1 == accountID))
                   // if verify make sure that existing token wont be overrided on this request..
-                  hasSession <- {
+                  verifyToken <- {
                     userToken
-                      .map { user =>
-                        val tempAccount: UserToken = userAction.generateLoginToken(user)
+                      .headOption
+                      .map { session =>
+                        // check if has existing then extend expiration time..
                         val currentTime: Long = Instant.now.getEpochSecond
-                        // check if has existing valid token else create new
-                        if (user.login.map(_ >= currentTime).getOrElse(false))
-                          Future(Ok(ClientTokenEndpoint(user.id, user.token.getOrElse(null)).toJson()))
-                        else
-                          accountService
-                            .updateUserToken(tempAccount)
-                            .map { x =>
-                              if (x > 0) Ok(ClientTokenEndpoint(user.id, tempAccount.token.getOrElse(null)).toJson())
-                              else InternalServerError
-                           }
+                        // reuse and do not update sessions to avoid spam
+                        if (session._2._2 >= currentTime) {
+                          // LOGIN(session._1) = (session._2._1, newToken._2)
+                          Future.successful(Ok(ClientTokenEndpoint(accountID, session._2._1).toJson()))
+                        }
+                        // use the newly generated token and expiration time
+                        else {
+                          val newToken: (String, Long) = userAction.generateToken()
+                          LOGIN(session._1) = newToken
+                          Future.successful(Ok(ClientTokenEndpoint(accountID, newToken._1).toJson()))
+                        }
                       }
-                      .getOrElse(Future(InternalServerError))
+                      .getOrElse({
+                        val newToken: (String, Long) = userAction.generateToken()
+                        LOGIN.addOne(accountID -> newToken)
+                        Future.successful(Ok(ClientTokenEndpoint(accountID, newToken._1).toJson()))
+                      })
                   }
-                } yield (hasSession)
+                } yield (verifyToken)
               }
               else Future(Unauthorized(views.html.defaultpages.unauthorized()))
             }
@@ -282,33 +291,40 @@ class HomeController @Inject()(
           result <- {
             // update email request limit
             if (account != None) {
-              try {
-                for {
-                  // get user account token
-                  userToken <- accountService.getUserTokenByID(account.get.id)
-                  // update its password token limit
-                  updated <- accountService
-                    .updateUserToken(userToken.map(_.copy(password = Some(MAIL_EXPIRATION)))
-                    .getOrElse(null))
-                  // send email confirmation link
-                  result <- {
-                    if (updated > 0) mailerService.sendResetPasswordEmail(account.get, email).map(_ => Created)
-                    else Future(InternalServerError)
+              val acc = account.get
+              // generate new token for reset password
+              val newToken: (String, Long) = userAction.generateToken()
+              for {
+                // check if has existing request token to update else create new
+                _ <- Future.successful {
+                  RESET_PASSWORD
+                    .filter(_._1 == acc.id)
+                    .headOption
+                    .map { session =>
+                      RESET_PASSWORD(session._1) = newToken
+                    }
+                    // add the newly created token to session lists..
+                    .getOrElse(RESET_PASSWORD.addOne(account.get.id -> newToken))
+                }
+                send <- Future.successful {
+                  try {
+                    mailerService.sendResetPasswordEmail(acc.id, acc.username, email, newToken)
+                    Created
                   }
-                } yield (result)
-              }
-              catch { case _: Throwable => Future(NotFound) }
+                  catch { case _: Throwable => InternalServerError }
+                }
+              } yield (send)
             }
             else Future(NotFound)
           }
         } yield (result)
       })
   }
-  def resetPasswordVerification(code: String) = Action.async { implicit request =>
+  def resetPasswordVerification(id: UUID, code: String) = Action.async { implicit request =>
     try {
-      validateEmail.passwordFromCode(code) map {
-        case (u, p) => Ok(views.html.resetPasswordTemplate(u))
-        case _ => NotFound
+      validateEmail.resetPasswordFromCode(id, code) map {
+        case Some(u) => Ok(views.html.resetPasswordTemplate(u))
+        case _ => NotFound("The URL is no longer valid.")
     }}
     catch { case e: Throwable => Future(NotFound) }
   }

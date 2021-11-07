@@ -2,10 +2,12 @@ package play.api.libs.mailer
 
 import javax.inject.{ Inject, Singleton }
 import java.time.Instant
+import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import models.domain.UserAccount
 import models.service.UserAccountService
 import utils.Config
+import utils.auth.AccountTokenSession.{ RESET_EMAIL, RESET_PASSWORD }
 
 @Singleton
 class EmailValidation @Inject()(accountService: UserAccountService)(implicit val ec: ExecutionContext) {
@@ -32,26 +34,25 @@ class EmailValidation @Inject()(accountService: UserAccountService)(implicit val
     catch { case _: Throwable => Future.successful(throw new IllegalArgumentException("Invalid Code")) }
   }
 
-  def passwordFromCode[T >: String](code: T): Future[(T, T)] = {
+  def resetPasswordFromCode(id: UUID, code: String): Future[Option[UUID]] = {
     try {
       val raw: List[String] = code.toString.split("_").toList
-      val (password, invalidCode) = raw(0).splitAt(64)
-      val username: String = raw(1)
-      // check if valid code or not.
-      // hasAccount(username, password).map(exists => if (exists) (username, password) else null)
+      val token: String = raw(0)
+      val expiration: Long = raw(1).toLong
+      // check if valid code or not
       for {
-        account <- hasAccount(username, password)
-        tokenSession <- account.map(acc => accountService.getUserTokenByID(acc.id)).getOrElse(Future(None))
-        result <- Future.successful {
-          tokenSession
+        hasSession <- Future.successful(RESET_EMAIL.filter(_._2 == (token, expiration)).headOption)
+        isValidCode <- Future.successful {
+          hasSession
             .map { session =>
-              if (session.password.map(_ >= Instant.now.getEpochSecond).getOrElse(false)) (username, password)
-              else null
-            }.getOrElse(null)
+              if (session._2._2 >= Instant.now.getEpochSecond) Some(id)
+              else None
+            }
+            .getOrElse(None)
         }
-      } yield (result)
+      } yield (isValidCode)
     }
-    catch { case _: Throwable => throw new IllegalArgumentException("Invalid Code") }
+    catch { case _: Throwable => Future.successful(None) }
   }
   // validate account credentials
   private def isAccountExists(u: String, p: String): Future[Boolean] = accountService.exists(u, p)
