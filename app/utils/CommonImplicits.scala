@@ -328,7 +328,6 @@ trait CommonImplicits {
 		"last_sign_in" -> tx.lastSignIn,
 		"created_at" -> tx.createdAt)
 	}
-	implicit def implUserToken = Json.format[UserToken]
 	implicit def implClientTokenEndpoint = Json.format[ClientTokenEndpoint]
 	implicit def implWalletSupportCoin = Json.format[Coin]
 	implicit val implicitUserAccountWalletReads: Reads[UserAccountWallet] = new Reads[UserAccountWallet] {

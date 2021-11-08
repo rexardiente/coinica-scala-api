@@ -22,7 +22,7 @@ import models.domain.enum._
 import akka.WebSocketActor
 import utils.Config.{ COINICA_WEB_HOST, SUPPORTED_SYMBOLS, MAIL_EXPIRATION }
 import models.domain.wallet.support.Coin
-import utils.auth.AccountTokenSession.{ LOGIN, RESET_EMAIL, RESET_PASSWORD }
+import utils.auth.AccountTokenSession.{ LOGIN, ADD_OR_RESET_EMAIL, RESET_PASSWORD }
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -49,7 +49,7 @@ class HomeController @Inject()(
       mat: akka.stream.Materializer,
       assets: Assets,
       errorHandler: HttpErrorHandler,
-      userAction: utils.auth.SecureUserAction,
+      SecureUserAction: utils.auth.SecureUserAction,
       encryptKey: utils.auth.EncryptKey,
       validateEmail: EmailValidation,
       mailerService: MailerService,
@@ -93,8 +93,7 @@ class HomeController @Inject()(
     "username" -> nonEmptyText,
     "password" -> nonEmptyText,
     "referred_by" -> optional(text)))
-  private val emailForm = Form(single(
-    "email" -> email.verifying(play.api.data.validation.Constraints.emailAddress)))
+  private val emailForm = Form(single("email" -> email.verifying(play.api.data.validation.Constraints.emailAddress)))
   private val resetPasswordForm = Form(tuple(
     "accountid" -> uuid,
     "new_password" -> nonEmptyText,
@@ -128,7 +127,7 @@ class HomeController @Inject()(
         for {
           // check if account has requested to reset password by accountid and still valid expiration time
           hasSession <- Future.successful {
-            RESET_EMAIL.filter(x => x._1 == accountid && x._2._2 >= Instant.now.getEpochSecond).headOption
+            RESET_PASSWORD.filter(x => x._1 == accountid && x._2._2 >= Instant.now.getEpochSecond).headOption
           }
           // update account password if exists
           isUpdated <- {
@@ -139,9 +138,7 @@ class HomeController @Inject()(
                     hasAccount <- accountService.getAccountByID(accountid)
                     updateAccount <- {
                       hasAccount
-                        .map { account =>
-                          accountService.updateUserAccount(account.copy(password = encryptKey.toSHA256(password)))
-                        }
+                        .map(account => accountService.updateUserAccount(account.copy(password = encryptKey.toSHA256(password))))
                         .getOrElse(Future.successful(0))
                     }
                   } yield (updateAccount)
@@ -151,10 +148,10 @@ class HomeController @Inject()(
           isDone <- Future.successful {
             if (isUpdated > 0) {
               // if process successful, you can now remove the session token
-              RESET_EMAIL.remove(accountid)
+              RESET_PASSWORD.remove(accountid)
               Redirect(COINICA_WEB_HOST)
             }
-            else Unauthorized(views.html.defaultpages.unauthorized())
+            else NotFound(Json.obj("error" -> "The URL is no longer valid."))
           }
         } yield (isDone)
       })
@@ -238,11 +235,10 @@ class HomeController @Inject()(
                 val accountID: UUID = isAccountExists.get.id
                 for {
                   // get account if has existing token..
-                  userToken <- Future.successful(LOGIN.filter(_._1 == accountID))
+                  userToken <- Future.successful(LOGIN.filter(_._1 == accountID).headOption)
                   // if verify make sure that existing token wont be overrided on this request..
                   verifyToken <- {
                     userToken
-                      .headOption
                       .map { session =>
                         // check if has existing then extend expiration time..
                         val currentTime: Long = Instant.now.getEpochSecond
@@ -253,13 +249,13 @@ class HomeController @Inject()(
                         }
                         // use the newly generated token and expiration time
                         else {
-                          val newToken: (String, Long) = userAction.generateToken()
+                          val newToken: (String, Long) = SecureUserAction.generateToken()
                           LOGIN(session._1) = newToken
                           Future.successful(Ok(ClientTokenEndpoint(accountID, newToken._1).toJson()))
                         }
                       }
                       .getOrElse({
-                        val newToken: (String, Long) = userAction.generateToken()
+                        val newToken: (String, Long) = SecureUserAction.generateToken()
                         LOGIN.addOne(accountID -> newToken)
                         Future.successful(Ok(ClientTokenEndpoint(accountID, newToken._1).toJson()))
                       })
@@ -273,13 +269,36 @@ class HomeController @Inject()(
         catch { case _: Throwable => Future(InternalServerError) }
       })
   }
-  def emailVerification(code: String) = Action.async { implicit request =>
-    try {
-      validateEmail.emailFromCode(code) map {
-        case (u, p, e) => Ok(views.html.emailVerificationTemplate(u, p, e))
-        case _ => NotFound
-    }}
-    catch { case e: Throwable => Future(NotFound) }
+  def emailVerification(id: UUID, email: String, code: String) = Action.async { implicit request =>
+    for {
+      // check if user has existing change email token
+      hasSession <- Future.successful(validateEmail.addOrUpdateEmailFromCode(id, code))
+      isDone <- {
+        if (hasSession) {
+          for {
+            // get account details
+            hasAccount <- accountService.getAccountByID(id)
+            // update account
+            updateAccount <- {
+              hasAccount.map { account =>
+                val updatedAccount = account.copy(email = Some(email))
+                accountService
+                  .updateUserAccount(updatedAccount)
+                  .map { x =>
+                    if (x > 0) {
+                      ADD_OR_RESET_EMAIL.remove(id)
+                      Created
+                    }
+                    else InternalServerError
+                  }
+              }
+              .getOrElse(Future.successful(NotFound(Json.obj("error" -> "The URL is no longer valid."))))
+            }
+          } yield (updateAccount)
+        }
+        else Future.successful(NotFound(Json.obj("error" -> "The URL is no longer valid.")))
+      }
+    } yield (isDone)
   }
   // Check if email is valid email and if email exist then send confirmation link..
   def resetPassword() = Action.async { implicit request =>
@@ -293,18 +312,16 @@ class HomeController @Inject()(
             if (account != None) {
               val acc = account.get
               // generate new token for reset password
-              val newToken: (String, Long) = userAction.generateToken()
+              val newToken: (String, Long) = SecureUserAction.generateToken()
               for {
                 // check if has existing request token to update else create new
                 _ <- Future.successful {
+                  // add the newly created token to session lists..
                   RESET_PASSWORD
                     .filter(_._1 == acc.id)
                     .headOption
-                    .map { session =>
-                      RESET_PASSWORD(session._1) = newToken
-                    }
-                    // add the newly created token to session lists..
-                    .getOrElse(RESET_PASSWORD.addOne(account.get.id -> newToken))
+                    .map(session => RESET_PASSWORD(session._1) = newToken)
+                    .getOrElse(RESET_PASSWORD.addOne(acc.id -> newToken))
                 }
                 send <- Future.successful {
                   try {
@@ -321,12 +338,25 @@ class HomeController @Inject()(
       })
   }
   def resetPasswordVerification(id: UUID, code: String) = Action.async { implicit request =>
-    try {
-      validateEmail.resetPasswordFromCode(id, code) map {
-        case Some(u) => Ok(views.html.resetPasswordTemplate(u))
-        case _ => NotFound("The URL is no longer valid.")
-    }}
-    catch { case e: Throwable => Future(NotFound) }
+    for {
+      // check if user has existing change email token
+      hasSession <- Future.successful(validateEmail.resetPasswordFromCode(id, code))
+      isDone <- {
+        if (hasSession) {
+          for {
+            // get account details
+            hasAccount <- accountService.getAccountByID(id)
+            // update account
+            updateAccount <- Future.successful {
+              hasAccount
+                .map(_ => Ok(views.html.resetPasswordTemplate(id)))
+                .getOrElse(NotFound(Json.obj("error" -> "The URL is no longer valid.")))
+            }
+          } yield (updateAccount)
+        }
+        else Future.successful(NotFound(Json.obj("error" -> "The URL is no longer valid.")))
+      }
+    } yield (isDone)
   }
   def addChallenge = Action.async { implicit req =>
     challengeForm.bindFromRequest.fold(

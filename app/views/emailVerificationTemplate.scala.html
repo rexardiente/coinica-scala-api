@@ -1,30 +1,12 @@
-@(u: String, p: String, email: String) @main("Coinica - Email Verification") {
+@(id: java.util.UUID, code: String) @main("Coinica - Email Verification") {
     <script type="text/javascript">
-      window.onload = function() { verifyAccount() };
-
-      function verifyAccount() {
-        $.ajax({
-          type : "POST",
-          dataType: 'json',
-          data: JSON.stringify({'username':"@u",'password':"@p" }),
-          headers: { 'Content-Type':'application/json' },
-          // contentType: "application/json; charset=utf-8",
-          url: "/s1/donut/api/v1/sign-in?verify=true",
-          success: function(response) { confirmEmail(response); },
-          error: function(err) { window.location="@utils.Config.COINICA_WEB_HOST"; }
-        });
-      };
-
+      window.onload = function() { confirmEmail() };
       function confirmEmail(params) {
         $.ajax({
-          type : "POST",
-          dataType: 'json',
-          data: JSON.stringify({'email': "@email"}),
-          contentType: "application/json; charset=utf-8",
-          headers: { 'CLIENT_ID': params.id, 'CLIENT_TOKEN': params.token, 'Content-Type':'application/json' },
-          url: "/s1/donut/api/v1/user/email/confirm-update",
+          type : "GET",
+          url: "/s1/donut/api/v1/user/email/confirm-update?id=@id&code=@code",
           success: function(res) { window.location="@utils.Config.COINICA_WEB_HOST"; },
-          error: function(err) { window.location="@utils.Config.COINICA_WEB_HOST"; }
+          error: function(err) { @{ play.api.libs.json.Json.obj("error" -> "The URL is no longer valid.") } }
         });
       };
     </script>

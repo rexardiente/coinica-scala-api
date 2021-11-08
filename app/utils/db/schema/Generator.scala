@@ -36,7 +36,6 @@ class Generator @Inject()(
     val schemas =
       user.UserAccountQuery.schema ++
       userWalletHistory.Query.schema ++
-      user.UserTokenQuery.schema ++
       user.VIPUserQuery.schema ++
       user.UserWalletQuery.schema ++
       user.FailedCoinDepositQuery.schema ++

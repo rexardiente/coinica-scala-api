@@ -140,9 +140,8 @@ GET  	/donut/api/v1/coincap/asset 									controllers.HomeController.getCoinCap
 GET   /donut/api/v1/vip 														controllers.SecureActionController.vipUser(id: UUID)
 
 # Add Email Address Email Confirmation
-GET   /donut/api/v1/user/email/confirm 							controllers.HomeController.emailVerification(code: String)
-POST  /donut/api/v1/user/email/confirm-update 			controllers.SecureActionController.confirmedUpdateEmailAccount()
-POST  /donut/api/v1/user/email/add 									controllers.SecureActionController.addEmailAccount()
+GET   /donut/api/v1/user/email/confirm 							controllers.HomeController.emailVerification(id: UUID, email: String, code: String)
+POST  /donut/api/v1/user/email/add 									controllers.SecureActionController.addOrUpdateEmailAccount()
 # Reset Password Email Confirmation
 POST  /donut/api/v1/user/password/reset/send 				controllers.HomeController.resetPassword()
 GET   /donut/api/v1/user/password/reset/confirm 		controllers.HomeController.resetPasswordVerification(id: UUID, code: String)

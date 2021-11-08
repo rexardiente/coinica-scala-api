@@ -4,7 +4,7 @@ import java.util.UUID
 import java.time.Instant
 import javax.inject.{ Inject, Singleton }
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.{ UserAccount, UserToken, VIPUser, UserAccountWallet }
+import models.domain.{ UserAccount, VIPUser, UserAccountWallet }
 import models.domain.wallet.support.{ Coin, FailedCoinDeposit }
 import models.domain.enum._
 import utils.Config.SUPPORTED_SYMBOLS
@@ -56,17 +56,6 @@ final class UserAccountDAO @Inject()(
     def * = (id, rank, nxtRank, referralCount, payout, points, createdAt) <> (VIPUser.tupled, VIPUser.unapply)
     def fk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id)
   }
-  protected class UserTokenTable(tag: Tag) extends Table[UserToken](tag, "USER_ACCOUNT_TOKEN") {
-    def id = column[UUID]("ID", O.PrimaryKey)
-    def token = column[Option[String]]("TOKEN")
-    def login = column[Option[Long]]("LOGIN")
-    def emailLimit = column[Option[Long]]("EMAIL")
-    def passwordLimit = column[Option[Long]]("PASSWORD")
-
-    def * = (id, token, login, emailLimit, passwordLimit) <> (UserToken.tupled, UserToken.unapply)
-    def fk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id)
-    // def userTokenFk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id, onDelete = ForeignKeyAction.Cascade)
-  }
   protected class UserAccountWalletTable(tag: Tag) extends Table[UserAccountWallet](tag, "USER_ACCOUNT_WALLET") {
     def id = column[UUID]("ID", O.PrimaryKey)
     def btc = column[Coin](SUPPORTED_SYMBOLS(2))
@@ -93,9 +82,6 @@ final class UserAccountDAO @Inject()(
     def apply(username: String) = this.withFilter(_.username === username)
   }
   object VIPUserQuery extends TableQuery(new VIPUserTable(_)) {
-    def apply(id: UUID) = this.withFilter(_.id === id)
-  }
-  object UserTokenQuery extends TableQuery(new UserTokenTable(_)) {
     def apply(id: UUID) = this.withFilter(_.id === id)
   }
   object UserWalletQuery extends TableQuery(new UserAccountWalletTable(_)) {

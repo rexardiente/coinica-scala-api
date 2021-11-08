@@ -17,6 +17,7 @@ import models.domain.wallet.support.{ Coin, CoinDeposit, CoinWithdraw }
 import models.repo._
 import models.service._
 import utils.auth.SecureUserAction
+import utils.auth.AccountTokenSession.{ LOGIN, ADD_OR_RESET_EMAIL }
 import utils.Config
 
 @Singleton
@@ -124,16 +125,16 @@ class SecureActionController @Inject()(
       .account
       .map { account =>
         for {
-          userSession <- accountService.getUserTokenByID(account.id)
-          process <- {
-            userSession.map { session =>
-              accountService
-                .updateUserToken(session.copy(token=None, login=None))
-                .map(x => if (x > 0) Accepted else InternalServerError)
-            }
-            .getOrElse(Future(NotFound))
+          hasSession <- Future.successful(LOGIN.filter(_._1 == account.id).headOption)
+          isDone <- Future.successful {
+            hasSession
+              .map { session =>
+                LOGIN.remove(account.id)
+                Accepted
+              }
+              .getOrElse(NotFound(Json.obj("error" -> "Session not found.")))
           }
-        } yield (process)
+        } yield (isDone)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   // def updateEmailAccount() = SecureUserAction.async { implicit request =>
@@ -157,7 +158,7 @@ class SecureActionController @Inject()(
   //       })
   //     }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   // }
-  def confirmedUpdateEmailAccount() = SecureUserAction.async { implicit request =>
+  def addOrUpdateEmailAccount() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
@@ -166,38 +167,29 @@ class SecureActionController @Inject()(
         { case (email)  =>
           if (Some(email) == account.email) Future(Conflict)
           else {
-            val updatedAccount = account.copy(email = Some(email))
-            accountService
-              .updateUserAccount(updatedAccount)
-              .map(x => if (x > 0) Created else InternalServerError)
-          }
-        })
-      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
-  def addEmailAccount() = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { account =>
-        emailForm.bindFromRequest.fold(
-        formErr => Future.successful(BadRequest("Invalid Email Address")),
-        { case (email)  =>
-          if (Some(email) == account.email) Future(Conflict)
-          else {
-            try {
+            val newToken: (String, Long) = SecureUserAction.generateToken()
               for {
-                userToken <- accountService.getUserTokenByID(account.id)
-                // update its email token limit
-                updated <- accountService
-                  .updateUserToken(userToken.map(_.copy(email = Some(Config.MAIL_EXPIRATION)))
-                  .getOrElse(null))
-                // send email confirmation link
-                result <- {
-                  if (updated > 0) mailerService.sendAddEmailAddress(account, email).map(_ => Created)
-                  else Future(InternalServerError)
+                // check if has existing request token to update else create new
+                _ <- Future.successful {
+                  // add the newly created token to session lists..
+                  ADD_OR_RESET_EMAIL
+                    .filter(_._1 == account.id)
+                    .headOption
+                    .map(session => ADD_OR_RESET_EMAIL(session._1) = newToken)
+                    .getOrElse(ADD_OR_RESET_EMAIL.addOne(account.id -> newToken))
                 }
-              } yield (result)
-            }
-            catch { case _: Throwable => Future(InternalServerError) }
+                send <- Future.successful {
+                  try {
+                    mailerService.sendAddOrUpdateEmailAddres(account.id,
+                                                            account.username,
+                                                            email,
+                                                            newToken,
+                                                            account.email.map(_ => true).getOrElse(false))
+                    Created
+                  }
+                  catch { case _: Throwable => InternalServerError }
+                }
+              } yield (send)
           }
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))

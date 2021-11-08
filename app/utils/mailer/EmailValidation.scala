@@ -7,52 +7,33 @@ import scala.concurrent.{ ExecutionContext, Future }
 import models.domain.UserAccount
 import models.service.UserAccountService
 import utils.Config
-import utils.auth.AccountTokenSession.{ RESET_EMAIL, RESET_PASSWORD }
+import utils.auth.AccountTokenSession.{ RESET_PASSWORD, ADD_OR_RESET_EMAIL }
 
 @Singleton
 class EmailValidation @Inject()(accountService: UserAccountService)(implicit val ec: ExecutionContext) {
-	def emailFromCode[T >: String](code: T): Future[(T, T, T)] = {
-    try {
-      val raw: List[String] = code.toString.split("_").toList
-      // remove random starting random String from the code..
-      val (password, invalidCode) = raw(0).splitAt(64)
-      val email: String = raw(1) // email
-      val username: String = raw(2)
-
-      for {
-        account <- hasAccount(username, password)
-        tokenSession <- account.map(acc => accountService.getUserTokenByID(acc.id)).getOrElse(Future(None))
-        result <- Future.successful {
-          tokenSession
-            .map { session =>
-              if (session.email.map(_ >= Instant.now.getEpochSecond).getOrElse(false)) (username, password, email)
-              else null
-            }.getOrElse(null)
-        }
-      } yield (result)
-    }
-    catch { case _: Throwable => Future.successful(throw new IllegalArgumentException("Invalid Code")) }
-  }
-
-  def resetPasswordFromCode(id: UUID, code: String): Future[Option[UUID]] = {
+	def addOrUpdateEmailFromCode(id: UUID, code: String): Boolean = {
     try {
       val raw: List[String] = code.toString.split("_").toList
       val token: String = raw(0)
       val expiration: Long = raw(1).toLong
       // check if valid code or not
-      for {
-        hasSession <- Future.successful(RESET_EMAIL.filter(_._2 == (token, expiration)).headOption)
-        isValidCode <- Future.successful {
-          hasSession
-            .map { session =>
-              if (session._2._2 >= Instant.now.getEpochSecond) Some(id)
-              else None
-            }
-            .getOrElse(None)
-        }
-      } yield (isValidCode)
+      val hasSession = ADD_OR_RESET_EMAIL.filter(x => x._1 == id && x._2 == (token, expiration)).headOption
+
+      hasSession.map(session => if (session._2._2 >= Instant.now.getEpochSecond) true else false).getOrElse(false)
     }
-    catch { case _: Throwable => Future.successful(None) }
+    catch { case _: Throwable => false }
+  }
+
+  def resetPasswordFromCode(id: UUID, code: String): Boolean = {
+    try {
+      val raw: List[String] = code.toString.split("_").toList
+      val token: String = raw(0)
+      val expiration: Long = raw(1).toLong
+      // check if valid code or not
+      val hasSession = RESET_PASSWORD.filter(x => x._1 == id && x._2 == (token, expiration)).headOption
+      hasSession.map(session => if (session._2._2 >= Instant.now.getEpochSecond) true else false).getOrElse(false)
+    }
+    catch { case _: Throwable => false }
   }
   // validate account credentials
   private def isAccountExists(u: String, p: String): Future[Boolean] = accountService.exists(u, p)
