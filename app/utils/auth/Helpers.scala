@@ -47,5 +47,5 @@ class SecureUserAction @Inject()(
   //   // else send renew session..
   //   user.copy(token=Some(token), login=Some(TOKEN_EXPIRATION))
   // }
-  def generateToken(): (String, Long) = (s"==token${UUID.randomUUID().toString}", TOKEN_EXPIRATION)
+  def generateToken(): (String, Long) = (UUID.randomUUID().toString, TOKEN_EXPIRATION)
 }
