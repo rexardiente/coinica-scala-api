@@ -6,7 +6,7 @@
           type : "GET",
           url: "/s1/donut/api/v1/user/email/confirm-update?id=@id&code=@code",
           success: function(res) { window.location="@utils.Config.COINICA_WEB_HOST"; },
-          error: function(err) { @{ play.api.libs.json.Json.obj("error" -> "The URL is no longer valid.") } }
+          error: function(err) { window.location="@utils.Config.COINICA_WEB_HOST"; }
         });
       };
     </script>
