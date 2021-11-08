@@ -194,24 +194,6 @@ class SecureActionController @Inject()(
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  // def renewLoginSessionToken() = SecureUserAction.async { implicit request =>
-  //   request
-  //     .account
-  //     .map { account =>
-  //       for {
-  //         userSession <- accountService.getUserTokenByID(account.id)
-  //         process <- {
-  //           userSession.map { session =>
-  //             val newUserToken: UserToken = SecureUserAction.generateLoginToken(session)
-  //             accountService
-  //               .updateUserToken(newUserToken)
-  //               .map(x => if (x > 0) Ok(Json.obj("token" -> newUserToken.token)) else InternalServerError)
-  //           }
-  //           .getOrElse(Future(NotFound))
-  //         }
-  //       } yield (process)
-  //     }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  // }
   def applyReferralCode() = SecureUserAction.async { implicit request =>
     request
       .account

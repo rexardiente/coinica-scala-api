@@ -64,6 +64,12 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
         actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
       }
+    case ("BROADCAST_EMAIL_UPDATED", id: UUID, email: String) =>
+      WebSocketActor
+        .subscribers
+        .filter(_._1 == id)
+        .headOption
+        .map { case (id, actorRef) => actorRef ! OutEvent(JsString("BROADCAST_EMAIL_UPDATED"), JsString(email)) }
 
     case e => log.info("DynamicBroadcastActor: invalid request")
   }

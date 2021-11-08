@@ -261,7 +261,11 @@ class HomeController @Inject()(
               for {
                 // get account details
                 hasAccount <- accountService.getAccountByID(id)
-                _ <- Future.successful(ADD_OR_RESET_EMAIL.remove(id))
+                _ <- Future.successful{
+                  // remove session details and send notification to UI
+                  ADD_OR_RESET_EMAIL.remove(id)
+                  dynamicBroadcast ! ("BROADCAST_EMAIL_UPDATED", id, email)
+                }
                 // update account
                 updateAccount <- {
                   hasAccount.map { account =>
