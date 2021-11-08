@@ -132,7 +132,7 @@ class SecureActionController @Inject()(
                 LOGIN.remove(account.id)
                 Accepted
               }
-              .getOrElse(NotFound(Json.obj("error" -> "Session not found.")))
+              .getOrElse(NotFound)
           }
         } yield (isDone)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))

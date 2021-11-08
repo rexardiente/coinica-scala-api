@@ -145,14 +145,9 @@ class HomeController @Inject()(
               }
               .getOrElse(Future.successful(0))
           }
-          isDone <- Future.successful {
-            if (isUpdated > 0) {
-              // if process successful, you can now remove the session token
-              RESET_PASSWORD.remove(accountid)
-              Redirect(COINICA_WEB_HOST)
-            }
-            else NotFound(Json.obj("error" -> "The URL is no longer valid."))
-          }
+          // if process successful, you can now remove the session token
+          _ <- Future.successful(RESET_PASSWORD.remove(accountid))
+          isDone <- Future.successful(if (isUpdated > 0) Redirect(COINICA_WEB_HOST) else NotFound)
         } yield (isDone)
       })
   }
@@ -201,21 +196,6 @@ class HomeController @Inject()(
         } yield (processSignUp)
       })
   }
-  // def signOut() = Action.async { implicit request =>
-  //   signForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (username, password)  =>
-  //       accountService
-  //         .getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
-  //         .map {
-  //           case Some(account) =>
-  //             accountService
-  //               .updateUserAccount(account.copy(token=None, tokenLimit=None))
-  //               .map(x => if (x > 0) Accepted else InternalServerError)
-  //           case _ => Future(Unauthorized(views.html.defaultpages.unauthorized()))
-  //         }.flatten
-  //     })
-  // }
   // TODO: store password in hash256 format...
   def signIn(verify: Boolean) = Action.async { implicit request =>
     signForm.bindFromRequest.fold(
@@ -284,19 +264,14 @@ class HomeController @Inject()(
                 val updatedAccount = account.copy(email = Some(email))
                 accountService
                   .updateUserAccount(updatedAccount)
-                  .map { x =>
-                    if (x > 0) {
-                      ADD_OR_RESET_EMAIL.remove(id)
-                      Created
-                    }
-                    else InternalServerError
-                  }
+                  .map(x => if (x > 0) Created else InternalServerError)
               }
-              .getOrElse(Future.successful(NotFound(Json.obj("error" -> "The URL is no longer valid."))))
+              .getOrElse(Future.successful(NotFound))
             }
+            _ <- Future.successful(ADD_OR_RESET_EMAIL.remove(id))
           } yield (updateAccount)
         }
-        else Future.successful(NotFound(Json.obj("error" -> "The URL is no longer valid.")))
+        else Future.successful(NotFound)
       }
     } yield (isDone)
   }
@@ -350,11 +325,11 @@ class HomeController @Inject()(
             updateAccount <- Future.successful {
               hasAccount
                 .map(_ => Ok(views.html.resetPasswordTemplate(id)))
-                .getOrElse(NotFound(Json.obj("error" -> "The URL is no longer valid.")))
+                .getOrElse(NotFound)
             }
           } yield (updateAccount)
         }
-        else Future.successful(NotFound(Json.obj("error" -> "The URL is no longer valid.")))
+        else Future.successful(NotFound)
       }
     } yield (isDone)
   }
