@@ -1,11 +1,16 @@
-@(id: java.util.UUID, code: String) @main("Coinica - Email Verification") {
+@(id: java.util.UUID, email: String, code: String) @main("Coinica - Email Verification") {
     <script type="text/javascript">
-      window.onload = function() { confirmEmail() };
-      function confirmEmail(params) {
+      window.onload = function() { verify() };
+
+      function verify() {
         $.ajax({
-          type : "GET",
-          url: "/s1/donut/api/v1/user/email/confirm-update?id=@id&code=@code",
-          success: function(res) { window.location="@utils.Config.COINICA_WEB_HOST"; },
+          type : "POST",
+          dataType: 'json',
+          data: JSON.stringify({'email':"@email"}),
+          headers: { 'Content-Type':'application/json' },
+          contentType: "application/json; charset=utf-8",
+          url: "/s1//donut/api/v1/user/email/confirm/submit?id=@id&code=@code",
+          success: function(response) { window.location="@utils.Config.COINICA_WEB_HOST"; },
           error: function(err) { window.location="@utils.Config.COINICA_WEB_HOST"; }
         });
       };

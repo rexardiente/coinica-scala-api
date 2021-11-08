@@ -249,29 +249,43 @@ class HomeController @Inject()(
         catch { case _: Throwable => Future(InternalServerError) }
       })
   }
+  def emailVerificationSubmit(id: UUID, code: String) = Action.async { implicit request =>
+    emailForm.bindFromRequest.fold(
+      formErr => Future.successful(BadRequest("Form Validation Error.")),
+      { case (email)  =>
+        for {
+          // check if user has existing change email token
+          hasSession <- Future.successful(validateEmail.addOrUpdateEmailFromCode(id, code))
+          isDone <- {
+            if (hasSession) {
+              for {
+                // get account details
+                hasAccount <- accountService.getAccountByID(id)
+                _ <- Future.successful(ADD_OR_RESET_EMAIL.remove(id))
+                // update account
+                updateAccount <- {
+                  hasAccount.map { account =>
+                    val updatedAccount = account.copy(email = Some(email))
+                    accountService
+                      .updateUserAccount(updatedAccount)
+                      .map(x => if (x > 0) Created else InternalServerError)
+                  }
+                  .getOrElse(Future.successful(NotFound))
+                }
+              } yield (updateAccount)
+            }
+            else Future.successful(NotFound)
+          }
+        } yield (isDone)
+      })
+  }
   def emailVerification(id: UUID, email: String, code: String) = Action.async { implicit request =>
     for {
       // check if user has existing change email token
       hasSession <- Future.successful(validateEmail.addOrUpdateEmailFromCode(id, code))
-      isDone <- {
-        if (hasSession) {
-          for {
-            // get account details
-            hasAccount <- accountService.getAccountByID(id)
-            // update account
-            updateAccount <- {
-              hasAccount.map { account =>
-                val updatedAccount = account.copy(email = Some(email))
-                accountService
-                  .updateUserAccount(updatedAccount)
-                  .map(x => if (x > 0) Created else InternalServerError)
-              }
-              .getOrElse(Future.successful(NotFound))
-            }
-            _ <- Future.successful(ADD_OR_RESET_EMAIL.remove(id))
-          } yield (updateAccount)
-        }
-        else Future.successful(NotFound)
+      isDone <- Future.successful {
+        if (hasSession) Ok(views.html.emailVerificationTemplate(id, email, code))
+        else NotFound
       }
     } yield (isDone)
   }
