@@ -12,7 +12,7 @@ import models.domain.eosio.GhostQuestCharacterValue
 import models.repo.UserAccountRepo
 import models.domain.wallet.support.ETHJsonRpc
 import akka.common.objects._
-import utils.Config
+import utils.GameConfig
 
 object DynamicBroadcastActor {
   def props(userRepo: UserAccountRepo)(implicit system: ActorSystem) =
@@ -40,12 +40,12 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
 
     case "BROADCAST_NEXT_BATTLE" =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+        actorRef ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
       }
 
     case "BROADCAST_DB_UPDATED" =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "CHARACTERS_UPDATED"))
+        actorRef ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "CHARACTERS_UPDATED"))
       }
 
     case ("BROADCAST_CHARACTER_NO_ENEMY", map: Map[_, _]) =>
@@ -55,15 +55,21 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
             userRepo.getByGameID(v.owner_id).map {
               case Some(v) =>
                 WebSocketActor.subscribers(v.id) !
-                OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(_._2.toJson).toSeq)))
+                OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(_._2.toJson).toSeq)))
               case None => ()
             }
         }
       } catch { case _: Throwable => {} }
     case "BROADCAST_NO_CHARACTERS_AVAILABLE" =>
       WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+        actorRef ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
       }
+    case ("BROADCAST_EMAIL_UPDATED", id: UUID, email: String) =>
+      WebSocketActor
+        .subscribers
+        .filter(_._1 == id)
+        .headOption
+        .map { case (id, actorRef) => actorRef ! OutEvent(JsString("BROADCAST_EMAIL_UPDATED"), JsString(email)) }
 
     case e => log.info("DynamicBroadcastActor: invalid request")
   }

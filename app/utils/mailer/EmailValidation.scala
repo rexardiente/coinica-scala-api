@@ -2,56 +2,38 @@ package play.api.libs.mailer
 
 import javax.inject.{ Inject, Singleton }
 import java.time.Instant
+import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import models.domain.UserAccount
 import models.service.UserAccountService
-import utils.Config
+import utils.SystemConfig
+import utils.auth.AccountTokenSession.{ RESET_PASSWORD, UPDATE_EMAIL }
 
 @Singleton
 class EmailValidation @Inject()(accountService: UserAccountService)(implicit val ec: ExecutionContext) {
-	def emailFromCode[T >: String](code: T): Future[(T, T, T)] = {
+	def addOrUpdateEmailFromCode(id: UUID, code: String): Boolean = {
     try {
       val raw: List[String] = code.toString.split("_").toList
-      // remove random starting random String from the code..
-      val (password, invalidCode) = raw(0).splitAt(64)
-      val email: String = raw(1) // email
-      val username: String = raw(2)
+      val token: String = raw(0)
+      val expiration: Long = raw(1).toLong
+      // check if valid code or not
+      val hasSession = UPDATE_EMAIL.filter(x => x._1 == id && x._2 == (token, expiration)).headOption
 
-      for {
-        account <- hasAccount(username, password)
-        tokenSession <- account.map(acc => accountService.getUserTokenByID(acc.id)).getOrElse(Future(None))
-        result <- Future.successful {
-          tokenSession
-            .map { session =>
-              if (session.email.map(_ >= Instant.now.getEpochSecond).getOrElse(false)) (username, password, email)
-              else null
-            }.getOrElse(null)
-        }
-      } yield (result)
+      hasSession.map(session => if (session._2._2 >= Instant.now.getEpochSecond) true else false).getOrElse(false)
     }
-    catch { case _: Throwable => Future.successful(throw new IllegalArgumentException("Invalid Code")) }
+    catch { case _: Throwable => false }
   }
 
-  def passwordFromCode[T >: String](code: T): Future[(T, T)] = {
+  def resetPasswordFromCode(id: UUID, code: String): Boolean = {
     try {
       val raw: List[String] = code.toString.split("_").toList
-      val (password, invalidCode) = raw(0).splitAt(64)
-      val username: String = raw(1)
-      // check if valid code or not.
-      // hasAccount(username, password).map(exists => if (exists) (username, password) else null)
-      for {
-        account <- hasAccount(username, password)
-        tokenSession <- account.map(acc => accountService.getUserTokenByID(acc.id)).getOrElse(Future(None))
-        result <- Future.successful {
-          tokenSession
-            .map { session =>
-              if (session.password.map(_ >= Instant.now.getEpochSecond).getOrElse(false)) (username, password)
-              else null
-            }.getOrElse(null)
-        }
-      } yield (result)
+      val token: String = raw(0)
+      val expiration: Long = raw(1).toLong
+      // check if valid code or not
+      val hasSession = RESET_PASSWORD.filter(x => x._1 == id && x._2 == (token, expiration)).headOption
+      hasSession.map(session => if (session._2._2 >= Instant.now.getEpochSecond) true else false).getOrElse(false)
     }
-    catch { case _: Throwable => throw new IllegalArgumentException("Invalid Code") }
+    catch { case _: Throwable => false }
   }
   // validate account credentials
   private def isAccountExists(u: String, p: String): Future[Boolean] = accountService.exists(u, p)

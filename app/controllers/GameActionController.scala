@@ -16,7 +16,7 @@ import models.repo._
 import models.service._
 import models.domain.eosio.{ TreasureHuntGameData, TreasureHuntGameDataPanelSet }
 import utils.auth.SecureUserAction
-import utils.Config
+import utils.SystemConfig
 import utils.lib.GhostQuestEOSIO
 
 @Singleton

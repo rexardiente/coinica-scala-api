@@ -9,7 +9,7 @@ import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.repo._
 import models.domain.enum._
 import models.domain._
-import utils.Config._
+import utils.GameConfig._
 
 @Singleton
 class DBMockupGenerator @Inject()(

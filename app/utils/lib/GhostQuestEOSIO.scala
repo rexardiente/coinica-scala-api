@@ -12,7 +12,7 @@ import models.domain.eosio._
 // https://github.com/DonutFactory/eosjs-node-server/blob/master/docs/GHOSTQUEST_V2_API.md
 @Singleton
 class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val nodeServerURI: String = utils.Config.NODE_SERVER_URI
+  val nodeServerURI: String = utils.SystemConfig.NODE_SERVER_URI
   def getUserData(id: Int): Future[Option[GhostQuestGameData]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
     val complexRequest: WSRequest = request

@@ -8,10 +8,10 @@ GET     /                           							controllers.HomeController.index()
 GET  		/coinica  																controllers.Default.redirect(to = "https://app.coinica.net")
 # Login API
 
-POST   	/donut/api/v1/sign-in            					controllers.HomeController.signIn(verify: Boolean ?= false)
+POST   	/donut/api/v1/sign-in            					controllers.HomeController.signIn
 POST   	/donut/api/v1/sign-up            					controllers.HomeController.signUp()
 GET   	/donut/api/v1/sign-out           					controllers.SecureActionController.signOut()
-GET   	/donut/api/v1/login/token/renew   				controllers.SecureActionController.renewLoginSessionToken()
+#GET   	/donut/api/v1/login/token/renew   				controllers.SecureActionController.renewLoginSessionToken()
 
 # Challenge API
 #POST    /donut/api/v1/challenge/add              controllers.HomeController.addChallenge
@@ -124,7 +124,7 @@ GET   /donut/api/v1/game/all/history/:game/:user 				controllers.SecureActionCon
 GET   /donut/api/v1/news controllers.HomeController.news
 
 # User Account
-GET   /donut/api/v1/get/account/username/by 				controllers.HomeController.getAccountNameByID(id: UUID)
+#GET   /donut/api/v1/get/account/username/by 				controllers.HomeController.getAccountNameByID(id: UUID)
 GET   /donut/api/v1/account/code/:code 							controllers.SecureActionController.getAccountByCode(code: String)
 GET   /donut/api/v1/account/id/:id 									controllers.SecureActionController.getAccountByID(id: UUID)
 # User Account Wallet
@@ -140,13 +140,12 @@ GET  	/donut/api/v1/coincap/asset 									controllers.HomeController.getCoinCap
 GET   /donut/api/v1/vip 														controllers.SecureActionController.vipUser(id: UUID)
 
 # Add Email Address Email Confirmation
-GET   /donut/api/v1/user/email/confirm 							controllers.HomeController.emailVerification(code: String)
-POST  /donut/api/v1/user/email/confirm-update 			controllers.SecureActionController.confirmedUpdateEmailAccount()
-POST  /donut/api/v1/user/email/add 									controllers.SecureActionController.addEmailAccount()
+GET   /donut/api/v1/user/email/confirm 							controllers.HomeController.emailVerification(id: UUID, email: String, code: String)
+POST  /donut/api/v1/user/email/confirm/submit 			controllers.HomeController.emailVerificationSubmit(id: UUID, code: String)
+POST  /donut/api/v1/user/email/add 									controllers.SecureActionController.addOrUpdateEmailAccount()
 # Reset Password Email Confirmation
-#GET   /donut/api/v1/user/reset/password/confirm 		controllers.HomeController.resetPasswordVerification(code: String)
 POST  /donut/api/v1/user/password/reset/send 				controllers.HomeController.resetPassword()
-GET   /donut/api/v1/user/password/reset/confirm 		controllers.HomeController.resetPasswordVerification(code: String)
+GET   /donut/api/v1/user/password/reset/confirm 		controllers.HomeController.resetPasswordVerification(id: UUID, code: String)
 POST  /donut/api/v1/user/password/reset/submit 			controllers.HomeController.submitNewPassword()
 
 # Map static resources from the /public folder to the /assets URL path

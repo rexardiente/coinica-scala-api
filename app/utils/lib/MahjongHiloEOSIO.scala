@@ -12,7 +12,7 @@ import models.domain.eosio.MahjongHiloGameData
 
 @Singleton
 class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val nodeServerURI: String = utils.Config.NODE_SERVER_URI
+  val nodeServerURI: String = utils.SystemConfig.NODE_SERVER_URI
 
   def declareWinHand(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/declare-win-hand")

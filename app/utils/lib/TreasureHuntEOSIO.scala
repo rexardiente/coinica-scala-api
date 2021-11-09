@@ -10,7 +10,7 @@ import models.domain.eosio.TreasureHuntGameData
 
 @Singleton
 class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val nodeServerURI: String = utils.Config.NODE_SERVER_URI
+  val nodeServerURI: String = utils.SystemConfig.NODE_SERVER_URI
 
   def treasureHuntAutoPlay(id: Int, username: String, sets: Seq[Int]): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/autoplay")

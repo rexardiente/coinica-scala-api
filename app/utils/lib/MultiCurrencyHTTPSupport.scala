@@ -8,7 +8,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
-import utils.Config._
+import utils.SystemConfig._
 import models.domain.wallet.support.{ ETHJsonRpc, CoinCapAsset }
 
 @Singleton
