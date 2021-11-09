@@ -26,9 +26,6 @@ class UserAccountService @Inject()(
       userWalletHistoryRepo: UserAccountWalletHistoryRepo,
       failedCoinDepositRepo: FailedCoinDepositRepo,
       httpSupport: MultiCurrencyHTTPSupport) {
-  def isExist(name: String): Future[Boolean] =
-  	userAccountRepo.exist(name)
-
   def getAccountByID(id: UUID): Future[Option[UserAccount]] =
   	userAccountRepo.getByID(id)
 
@@ -56,28 +53,28 @@ class UserAccountService @Inject()(
   def exists(username: String, password: String): Future[Boolean] =
     userAccountRepo.exist(username, password)
 
-  def isEmailExist(email: String): Future[Boolean] =
-    userAccountRepo.isEmailExist(email)
+  // def isEmailExist(email: String): Future[Boolean] =
+  //   userAccountRepo.isEmailExist(email)
 
-  def addOrUpdateEmailAccount(id: UUID, email: String): Future[Int] = {
-    for {
-      isExists <- isEmailExist(email)
-      // get acccount based on first validations, proceed adding or updating email
-      account <- getAccountByID(id)
-      process <- {
-        // check if email not associated with any accounts and account exists
-        if (!isExists && account != None) {
-          try {
-            val updatedAccount: UserAccount = account.get.copy(email = Some(email), isVerified = true)
-            updateUserAccount(updatedAccount)
-          } catch {
-            case _: Throwable => Future(0)
-          }
-        }
-        else Future(0)
-      }
-    } yield (process)
-  }
+  // def addOrUpdateEmailAccount(id: UUID, email: String): Future[Int] = {
+  //   for {
+  //     isExists <- isEmailExist(email)
+  //     // get acccount based on first validations, proceed adding or updating email
+  //     account <- getAccountByID(id)
+  //     process <- {
+  //       // check if email not associated with any accounts and account exists
+  //       if (!isExists && account != None) {
+  //         try {
+  //           val updatedAccount: UserAccount = account.get.copy(email = Some(email), isVerified = true)
+  //           updateUserAccount(updatedAccount)
+  //         } catch {
+  //           case _: Throwable => Future(0)
+  //         }
+  //       }
+  //       else Future(0)
+  //     }
+  //   } yield (process)
+  // }
 
   def newVIPAcc(vip: VIPUser): Future[Int] =
   	vipUserRepo.add(vip)
@@ -125,7 +122,7 @@ class UserAccountService @Inject()(
   //   } yield (process)
 
   def addUserWallet(wallet: UserAccountWallet): Future[Int] = userWalletRepo.add(wallet)
-  def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
+  // def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
   def getUserAccountWallet(id: UUID): Future[Option[UserAccountWallet]] = userWalletRepo.getByID(id)
   def getUserAccountWalletHistory(id: UUID): Future[Seq[UserAccountWalletHistory]] =
     userWalletHistoryRepo.getByAccountID(id)

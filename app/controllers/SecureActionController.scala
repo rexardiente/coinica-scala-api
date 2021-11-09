@@ -165,7 +165,7 @@ class SecureActionController @Inject()(
         emailForm.bindFromRequest.fold(
         formErr => Future.successful(BadRequest("Invalid Email Address")),
         { case (email)  =>
-          if (Some(email) == account.email) Future(Conflict)
+          if (Some(email) == account.email) Future.successful(Conflict)
           else {
             val newToken: (String, Long) = SecureUserAction.generateToken()
               for {

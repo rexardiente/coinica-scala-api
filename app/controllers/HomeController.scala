@@ -129,6 +129,8 @@ class HomeController @Inject()(
           hasSession <- Future.successful {
             RESET_PASSWORD.filter(x => x._1 == accountid && x._2._2 >= Instant.now.getEpochSecond).headOption
           }
+          // if process successful, you can now remove the session token
+          _ <- Future.successful(RESET_PASSWORD.remove(accountid))
           // update account password if exists
           isUpdated <- {
             hasSession
@@ -145,8 +147,6 @@ class HomeController @Inject()(
               }
               .getOrElse(Future.successful(0))
           }
-          // if process successful, you can now remove the session token
-          _ <- Future.successful(RESET_PASSWORD.remove(accountid))
           isDone <- Future.successful(if (isUpdated > 0) Redirect(COINICA_WEB_HOST) else NotFound)
         } yield (isDone)
       })
@@ -197,22 +197,17 @@ class HomeController @Inject()(
       })
   }
   // TODO: store password in hash256 format...
-  def signIn(verify: Boolean) = Action.async { implicit request =>
+  def signIn = Action.async { implicit request =>
     signForm.bindFromRequest.fold(
       formErr => Future.successful(BadRequest("Form Validation Error.")),
       { case (username, password)  =>
         try {
           for {
-            // check if sigin is from verifications no need Encryption
-            // else Encryptkey for security validation
-            isAccountExists <- {
-              if (verify) accountService.getAccountByUserNamePassword(username, password)
-              else accountService.getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
-            }
+            isAccountExists <- accountService.getAccountByUserNamePassword(username, encryptKey.toSHA256(password))
             processed <- {
               // check if has existing token (UPDATE) else insert new and return to user..
-              if (isAccountExists != None)  {
-                val accountID: UUID = isAccountExists.get.id
+              isAccountExists.map { account =>
+                val accountID: UUID = account.id
                 for {
                   // get account if has existing token..
                   userToken <- Future.successful(LOGIN.filter(_._1 == accountID).headOption)
@@ -241,8 +236,7 @@ class HomeController @Inject()(
                       })
                   }
                 } yield (verifyToken)
-              }
-              else Future(Unauthorized(views.html.defaultpages.unauthorized()))
+              }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
             }
           } yield (processed)
         }
@@ -269,7 +263,7 @@ class HomeController @Inject()(
                 // update account
                 updateAccount <- {
                   hasAccount.map { account =>
-                    val updatedAccount = account.copy(email = Some(email))
+                    val updatedAccount = account.copy(email = Some(email), isVerified = true)
                     accountService
                       .updateUserAccount(updatedAccount)
                       .map(x => if (x > 0) Created else InternalServerError)
@@ -284,14 +278,7 @@ class HomeController @Inject()(
       })
   }
   def emailVerification(id: UUID, email: String, code: String) = Action.async { implicit request =>
-    for {
-      // check if user has existing change email token
-      hasSession <- Future.successful(validateEmail.addOrUpdateEmailFromCode(id, code))
-      isDone <- Future.successful {
-        if (hasSession) Ok(views.html.emailVerificationTemplate(id, email, code))
-        else NotFound
-      }
-    } yield (isDone)
+    Future.successful(Ok(views.html.emailVerificationTemplate(id, email, code)))
   }
   // Check if email is valid email and if email exist then send confirmation link..
   def resetPassword() = Action.async { implicit request =>
@@ -359,22 +346,6 @@ class HomeController @Inject()(
           .add(Challenge(name, description, startAt, expiredAt.getOrElse(startAt + 86400)))
           .map(r => if(r > 0) Created else InternalServerError)
       })
-  }
-  // TODO: Need enhancements
-  def updateChallenge(id: UUID) = Action.async { implicit req =>
-    challengeForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, description, startAt, expiredAt)  =>
-        challengeRepo
-          .update(Challenge(id, name, description, startAt, expiredAt.getOrElse(Instant.now.getEpochSecond)))
-          .map(r => if(r > 0) Ok else NotFound)
-      })
-  }
-
-  def removeChallenge(id: UUID) = Action.async { implicit req =>
-    challengeRepo
-      .delete(id)
-      .map(r => if(r > 0) Ok else NotFound)
   }
 
   def getChallenge(date: Option[Instant]) = Action.async { implicit req =>
@@ -449,90 +420,82 @@ class HomeController @Inject()(
   def getRankingHistory() = Action.async { implicit req =>
     rankingService.getRankingHistory().map(x => Ok(Json.toJson(x)))
   }
-
   def games() = Action.async { implicit req =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
   }
-
-  def addGame() = Action.async { implicit req =>
-    gameForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (game, imgURL, path, genre, description)  =>
-        for {
-          isExist <- genreRepo.exist(genre)
-          processed  <- {
-            if (isExist)
-              gameRepo
-                .add(Game(UUID.randomUUID, game, path, imgURL, genre, description))
-                .map(r => if(r > 0) Created else InternalServerError)
-            else Future(NotFound)
-          }
-        } yield(processed)
-      })
-  }
+  // def addGame() = Action.async { implicit req =>
+  //   gameForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (game, imgURL, path, genre, description)  =>
+  //       for {
+  //         isExist <- genreRepo.exist(genre)
+  //         processed  <- {
+  //           if (isExist)
+  //             gameRepo
+  //               .add(Game(UUID.randomUUID, game, path, imgURL, genre, description))
+  //               .map(r => if(r > 0) Created else InternalServerError)
+  //           else Future(NotFound)
+  //         }
+  //       } yield(processed)
+  //     })
+  // }
 
   def findGameByID(id: UUID) = Action.async { implicit req =>
     gameRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
+  // def updateGame(id: UUID) = Action.async { implicit req =>
+  //   gameForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (game, imgURL, path, genre, description) =>
+  //       for {
+  //         isExist <- genreRepo.exist(genre)
+  //          processed <- {
+  //             if (isExist)
+  //               gameRepo
+  //                 .update(Game(id, game, imgURL, path, genre, description))
+  //                 .map(r => if(r > 0) Ok else InternalServerError)
+  //             else Future(NotFound)
+  //          }
+  //       } yield(processed)
 
-  def updateGame(id: UUID) = Action.async { implicit req =>
-    gameForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (game, imgURL, path, genre, description) =>
-        for {
-          isExist <- genreRepo.exist(genre)
-           processed <- {
-              if (isExist)
-                gameRepo
-                  .update(Game(id, game, imgURL, path, genre, description))
-                  .map(r => if(r > 0) Ok else InternalServerError)
-              else Future(NotFound)
-           }
-        } yield(processed)
-
-      })
-  }
-
-  def removeGame(id: UUID) = Action.async { implicit req =>
-    gameRepo
-      .delete(id)
-      .map(r => if(r > 0) Ok else NotFound)
-  }
+  //     })
+  // }
+  // def removeGame(id: UUID) = Action.async { implicit req =>
+  //   gameRepo
+  //     .delete(id)
+  //     .map(r => if(r > 0) Ok else NotFound)
+  // }
 
   /* GENRE API */
   def genres() = Action.async { implicit req =>
     genreRepo.all().map(genre => Ok(Json.toJson(genre)))
   }
-
   def findGenreByID(id: UUID) = Action.async { implicit req =>
     genreRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
-
-  def addGenre() = Action.async { implicit req =>
-    genreForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, description)  =>
-        genreRepo
-          .add(Genre(UUID.randomUUID, name, description))
-          .map(r => if(r > 0) Created else InternalServerError)
-      })
-  }
-
-  def updateGenre(id: UUID) = Action.async { implicit req =>
-    genreForm.bindFromRequest.fold(
-      formErr => Future.successful(BadRequest("Form Validation Error.")),
-      { case (name, description) =>
-        genreRepo
-          .update(Genre(id, name, description))
-          .map(r => if(r > 0) Ok else InternalServerError)
-      })
-  }
-
-  def removeGenre(id: UUID) = Action.async { implicit req =>
-    genreRepo
-      .delete(id)
-      .map(r => if(r > 0) Ok else NotFound)
-  }
+  // def addGenre() = Action.async { implicit req =>
+  //   genreForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (name, description)  =>
+  //       genreRepo
+  //         .add(Genre(UUID.randomUUID, name, description))
+  //         .map(r => if(r > 0) Created else InternalServerError)
+  //     })
+  // }
+  // def updateGenre(id: UUID) = Action.async { implicit req =>
+  //   genreForm.bindFromRequest.fold(
+  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
+  //     { case (name, description) =>
+  //       genreRepo
+  //         .update(Genre(id, name, description))
+  //         .map(r => if(r > 0) Ok else InternalServerError)
+  //     })
+  // }
+  // def removeGenre(id: UUID) = Action.async { implicit req =>
+  //   genreRepo
+  //     .delete(id)
+  //     .map(r => if(r > 0) Ok else NotFound)
+  // }
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     eosNetTransaction.getTxByDateRange(start, end, limit, offset).map(Ok(_))
@@ -548,7 +511,7 @@ class HomeController @Inject()(
   def getCoinCapAsset() = Action.async { implicit request =>
     multiCurrencySupport.getCoinCapAssets().map(x => Ok(Json.toJson(x)))
   }
-   def getAccountNameByID(id: UUID) = Action.async { implicit request =>
+  def getAccountNameByID(id: UUID) = Action.async { implicit request =>
     accountService.getAccountByID(id).map(x => Ok(Json.obj("username" -> x.map(_.username))))
   }
 }
