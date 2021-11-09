@@ -6,8 +6,8 @@ import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import models.domain.UserAccount
 import models.service.UserAccountService
-import utils.Config
-import utils.auth.AccountTokenSession.{ RESET_PASSWORD, ADD_OR_RESET_EMAIL }
+import utils.SystemConfig
+import utils.auth.AccountTokenSession.{ RESET_PASSWORD, UPDATE_EMAIL }
 
 @Singleton
 class EmailValidation @Inject()(accountService: UserAccountService)(implicit val ec: ExecutionContext) {
@@ -17,7 +17,7 @@ class EmailValidation @Inject()(accountService: UserAccountService)(implicit val
       val token: String = raw(0)
       val expiration: Long = raw(1).toLong
       // check if valid code or not
-      val hasSession = ADD_OR_RESET_EMAIL.filter(x => x._1 == id && x._2 == (token, expiration)).headOption
+      val hasSession = UPDATE_EMAIL.filter(x => x._1 == id && x._2 == (token, expiration)).headOption
 
       hasSession.map(session => if (session._2._2 >= Instant.now.getEpochSecond) true else false).getOrElse(false)
     }

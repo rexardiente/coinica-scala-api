@@ -18,7 +18,7 @@
 // import utils.lib.{ GhostQuestEOSIO, GQBattleCalculation }
 // import models.domain.eosio.GQ.v2._
 // import akka.common.objects._
-// import utils.Config
+// import utils.SystemConfig
 
 // object GQSchedulerActorV2 {
 //   val defaultTimeSet: Int            = Config.GQ_DEFAULT_BATTLE_TIMER

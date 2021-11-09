@@ -10,7 +10,8 @@ import akka.actor._
 import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
-import utils.Config.{ SUPPORTED_SYMBOLS, GQ_CODE, GQ_GAME_ID }
+import utils.SystemConfig.SUPPORTED_SYMBOLS
+import utils.GameConfig.{ GQ_CODE, GQ_GAME_ID }
 import models.domain.eosio.{ GhostQuestCharacter, GhostQuestCharacterHistory }
 import models.repo.eosio._
 import models.domain.{ OverAllGameHistory, PaymentType }

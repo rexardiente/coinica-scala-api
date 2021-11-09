@@ -17,8 +17,8 @@ import models.domain.wallet.support.{ Coin, CoinDeposit, CoinWithdraw }
 import models.repo._
 import models.service._
 import utils.auth.SecureUserAction
-import utils.auth.AccountTokenSession.{ LOGIN, ADD_OR_RESET_EMAIL }
-import utils.Config
+import utils.auth.AccountTokenSession.{ LOGIN, UPDATE_EMAIL }
+import utils.SystemConfig
 
 @Singleton
 class SecureActionController @Inject()(
@@ -116,7 +116,7 @@ class SecureActionController @Inject()(
       .account
       .map { account =>
         accountService
-          .getUserAccountWalletHistory(account.id)
+          .getUserAccountWalletHistory(UUID.fromString("f2dd2b5e-2dde-4134-bbb2-46a284aae500"))
           .map(x => Ok(Json.toJson(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
@@ -172,11 +172,11 @@ class SecureActionController @Inject()(
                 // check if has existing request token to update else create new
                 _ <- Future.successful {
                   // add the newly created token to session lists..
-                  ADD_OR_RESET_EMAIL
+                  UPDATE_EMAIL
                     .filter(_._1 == account.id)
                     .headOption
-                    .map(session => ADD_OR_RESET_EMAIL(session._1) = newToken)
-                    .getOrElse(ADD_OR_RESET_EMAIL.addOne(account.id -> newToken))
+                    .map(session => UPDATE_EMAIL(session._1) = newToken)
+                    .getOrElse(UPDATE_EMAIL.addOne(account.id -> newToken))
                 }
                 send <- Future.successful {
                   try {

@@ -1,32 +1,17 @@
 package utils
 
+import java.time.Instant
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 import com.typesafe.config.{ ConfigFactory, ConfigList, ConfigValue }
 import play.api.{ ConfigLoader, Configuration }
 
-object Config {
+object SystemConfig {
 	val config = ConfigFactory.load()
 	val DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = config.getInt("platform.default.system.scheduler")
 	val DEFAULT_WEI_VALUE: BigDecimal = BigDecimal(config.getString("platform.wei.value"))
-	val GQ_DEFAULT_BATTLE_TIMER: Int = config.getInt("platform.games.GQ.battle.timer")
 	val SUPPORTED_CURRENCIES: List[String] = config.getStringList("platform.supported.currencies").asScala.toList
 	val SUPPORTED_SYMBOLS: List[String] = config.getStringList("platform.supported.symbols").asScala.toList
-	// Ghost Quest
-	val GQ: List[String] = config.getStringList("platform.games.contracts.ghostquest").asScala.toList
-	val GQ_CODE: String = GQ(0)
-	val GQ_GAME_ID: UUID = UUID.fromString(GQ(1))
-	val GQ_GAME_CODE: String = GQ(2)
-	// Treasure Hunt
-	val TH: List[String] = config.getStringList("platform.games.contracts.treasurehunt").asScala.toList
-	val TH_CODE: String = TH(0)
-	val TH_GAME_ID: UUID = UUID.fromString(TH(1))
-	val TH_GAME_CODE: String = TH(2)
-	// Mahjong Hilo
-	val MJHilo: List[String] = config.getStringList("platform.games.contracts.mahjonghilo").asScala.toList
-	val MJHilo_CODE: String = MJHilo(0)
-	val MJHilo_GAME_ID: UUID = UUID.fromString(MJHilo(1))
-	val MJHilo_GAME_CODE: String = MJHilo(2)
 	// Server Host URL
 	private val serverAllowedURLs: List[String] = config.getStringList("play.filters.hosts.url").asScala.toList
 	private val serverAllowedProtocols: List[String] = config.getStringList("play.filters.hosts.protocol").asScala.toList
@@ -41,6 +26,7 @@ object Config {
 	// Instant + (limit * (60:1 minute))
 	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
 	val DEFAULT_MAIL_EXPIRATION: Int = config.getInt("play.mailer.expiration")
-	def MAIL_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (DEFAULT_MAIL_EXPIRATION * 60))
-	def TOKEN_EXPIRATION: Long = (java.time.Instant.now.getEpochSecond + (config.getInt("platform.token.expiration") * 60))
+	val DEFAULT_TOKEN_EXPIRATION: Int = config.getInt("platform.token.expiration")
+	def MAIL_EXPIRATION: Long = Instant.now.getEpochSecond + (DEFAULT_MAIL_EXPIRATION * 60)
+	def TOKEN_EXPIRATION: Long = Instant.now.getEpochSecond + (DEFAULT_TOKEN_EXPIRATION * 60)
 }

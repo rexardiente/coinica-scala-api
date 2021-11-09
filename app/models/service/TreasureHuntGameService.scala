@@ -7,7 +7,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorRef
 import play.api.libs.json._
-import utils.Config.{ SUPPORTED_SYMBOLS, TH_CODE, TH_GAME_ID }
+import utils.GameConfig.{ TH_CODE, TH_GAME_ID }
+import utils.SystemConfig.SUPPORTED_SYMBOLS
 import models.domain.eosio.TreasureHuntGameData
 import models.domain._
 

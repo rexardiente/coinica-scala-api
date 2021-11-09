@@ -16,7 +16,7 @@ import models.repo.{
   FailedCoinDepositRepo
 }
 import utils.lib.MultiCurrencyHTTPSupport
-import utils.Config.{ DEFAULT_WEI_VALUE, SUPPORTED_SYMBOLS }
+import utils.SystemConfig.{ DEFAULT_WEI_VALUE, SUPPORTED_SYMBOLS }
 
 @Singleton
 class UserAccountService @Inject()(

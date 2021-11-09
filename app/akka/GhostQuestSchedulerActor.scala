@@ -14,7 +14,7 @@ import models.domain._
 import models.domain.eosio._
 import models.service._
 import utils.lib._
-import utils.Config._
+import utils.GameConfig._
 
 object GhostQuestSchedulerActor {
   val defaultTimeSet: Int            = GQ_DEFAULT_BATTLE_TIMER

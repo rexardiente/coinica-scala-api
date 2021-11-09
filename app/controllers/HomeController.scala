@@ -19,10 +19,12 @@ import models.repo._
 import models.repo.eosio._
 import models.service._
 import models.domain.enum._
-import akka.WebSocketActor
-import utils.Config.{ COINICA_WEB_HOST, SUPPORTED_SYMBOLS, MAIL_EXPIRATION }
 import models.domain.wallet.support.Coin
-import utils.auth.AccountTokenSession.{ LOGIN, ADD_OR_RESET_EMAIL, RESET_PASSWORD }
+import akka.WebSocketActor
+import utils.SystemConfig.{ COINICA_WEB_HOST, SUPPORTED_SYMBOLS, MAIL_EXPIRATION }
+import utils.auth.AccountTokenSession.{ LOGIN, UPDATE_EMAIL, RESET_PASSWORD }
+import utils.auth.SecureUserAction
+import utils.lib.MultiCurrencyHTTPSupport
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
@@ -36,7 +38,6 @@ class HomeController @Inject()(
       genreRepo: GenreRepo,
       challengeRepo: ChallengeRepo,
       newsRepo: NewsRepo,
-      taskService: TaskService,
       rankingService: RankingService,
       referralHistoryService:  ReferralHistoryService,
       eosNetTransaction: EOSNetTransactionService,
@@ -49,11 +50,11 @@ class HomeController @Inject()(
       mat: akka.stream.Materializer,
       assets: Assets,
       errorHandler: HttpErrorHandler,
-      SecureUserAction: utils.auth.SecureUserAction,
+      SecureUserAction: SecureUserAction,
       encryptKey: utils.auth.EncryptKey,
       validateEmail: EmailValidation,
       mailerService: MailerService,
-      multiCurrencySupport: utils.lib.MultiCurrencyHTTPSupport,
+      multiCurrencySupport: MultiCurrencyHTTPSupport,
       implicit val system: akka.actor.ActorSystem,
       val controllerComponents: ControllerComponents) extends BaseController {
   implicit val messageFlowTransformer = utils.MessageTransformer.jsonMessageFlowTransformer[Event, Event]
@@ -103,13 +104,7 @@ class HomeController @Inject()(
 
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
-      WebSocketActor.props(out,
-                          accountService,
-                          overAllGameHistoryRepo,
-                          vipUserRepo,
-                          ghostQuestEOSIO,
-                          dynamicBroadcast,
-                          dynamicProcessor)
+      WebSocketActor.props(out, accountService, overAllGameHistoryRepo, vipUserRepo, ghostQuestEOSIO, dynamicBroadcast, dynamicProcessor)
     }
   }
 
@@ -257,7 +252,7 @@ class HomeController @Inject()(
                 hasAccount <- accountService.getAccountByID(id)
                 _ <- Future.successful{
                   // remove session details and send notification to UI
-                  ADD_OR_RESET_EMAIL.remove(id)
+                  UPDATE_EMAIL.remove(id)
                   dynamicBroadcast ! ("BROADCAST_EMAIL_UPDATED", id, email)
                 }
                 // update account
@@ -510,8 +505,5 @@ class HomeController @Inject()(
   }
   def getCoinCapAsset() = Action.async { implicit request =>
     multiCurrencySupport.getCoinCapAssets().map(x => Ok(Json.toJson(x)))
-  }
-  def getAccountNameByID(id: UUID) = Action.async { implicit request =>
-    accountService.getAccountByID(id).map(x => Ok(Json.obj("username" -> x.map(_.username))))
   }
 }

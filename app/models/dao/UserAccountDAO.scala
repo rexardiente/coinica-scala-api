@@ -7,7 +7,7 @@ import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.{ UserAccount, VIPUser, UserAccountWallet }
 import models.domain.wallet.support.{ Coin, FailedCoinDeposit }
 import models.domain.enum._
-import utils.Config.SUPPORTED_SYMBOLS
+import utils.SystemConfig.SUPPORTED_SYMBOLS
 
 @Singleton
 final class UserAccountDAO @Inject()(

@@ -9,7 +9,8 @@ import scala.language.postfixOps
 import akka.actor.ActorRef
 import play.api.libs.json._
 import Ordering.Double.IeeeOrdering
-import utils.Config.{ SUPPORTED_SYMBOLS, MJHilo_CODE, MJHilo_GAME_ID }
+import utils.GameConfig.{ MJHilo_CODE, MJHilo_GAME_ID }
+import utils.SystemConfig.SUPPORTED_SYMBOLS
 import models.domain._
 import models.domain.eosio.{ MahjongHiloGameData, MahjongHiloHistory }
 import models.repo.eosio.MahjongHiloHistoryRepo

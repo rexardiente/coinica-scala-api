@@ -12,7 +12,7 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import Ordering.Double.IeeeOrdering
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
-import utils.Config._
+import utils.{GameConfig, SystemConfig }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects._
@@ -95,7 +95,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
         if (!SystemSchedulerActor.isIntialized) {
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = { DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
+          val dailySchedInterval: FiniteDuration = { SystemConfig.DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
           val dailySchedDelay   : FiniteDuration = {
               val time = LocalTime.of(0, 0).toSecondOfDay
               val now = LocalTime.now().toSecondOfDay
@@ -115,9 +115,9 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           // set true if actor already initialized
           SystemSchedulerActor.isIntialized = true
           // load default SC users/account to avoid adding into user accounts table
-          WebSocketActor.subscribers.addOne(GQ_GAME_ID, self)
-          WebSocketActor.subscribers.addOne(TH_GAME_ID, self)
-          WebSocketActor.subscribers.addOne(MJHilo_GAME_ID, self)
+          WebSocketActor.subscribers.addOne(GameConfig.GQ_GAME_ID, self)
+          WebSocketActor.subscribers.addOne(GameConfig.TH_GAME_ID, self)
+          WebSocketActor.subscribers.addOne(GameConfig.MJHilo_GAME_ID, self)
           log.info("System Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
@@ -152,11 +152,11 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                   val initialAmount: Double = detail.result.value.toDouble
                                   val totalAmount: BigDecimal = w.currency match {
                                     case "USDC" =>
-                                      (detail.result.gasPrice * DEFAULT_WEI_VALUE) + initialAmount
+                                      (detail.result.gasPrice * SystemConfig.DEFAULT_WEI_VALUE) + initialAmount
 
                                     case "ETH" =>
                                       val maxTxFeeLimit: BigDecimal = 500000
-                                      (((maxTxFeeLimit * detail.result.gasPrice) * DEFAULT_WEI_VALUE) + initialAmount)
+                                      (((maxTxFeeLimit * detail.result.gasPrice) * SystemConfig.DEFAULT_WEI_VALUE) + initialAmount)
                                   }
                                   userAccountService.deductBalanceByCurrency(account.id, w.currency, totalAmount)
                                 }
@@ -412,7 +412,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             .filter(_._3 > 0)
             .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, user.username, v._2, v._3)).getOrElse(null)))
         }
-        currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(SUPPORTED_SYMBOLS(0))
+        currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(SystemConfig.SUPPORTED_SYMBOLS(0))
         // total bet amount * (EOS price -> USD)
         wagered <- Future.sequence {
           processedBets

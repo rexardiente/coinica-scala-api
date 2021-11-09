@@ -8,7 +8,7 @@ import scala.collection.mutable
 import play.api.mvc._
 import models.domain.UserAccount
 import models.service.UserAccountService
-import utils.Config.TOKEN_EXPIRATION
+import utils.SystemConfig.TOKEN_EXPIRATION
 import AccountTokenSession.{ LOGIN => loginSession }
 
 @Singleton

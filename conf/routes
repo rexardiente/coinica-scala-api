@@ -124,7 +124,7 @@ GET   /donut/api/v1/game/all/history/:game/:user 				controllers.SecureActionCon
 GET   /donut/api/v1/news controllers.HomeController.news
 
 # User Account
-GET   /donut/api/v1/get/account/username/by 				controllers.HomeController.getAccountNameByID(id: UUID)
+#GET   /donut/api/v1/get/account/username/by 				controllers.HomeController.getAccountNameByID(id: UUID)
 GET   /donut/api/v1/account/code/:code 							controllers.SecureActionController.getAccountByCode(code: String)
 GET   /donut/api/v1/account/id/:id 									controllers.SecureActionController.getAccountByID(id: UUID)
 # User Account Wallet

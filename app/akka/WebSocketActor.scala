@@ -18,7 +18,7 @@ import models.repo.{ OverAllGameHistoryRepo, VIPUserRepo }
 import models.service.UserAccountService
 import models.domain.wallet.support.UserAccountWalletHistory
 import utils.lib.GhostQuestEOSIO
-import utils.Config
+import utils.GameConfig
 
 object WebSocketActor {
   def props(
@@ -138,9 +138,9 @@ class WebSocketActor@Inject()(
                 // if result is empty it means on battle else standby mode..
                 case cc: GQGetNextBattle =>
                   if (GhostQuestSchedulerActor.nextBattle == 0)
-                    out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
+                    out ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
                   else
-                    out ! OutEvent(JsString(Config.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+                    out ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
 
                 case e: EOSNotifyTransaction =>
                   // Check if notification relates to TH

@@ -7,16 +7,16 @@ import scala.util.Random
 import scala.concurrent.Future
 import play.api.libs.mailer._
 import org.apache.commons.mail.EmailAttachment
-import utils.Config
+import utils.SystemConfig
 import models.domain.UserAccount
 
 @Singleton
 class MailerService @Inject()(mailerClient: MailerClient) {
   def sendAddOrUpdateEmailAddres(accountID: UUID, username: String, address: String, session: (String, Long), isUpdate: Boolean): String = {
     // default constructors
-    val mailerAddress: String = Config.MAILER_ADDRESS
-    val url: String = Config.MAILER_HOST
-    val protocol: String = Config.PROTOCOL
+    val mailerAddress: String = SystemConfig.MAILER_ADDRESS
+    val url: String = SystemConfig.MAILER_HOST
+    val protocol: String = SystemConfig.PROTOCOL
     // compose code for email link
     val code: String = s"${session._1}_${session._2}"
     val codeURL: String = s"${protocol}://${url}/donut/api/v1/user/email/confirm?id=${accountID}&email=${address}&code=${code}"
@@ -40,9 +40,9 @@ class MailerService @Inject()(mailerClient: MailerClient) {
 
   def sendResetPasswordEmail(accountID: UUID, username: String, address: String, session: (String, Long)): String = {
     // default constructors
-    val mailerAddress: String = Config.MAILER_ADDRESS
-    val url: String = Config.MAILER_HOST
-    val protocol: String = Config.PROTOCOL
+    val mailerAddress: String = SystemConfig.MAILER_ADDRESS
+    val url: String = SystemConfig.MAILER_HOST
+    val protocol: String = SystemConfig.PROTOCOL
     // compose code for email link
     // sample code ~> ==tokenb2fc31ce-b683-46af-bs1b2-5c579aea39df_123123123213
     val code: String = s"${session._1}_${session._2}"
