@@ -31,14 +31,20 @@ class SecureUserAction @Inject()(
   def transform[A](request: Request[A]): Future[SecureUserRequest[A]] = {
     val clientID: UUID = request.headers.get("CLIENT_ID").map(UUID.fromString(_)).getOrElse(UUID.randomUUID)
     val clientToken: String = request.headers.get("CLIENT_TOKEN").getOrElse(null)
-    val currentTime: Long = Instant.now.getEpochSecond
     // find existing account login session based on requested CLIENT_ID and CLIENT_TOKEN
-    loginSession.filter(x => x._1 == clientID && x._2._1 == clientToken && x._2._2 >= currentTime)
+    loginSession.filter(x => x._1 == clientID && x._2._1 == clientToken)
         .headOption
         .map(session => {
-          // update existing login session then proceed on the process..
-          loginSession(session._1) = (session._2._1, TOKEN_EXPIRATION)
-          accService.getAccountByID(session._1).map(new SecureUserRequest(_, request))
+          val currentTime: Long = Instant.now.getEpochSecond
+          if (session._2._2 >= currentTime) {
+            // update existing login session then proceed on the process..
+            loginSession(session._1) = (session._2._1, TOKEN_EXPIRATION)
+            accService.getAccountByID(session._1).map(new SecureUserRequest(_, request))
+          }
+          else {
+            loginSession.remove(session._1)
+            Future.successful(new SecureUserRequest(None, request))
+          }
         })
         .getOrElse(Future.successful(new SecureUserRequest(None, request)))
   }
