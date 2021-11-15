@@ -35,9 +35,16 @@ class SecureUserAction @Inject()(
     loginSession.filter(x => x._1 == clientID && x._2._1 == clientToken)
         .headOption
         .map(session => {
-          // update existing login session then proceed on the process..
-          loginSession(session._1) = (session._2._1, TOKEN_EXPIRATION)
-          accService.getAccountByID(session._1).map(new SecureUserRequest(_, request))
+          val currentTime: Long = Instant.now.getEpochSecond
+          if (session._2._2 >= currentTime) {
+            // update existing login session then proceed on the process..
+            loginSession(session._1) = (session._2._1, TOKEN_EXPIRATION)
+            accService.getAccountByID(session._1).map(new SecureUserRequest(_, request))
+          }
+          else {
+            loginSession.remove(session._1)
+            Future.successful(new SecureUserRequest(None, request))
+          }
         })
         .getOrElse(Future.successful(new SecureUserRequest(None, request)))
   }
