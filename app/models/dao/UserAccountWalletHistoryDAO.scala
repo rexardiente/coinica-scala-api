@@ -25,5 +25,6 @@ final class UserAccountWalletHistoryDAO @Inject()(
 
   object Query extends TableQuery(new UserAccountWalletHistoryTable(_)) {
     def apply(hash: String) = this.withFilter(_.txHash === hash)
+    def apply(id: UUID) = this.withFilter(_.id === id)
   }
 }

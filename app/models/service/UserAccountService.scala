@@ -26,6 +26,12 @@ class UserAccountService @Inject()(
       userWalletHistoryRepo: UserAccountWalletHistoryRepo,
       failedCoinDepositRepo: FailedCoinDepositRepo,
       httpSupport: MultiCurrencyHTTPSupport) {
+  def paginatedResult[T](result: Seq[T], size: Int, limit: Int, offset: Int) = Future.successful {
+    val currentPage: Int = limit * offset
+    val hasNext = ((size - currentPage) - limit) > 0
+    PaginatedResult[T](result.size, result.toList, hasNext)
+  }
+
   def getAccountByID(id: UUID): Future[Option[UserAccount]] =
   	userAccountRepo.getByID(id)
 
@@ -124,8 +130,16 @@ class UserAccountService @Inject()(
   def addUserWallet(wallet: UserAccountWallet): Future[Int] = userWalletRepo.add(wallet)
   // def walletExists(id: UUID): Future[Boolean] = userWalletRepo.exists(id)
   def getUserAccountWallet(id: UUID): Future[Option[UserAccountWallet]] = userWalletRepo.getByID(id)
-  def getUserAccountWalletHistory(id: UUID): Future[Seq[UserAccountWalletHistory]] =
-    userWalletHistoryRepo.getByAccountID(id)
+  // def getUserAccountWalletHistory(id: UUID, limit: Int, offset: Int): Future[Seq[UserAccountWalletHistory]] =
+  // userWalletHistoryRepo.getByAccountID(id, limit,offset)
+  def getUserAccountWalletHistory(id: UUID, limit: Int, offset: Int): Future[PaginatedResult[UserAccountWalletHistory]] = {
+    val currentPage: Int = limit * offset
+    for {
+      tasks <- userWalletHistoryRepo.getByAccountID(id, limit, currentPage)
+      size <- userWalletHistoryRepo.getTotalSizeByID(id)
+      toPaginate <- paginatedResult(tasks, size, limit, offset)
+    } yield toPaginate
+  }
 
   def addBalanceByCurrency(id: UUID, currency: String, totalAmount: BigDecimal): Future[Int] = {
     for {

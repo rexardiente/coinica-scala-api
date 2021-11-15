@@ -16,13 +16,18 @@ class UserAccountWalletHistoryRepo @Inject()(
   def add(history: UserAccountWalletHistory): Future[Int] =
     db.run(dao.Query += history)
   def update(challenge: UserAccountWalletHistory): Future[Int] =
-    db.run(dao.Query.filter(_.id === challenge.id).update(challenge))
+    db.run(dao.Query(challenge.id).update(challenge))
   def existByTxHash(txHash: String): Future[Boolean] =
     db.run(dao.Query(txHash).exists.result)
   def existByTxHashAndID(hash: String, id: UUID): Future[Boolean] =
     db.run(dao.Query.filter(x => x.txHash === hash && x.id === id).exists.result)
-  def getByAccountID(id: UUID): Future[Seq[UserAccountWalletHistory]] =
-    db.run(dao.Query.filter(_.id === id).result)
+  def getByAccountID(id: UUID, limit: Int, offset: Int): Future[Seq[UserAccountWalletHistory]] =
+    db.run(dao.Query(id).drop(offset).take(limit).result)
   def all(): Future[Seq[UserAccountWalletHistory]] =
     db.run(dao.Query.result)
+  def getTotalSizeByID(id: UUID): Future[Int] =
+    db.run(dao.Query(id).length.result)
+  def size(): Future[Int] =
+    db.run(dao.Query.length.result)
+  // .map(_.size)
 }

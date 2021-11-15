@@ -111,12 +111,12 @@ class SecureActionController @Inject()(
           .map(x => Ok(x.map(_.toJson).getOrElse(JsNull)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getUserAccountWalletHistory() = SecureUserAction.async { implicit request =>
+  def getUserAccountWalletHistory(limit: Int, page: Int) = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
         accountService
-          .getUserAccountWalletHistory(UUID.fromString("f2dd2b5e-2dde-4134-bbb2-46a284aae500"))
+          .getUserAccountWalletHistory(account.id, limit, page)
           .map(x => Ok(Json.toJson(x)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
