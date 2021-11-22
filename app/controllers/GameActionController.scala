@@ -144,6 +144,15 @@ class GameActionController @Inject()(
         })
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
+  def mahjongHiloRiichiDiscard() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map { account =>
+        mjHiloGameService
+          .riichiDiscard(account.userGameID)
+          .map(_.map(x => Ok(JsString(x))).getOrElse(InternalServerError))
+      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def mahjongHiloInitialize() = SecureUserAction.async { implicit request =>
     request
       .account

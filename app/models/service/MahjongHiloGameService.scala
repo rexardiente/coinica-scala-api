@@ -28,6 +28,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		contract.declareKong(userGameID, sets)
 	def discardTile(userGameID: Int, index: Int): Future[Option[String]] =
 		contract.discardTile(userGameID, index)
+	def riichiDiscard(userGameID: Int): Future[Option[String]] =
+		contract.riichiDiscard(userGameID)
 	def playHilo(id: UUID, username: String, userGameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
 		for {
 			currentGameData <- getUserData(userGameID)

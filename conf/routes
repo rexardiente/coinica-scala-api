@@ -103,6 +103,7 @@ POST  /donut/api/v1/game/mahjong-hilo/add/bet 					controllers.GameActionControl
 GET  	/donut/api/v1/game/mahjong-hilo/start-game 				controllers.GameActionController.mahjongHiloStart
 GET  	/donut/api/v1/game/mahjong-hilo/transfer 					controllers.GameActionController.mahjongHiloTransfer
 GET  	/donut/api/v1/game/mahjong-hilo/withdraw 					controllers.GameActionController.mahjongHiloWithdraw
+GET  	/donut/api/v1/game/mahjong-hilo/riichi-discard 		controllers.GameActionController.mahjongHiloRiichiDiscard
 GET  	/donut/api/v1/game/mahjong-hilo/game/data 				controllers.GameActionController.mahjongHiloGetUserData
 GET  	/donut/api/v1/game/mahjong-hilo/game/history 			controllers.GameActionController.mahjongHiloGetUserGameHistory(limit: Int ?= 10)
 GET  	/donut/api/v1/game/mahjong-hilo/consecutive-hilo 	controllers.GameActionController.mahjongHiloGetConsecutiveHilo
