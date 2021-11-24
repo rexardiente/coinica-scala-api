@@ -28,3 +28,11 @@ case class VIPUser(id: UUID, // user_id
 									updated_at: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
 }
+
+// VIP Percentage calculations:
+// 0 - 100 = Bronze
+// 101 - 500 = Silver
+// 501 and up  = Gold
+
+// sample current_points = 110.600000
+// 110.600000 / 500 * 100 = 22.12% out of 100%

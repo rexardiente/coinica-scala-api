@@ -139,7 +139,7 @@ POST  /donut/api/v1/account/coin/withdraw 					controllers.SecureActionControlle
 GET  	/donut/api/v1/coincap/asset 									controllers.HomeController.getCoinCapAsset()
 
 # VIP Account
-GET   /donut/api/v1/vip 														controllers.SecureActionController.vipUser(id: UUID)
+GET   /donut/api/v1/vip 														controllers.SecureActionController.vipUser()
 
 # Add Email Address Email Confirmation
 GET   /donut/api/v1/user/email/confirm 							controllers.HomeController.emailVerification(id: UUID, email: String, code: String)
