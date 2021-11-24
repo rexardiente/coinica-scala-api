@@ -36,22 +36,26 @@ class DynamicSystemProcessActor@Inject()(
   override def postStop(): Unit = {}
 
   def receive: Receive = {
+    // update Daily Task
     case task: DailyTask =>
       dailyTask.addOrUpdate(task)
-
+    // update Challenge Tracker
     case challenge: ChallengeTracker =>
       try {
         for {
           vipAcc <- vipRepo.findByID(challenge.user)
-          vipBnft <- vipRepo.getBenefitByID(vipAcc.get.rank)
-          _ <- Future.successful {
-            val bnft: VIPBenefit = vipBnft.get
-            // new earned points * redemption rate
-            val newPoints = challenge.points * bnft.redemption_rate
-            // create new updated VIP User
-            dailyChallenge.addOrUpdate(challenge.copy(points = newPoints))
+          vipBenefit <- vipRepo.getBenefitByID(vipAcc.map(_.rank).getOrElse(null))
+          processed <- {
+            vipBenefit
+              .map { bnft =>
+                // new earned points * redemption rate
+                val newPoints = challenge.points * bnft.redemption_rate
+                // updated VIP User
+                dailyChallenge.addOrUpdate(challenge.copy(points = newPoints))
+              }
+              .getOrElse(Future.successful(0))
           }
-        } yield ()
+        } yield (processed)
       } catch {
         case _: Throwable  => ()
       }
