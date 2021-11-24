@@ -4,29 +4,32 @@ import javax.inject.{ Inject, Singleton }
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.Future
-import akka.actor.{Actor, ActorSystem, ActorLogging}
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
+import models.dao.VIPBenefitDAO
 import models.repo._
 import models.domain.enum._
 import models.domain._
 import utils.GameConfig._
 
 @Singleton
-class DBMockupGenerator @Inject()(
+class DBDefaultGenerator @Inject()(
+    dao: VIPBenefitDAO,
     gameRepo: GameRepo,
     genreRepo: GenreRepo,
-    newsRepo: NewsRepo,
-    challengeRepo: ChallengeRepo,
-    overAllGameHistoryRepo: OverAllGameHistoryRepo,
-    implicit val system: ActorSystem,
     val dbConfigProvider: DatabaseConfigProvider)
-    extends HasDatabaseConfigProvider[utils.db.PostgresDriver]
-    with Actor
-    with ActorLogging {
+    extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
+
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
   private def generateID(): UUID = UUID.randomUUID()
+  private def vipBenefitQuery(): Future[Seq[Int]] = {
+    val querySet = Seq(new VIPBenefit(VIP.BRONZE, 1.0, .10, 0.12, false, false, VIPBenefitAmount.BRONZE, VIPBenefitPoints.BRONZE, Instant.now()),
+                      new VIPBenefit(VIP.SILVER, 3.0, .20, 0.14, false, false, VIPBenefitAmount.SILVER, VIPBenefitPoints.SILVER, Instant.now()),
+                      new VIPBenefit(VIP.GOLD, 5.0, .30, 0.16, false, true, VIPBenefitAmount.GOLD, VIPBenefitPoints.GOLD, Instant.now()))
+
+    Future.sequence(querySet.map(x => db.run(dao.Query += x)))
+  }
   private def genreQuery(): Future[Int] = genreRepo.add(new Genre(generateID, "LUCKY", None))
   private def gamesQuery(): Future[Seq[Int]] = {
     val GQ_DESCRIPTION: String = """Idle game with character-battle. You need only to draw loot box and summon ghosts and send them in battle field. If your ghost wins, you can get rewrard."""
@@ -55,16 +58,11 @@ class DBMockupGenerator @Inject()(
     ).map(gameRepo.add(_)))
   }
 
-  override def preStart(): Unit = {
-    super.preStart
-
-    // add into DB
-    genreQuery()
-    gamesQuery()
-    // after schema is generated..terminate akka actor gracefully
-    context.stop(self)
-  }
-
-  override def postStop(): Unit = log.info("Schema DBMockupGenerator definitions are written")
-  def receive = { _ => }  // do nothing..
+  // run all queries..
+  for {
+    _ <- vipBenefitQuery()
+    _ <- genreQuery()
+    _ <- gamesQuery()
+  } yield ()
+  println("Database default generator definitions are written")
 }
