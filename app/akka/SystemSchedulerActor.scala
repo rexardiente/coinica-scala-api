@@ -299,6 +299,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
       //   }
       //   // else self ! ProcessOverAllChallenge(expiredAt)
       // }
+    // Daily tasks rewards are fixed amount based on time of tasks reward generation
     case DailyTaskScheduler =>
       val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
       // process first all available task before creating new tasks
@@ -326,8 +327,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                     for {
                       vipAcc <- vipUserRepo.findByID(x.user)
                       updatedVIPAcc <- Future.successful {
-                        if (vipAcc != None) {
-                          val vip: VIPUser = vipAcc.get
+                        vipAcc.map { vip =>
                           // points (fixed 1 VIP per day) * rank benefit
                           vipUserRepo.getBenefitByID(vip.rank).map {
                             case Some(b) =>
@@ -335,13 +335,19 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                               // user play count >= task play count
                               isTaskExists.map { gameInfo =>
                                 // update User VIP points
-                                if (x.game_count >= gameInfo.count)
-                                  vipUserRepo.update(vip.copy(points = vip.points + gameInfo.points))
+                                if (x.game_count >= gameInfo.count) {
+                                  for {
+                                    _ <- vipUserRepo.update(vip.copy(points = vip.points + gameInfo.points))
+                                    _ <- isUpdateToNewVIPLvl(vip)
+                                  } yield ()
+                                }
                                 else () // do nothing..
                               }
+
                             case None => ()
                           }
                         }
+                        .getOrElse(Future.successful(0))
                       }
                     } yield (updatedVIPAcc)
                   }
@@ -364,9 +370,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
       taskRepo.existByDate(Instant.ofEpochSecond(startOfDay)).map { isCreated =>
         if (!isCreated) {
           for {
-            // remove currentChallengeGame and shuffle the result
             availableGames <- gameRepo.all()
-            // get head, and create new Challenge for the day
             _ <- Future.successful {
               try {
                 // generate random range from 1 - 5
@@ -487,22 +491,36 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           for {
             vipAcc <- vipUserRepo.findByID(user)
             result <- {
-              val vip: VIPUser = vipAcc.get
-              // new earned points * redemption rate + prev VIP points
-              val newPoints = vip.points + points
-              // create new updated VIP User
-              vipUserRepo.update(vip.copy(points = newPoints))
+              vipAcc
+                .map { acc =>
+                  val newPoints = acc.points + points
+                  // create new updated VIP User
+                  vipUserRepo.update(acc.copy(points = newPoints))
+                }
+                .getOrElse(Future.successful(0))
             }
-          } yield (result)
+            updateLvl <- vipAcc.map(isUpdateToNewVIPLvl).getOrElse(Future.successful(0))
+          } yield (updateLvl)
         }
       }
       topHighestWagered <- Future.successful(challenges.sortBy(-_.wagered).take(10))
       addToHistory <- {
         // get all top 10 challenge result
         challengeHistoryRepo
-              .add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
-              .map(x => if (x > 0) challengeTrackerRepo.clearTable else ())
+          .add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
+          .map(x => if (x > 0) challengeTrackerRepo.clearTable else ())
       }
     } yield ()
+  }
+
+  private def isUpdateToNewVIPLvl(vip: VIPUser): Future[Boolean] = {
+    // check if account has enough points for next lvlup
+    if (vip.currentRank == vip.rank) Future.successful(false) // do nothing
+    // update VIP rank details
+    else {
+      vipUserRepo
+        .update(vip.copy(rank = vip.currentRank, next_rank = vip.nextRank()))
+        .map { isUpdated => if (isUpdated > 0) true else false }
+    }
   }
 }
