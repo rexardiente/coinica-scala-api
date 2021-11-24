@@ -236,6 +236,7 @@ trait CommonImplicits {
 	implicit def implChallengeTracker = Json.format[ChallengeTracker]
 	implicit def implChallengeHistory = Json.format[ChallengeHistory]
 	implicit def implTaskHistory = Json.format[TaskHistory]
+	implicit def implTaskGameInfo = Json.format[TaskGameInfo]
 	implicit def implTask = Json.format[Task]
 	implicit def implDailyTask = Json.format[DailyTask]
 
