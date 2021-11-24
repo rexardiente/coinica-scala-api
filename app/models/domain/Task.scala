@@ -3,13 +3,14 @@ package models.domain
 import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
+import utils.CommonImplicits
 
 // limit is for how many times to play the game (25, 100, 500)
 // durations: 1=1 day, 2=1week, 3=1month
-object TaskHistory extends utils.CommonImplicits
-object TaskGameInfo extends utils.CommonImplicits
-object Task extends utils.CommonImplicits
-object DailyTask extends utils.CommonImplicits {
+object TaskHistory extends CommonImplicits
+object TaskGameInfo extends CommonImplicits
+object Task extends CommonImplicits
+object DailyTask extends CommonImplicits {
 	val tupled = (apply: (UUID, UUID, Int) => DailyTask).tupled
 }
 // case class TaskPerGame(game_id: UUID, game: String, limit: Int)

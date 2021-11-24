@@ -2,10 +2,10 @@ package models.domain
 
 import java.util.UUID
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
+import utils.CommonImplicits
 
-object RankType extends utils.CommonImplicits
-object RankingHistory extends utils.CommonImplicits {
+object RankType extends CommonImplicits
+object RankingHistory extends CommonImplicits {
 	val tupled = (apply: (UUID, Seq[RankType], Seq[RankType], Seq[RankType], Seq[RankType], Long) => RankingHistory).tupled
 	def apply(id: UUID,
 						profits: Seq[RankType],

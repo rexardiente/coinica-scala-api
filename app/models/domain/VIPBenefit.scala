@@ -1,6 +1,5 @@
 package models.domain
 
-import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
 import models.domain.enum.{ VIP, VIPBenefitAmount, VIPBenefitPoints }

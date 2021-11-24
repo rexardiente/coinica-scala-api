@@ -1,16 +1,15 @@
 package models.domain
 
-import java.time.Instant
-import java.util.UUID
 import play.api.libs.json._
+import utils.CommonImplicits
 
 object GameType
 object PaymentType
 object BooleanPredictions
 object IntPredictions
 object ListOfIntPredictions
-object TransactionType extends utils.CommonImplicits
-object OverAllGameHistory extends utils.CommonImplicits
+object TransactionType extends CommonImplicits
+object OverAllGameHistory extends CommonImplicits
 
 sealed trait TransactionType {
 	def user(): String
@@ -42,7 +41,7 @@ case class PaymentType(user: String, data: String, amount: Double) extends Trans
 	override def toJson(): JsValue = Json.toJson(this)
 	def bet(): Double = 0D
 }
-case class OverAllGameHistory(id: UUID,
+case class OverAllGameHistory(id: java.util.UUID,
 															txHash: String,
 															gameID: String, // name or ID
 															game: String, // name or ID

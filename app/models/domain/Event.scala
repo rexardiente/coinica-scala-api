@@ -2,8 +2,9 @@ package models.domain
 
 import java.util.UUID
 import play.api.libs.json._
+import utils.CommonImplicits
 
-object InEventMessage extends utils.CommonImplicits
+object InEventMessage extends CommonImplicits
 object GQBattleTime
 object GQCharacterCreated
 object GQGetNextBattle
@@ -38,15 +39,15 @@ case class VIPWSRequest(user: String, command: String, request: String) extends 
 		"VIP Request: invalid request")
 }
 
-object Event extends utils.CommonImplicits
-object ETHUSDCWithdrawEvent extends utils.CommonImplicits
-object DepositEvent extends utils.CommonImplicits
-object InEvent extends utils.CommonImplicits
-object OutEvent extends utils.CommonImplicits {
+object Event extends CommonImplicits
+object ETHUSDCWithdrawEvent extends CommonImplicits
+object DepositEvent extends CommonImplicits
+object InEvent extends CommonImplicits
+object OutEvent extends CommonImplicits {
 	def apply(): OutEvent = new OutEvent(JsNull, JsString("success"))
 }
-object Subscribe extends utils.CommonImplicits
-object ConnectionAlive extends utils.CommonImplicits
+object Subscribe extends CommonImplicits
+object ConnectionAlive extends CommonImplicits
 
 sealed trait Event {
   def toJson(): JsValue = Json.toJson(this)
