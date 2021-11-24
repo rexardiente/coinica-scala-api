@@ -50,6 +50,8 @@ class TaskService @Inject()(
     }
   }
 
+  def getDailyTasks(): Future[Option[Task]] = taskRepo.getDailyTaskByDate(LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant())
+
   // def getWeeklyTaskUpdates(user: String, gameID: UUID): Future[Option[DailyTask]]
 
   // def getTaskByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
