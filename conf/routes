@@ -35,7 +35,7 @@ POST   	/donut/api/v1/referral/apply              controllers.SecureActionContro
 GET    	/donut/api/v1/referral/history/:code      controllers.SecureActionController.getReferralHistory(code: String)
 
 # Task API
-GET     /donut/api/v1/tasks                				controllers.SecureActionController.getDailyTasks()
+GET     /donut/api/v1/tasks                				controllers.SecureActionController.getTodaysTasks()
 GET     /donut/api/v1/task/daily                	controllers.SecureActionController.getTodayTaskUpdates(game_id: UUID)
 GET     /donut/api/v1/task/monthly                controllers.SecureActionController.getMonthlyTaskUpdates(game_id: UUID)
 #GET     /donut/api/v1/task/weekly                controllers.HomeController.getWeeklyTaskUpdates(user: String, game_id: UUID)
