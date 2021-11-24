@@ -235,6 +235,12 @@ class SecureActionController @Inject()(
         taskService.getTodayTaskUpdates(account.id, gameID).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
+  def getTodaysTasks() = SecureUserAction.async { implicit request =>
+    request
+      .account
+      .map(_ => taskService.getTodaysTasks.map(x => Ok(Json.toJson(x))))
+      .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  }
   def getMonthlyTaskUpdates(gameID: UUID) = SecureUserAction.async { implicit request =>
     request
       .account
@@ -281,14 +287,11 @@ class SecureActionController @Inject()(
           Future(Unauthorized(views.html.defaultpages.unauthorized()))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def vipUser(id: UUID) = SecureUserAction.async { implicit request =>
+  def vipUser() = SecureUserAction.async { implicit request =>
     request
       .account
       .map { account =>
-        if (account.id == id)
-          vipRepo.findByID(id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
-        else
-          Future(Unauthorized(views.html.defaultpages.unauthorized()))
+        vipRepo.findByID(account.id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def overAllHistory(limit: Int) = SecureUserAction.async { implicit request =>

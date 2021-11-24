@@ -82,6 +82,8 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
 
+  private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
+
   override def preStart: Unit = {
     super.preStart
 
@@ -120,7 +122,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           WebSocketActor.subscribers.addOne(GameConfig.MJHilo_GAME_ID, self)
           log.info("System Scheduler Actor Initialized")
         }
-      case Failure(ex) => // if actor is not yet created do nothing..
+      case Failure(ex) =>  ()// if actor is already created do nothing..
     }
   }
 
@@ -315,30 +317,37 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
                                                 Instant.ofEpochSecond(v.created_at),
                                                 Instant.ofEpochSecond(Instant.ofEpochSecond(v.created_at).getEpochSecond + ((60 * 60 * 24) - 1)))
               // insert and if failed do insert 1 more time..
-              taskHistoryRepo.add(taskHistory).map(isAdded => if(isAdded > 0)() else trackedFailedInsertion.addOne(taskHistory) )
-              // TODO: update user VIP account point
-            })
-          }
-          _ <- Future.successful {
-            tracked.map { case DailyTask(user, game_id, game_count) =>
-              for {
-                vipAcc <- vipUserRepo.findByID(user)
-                _ <- Future.successful {
-                  if (vipAcc != None) {
-                    val vip: VIPUser = vipAcc.get
-                    // points (fixed 1 VIP per day) * rank benefit
-                    vipUserRepo.getBenefitByID(vip.rank).map {
-                      case Some(v) =>
-                        // new earned points * redemption rate + prev VIP points
-                        val newPoints = vip.points + (v.redemption_rate * 1)
-                        // create new updated VIP User
-                        vipUserRepo.update(vip.copy(points = newPoints))
-                      case None => ()
-                    }
+              // taskHistoryRepo.add(taskHistory).map(isAdded => if(isAdded > 0)() else trackedFailedInsertion.addOne(taskHistory) )
+              taskHistoryRepo
+                .add(taskHistory)
+                .map { isAdded =>
+                  //  update vip points after added into history..
+                  if(isAdded > 0) {
+                    for {
+                      vipAcc <- vipUserRepo.findByID(x.user)
+                      updatedVIPAcc <- Future.successful {
+                        if (vipAcc != None) {
+                          val vip: VIPUser = vipAcc.get
+                          // points (fixed 1 VIP per day) * rank benefit
+                          vipUserRepo.getBenefitByID(vip.rank).map {
+                            case Some(b) =>
+                              val isTaskExists: Option[TaskGameInfo] = v.tasks.filter(_.game.id == x.game_id).headOption
+                              // user play count >= task play count
+                              isTaskExists.map { gameInfo =>
+                                // update User VIP points
+                                if (x.game_count >= gameInfo.count)
+                                  vipUserRepo.update(vip.copy(points = vip.points + gameInfo.points))
+                                else () // do nothing..
+                              }
+                            case None => ()
+                          }
+                        }
+                      }
+                    } yield (updatedVIPAcc)
                   }
+                  else trackedFailedInsertion.addOne(taskHistory)
                 }
-              } yield ()
-            }
+            })
           }
           _ <- Future.successful(dailyTaskRepo.clearTable)
         } yield ()
@@ -360,7 +369,9 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
             // get head, and create new Challenge for the day
             _ <- Future.successful {
               try {
-                val tasks: Seq[UUID] = availableGames.map(_.id)
+                // generate random range from 1 - 5
+                // to determine how many games need to play to get points
+                val tasks: Seq[TaskGameInfo] = availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0))))
                 taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay))
               } catch {
                 case e: Throwable => println("Error: No games available")

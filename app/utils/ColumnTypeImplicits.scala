@@ -17,7 +17,7 @@ import models.domain.eosio.{
     GhostQuestCharacterGameLog,
     GhostQuestCharacterValue,
     MahjongHiloGameData }
-import models.domain.{ ChallengeTracker, TransactionType, RankType }
+import models.domain.{ ChallengeTracker, TaskGameInfo, TransactionType, RankType }
 import models.domain.wallet.support.{ Coin, CryptoJsonRpcHistory }
 import models.domain.enum._
 // import ejisan.kuro.otp.OTPKey
@@ -76,6 +76,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val challengeTrackerMapper = MappedColumnType.base[Seq[ChallengeTracker], JsValue](
     s => JsArray(s.map(Json.toJson(_))),
     i => i.as[Seq[ChallengeTracker]])
+  implicit val taskGameInfoMapper = MappedColumnType.base[Seq[TaskGameInfo], JsValue](
+    s => JsArray(s.map(Json.toJson(_))),
+    i => i.as[Seq[TaskGameInfo]])
   implicit val seqUUIDMapper = MappedColumnType.base[Seq[UUID], JsValue](
     s => JsArray(s.map(Json.toJson(_))),
     i => i.as[Seq[UUID]])

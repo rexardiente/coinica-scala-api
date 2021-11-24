@@ -7,6 +7,7 @@ import play.api.libs.json._
 // limit is for how many times to play the game (25, 100, 500)
 // durations: 1=1 day, 2=1week, 3=1month
 object TaskHistory extends utils.CommonImplicits
+object TaskGameInfo extends utils.CommonImplicits
 object Task extends utils.CommonImplicits
 object DailyTask extends utils.CommonImplicits {
 	val tupled = (apply: (UUID, UUID, Int) => DailyTask).tupled
@@ -28,8 +29,10 @@ case class TaskHistory(id: UUID,
 											expired_at: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
 }
-// tasks are Seq[UUID] of game_id
-case class Task(id: UUID, tasks: Seq[UUID], created_at: Long) {
-	// require(duration >= 1 || duration <= 3, "Invalid duration range")
+// points to be generated will be 0.1 to 2 VIP points
+case class TaskGameInfo(game: Game, count: Int, points: Double)
+// tasks are Seq[(game_id, game_count_required)]
+case class Task(id: UUID, tasks: Seq[TaskGameInfo], created_at: Long) {
 	def toJson(): JsValue = Json.toJson(this)
 }
+

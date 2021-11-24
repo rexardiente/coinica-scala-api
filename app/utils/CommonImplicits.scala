@@ -236,6 +236,7 @@ trait CommonImplicits {
 	implicit def implChallengeTracker = Json.format[ChallengeTracker]
 	implicit def implChallengeHistory = Json.format[ChallengeHistory]
 	implicit def implTaskHistory = Json.format[TaskHistory]
+	implicit def implTaskGameInfo = Json.format[TaskGameInfo]
 	implicit def implTask = Json.format[Task]
 	implicit def implDailyTask = Json.format[DailyTask]
 
@@ -284,7 +285,42 @@ trait CommonImplicits {
   implicit def enumVIPFormat = enumFormat(VIP)
   implicit def enumVIPBenefitAmountFormat = enumFormat(VIPBenefitAmount)
   implicit def enumVIPBenefitPointsFormat = enumFormat(VIPBenefitPoints)
-	implicit def implVIPUser = Json.format[VIPUser]
+	implicit val implicitVIPUserReads: Reads[VIPUser] = new Reads[VIPUser] {
+		override def reads(js: JsValue): JsResult[VIPUser] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(VIPUser(
+						(json \ "id").as[UUID],
+						(json \ "rank").as[VIP.Value],
+						(json \ "next_rank").as[VIP.Value],
+						(json \ "referral_count").as[Int],
+						(json \ "payout").as[Double],
+						(json \ "points").as[Double],
+						(json \ "updated_at").as[Instant]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	// 0 - 100 = Bronze
+	// 101 - 500 = Silver
+	// 501 and 1000up  = Gold
+	implicit val implicitVIPUserWrites = new Writes[VIPUser] {
+	  def writes(tx: VIPUser): JsValue = Json.obj(
+		"id" -> tx.id,
+		"rank" -> tx.rank,
+		"next_rank" -> tx.next_rank,
+		"referral_count" -> tx.referral_count,
+		"payout" -> tx.payout,
+		"points" -> tx.points,
+		"percentage" -> {
+				val range: Double = if (0 to 200 contains tx.points) 200 else if (201 to 500 contains tx.points) 500 else 1000
+				(tx.points / range * 100)
+		},
+		"updated_at" -> tx.updated_at)
+	}
 	implicit def implVIPBenefit = Json.format[VIPBenefit]
 
 	implicit val implicitUserAccountReads: Reads[UserAccount] = new Reads[UserAccount] {

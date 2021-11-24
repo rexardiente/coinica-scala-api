@@ -5,7 +5,7 @@ import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.Task
+import models.domain.{ Task, TaskGameInfo }
 
 @Singleton
 final class TaskDAO @Inject()(
@@ -15,7 +15,7 @@ final class TaskDAO @Inject()(
 
   protected class TaskTable(tag: Tag) extends Table[Task](tag, "TASK") {
     def id = column[UUID] ("ID", O.PrimaryKey)
-    def tasks = column[Seq[UUID]] ("TASKS")
+    def tasks = column[Seq[TaskGameInfo]] ("TASKS")
     def createdAt = column[Long] ("CREATED_AT")
 
     def * = (id, tasks, createdAt) <> ((Task.apply _).tupled, Task.unapply)
