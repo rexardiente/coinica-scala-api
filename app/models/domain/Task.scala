@@ -31,7 +31,8 @@ case class TaskHistory(id: UUID,
 	def toJson(): JsValue = Json.toJson(this)
 }
 // points to be generated will be 0.1 to 2 VIP points
-case class TaskGameInfo(game: Game, count: Int, points: Double)
+// progress will only be used on UI
+case class TaskGameInfo(game: PlatformGame, count: Int, points: Double, progress: Option[Int])
 // tasks are Seq[(game_id, game_count_required)]
 case class Task(id: UUID, tasks: Seq[TaskGameInfo], created_at: Long) {
 	def toJson(): JsValue = Json.toJson(this)

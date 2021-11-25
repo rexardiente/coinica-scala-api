@@ -6,7 +6,7 @@ import java.time.{ Instant, LocalDate, ZoneId, ZoneOffset }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json._
-import models.domain.{ PaginatedResult, Task, DailyTask, TaskHistory }
+import models.domain.{ PaginatedResult, Task, DailyTask, TaskHistory, TaskGameInfo }
 import models.repo.{ TaskRepo, TaskHistoryRepo, DailyTaskRepo }
 
 @Singleton
@@ -50,10 +50,41 @@ class TaskService @Inject()(
     }
   }
 
-  def getTodaysTasks(): Future[Option[Task]] = taskRepo.getDailyTaskByDate(LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant())
+  def getTodaysTasks(id: UUID): Future[Option[Task]] = {
+    for {
+      // get tasks data
+      hasTask <- taskRepo.getDailyTaskByDate(LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant())
+      // update data based on players progress..
+      processTask <- {
+        f[Task]({
+          hasTask.map { task =>
+          // find task then update else return unchanged
+            dailyTaskRepo
+              .getTodayTaskByUserAndGame(id, task.id)
+              .map { hasDailyTask =>
+                hasDailyTask
+                  .map { dailyTask =>
+                    val currentTask: Option[TaskGameInfo] = task.tasks.filter(_.game.id == dailyTask.game_id).headOption
+                    val updatedTask: Option[TaskGameInfo] = currentTask.map(_.copy(progress = Some(dailyTask.game_count)))
+                    // remove existing task on the list.
+                    val updatedTasks: Seq[TaskGameInfo] = task.tasks.filter(_.game.id != dailyTask.game_id) :+ (updatedTask.get)
+                    // return udpate tasks
+                    task.copy(tasks = updatedTasks)
+                  }
+                  .getOrElse(task)
+              }
+          }
+        })
+      }
+    } yield (processTask)
+  }
+  // convernt Option[Future[T]] to Future[Option[T]]
+  def f[A](v: Option[Future[A]]): Future[Option[A]] = v match {
+     case Some(f) => f.map(Some(_))
+     case None    => Future.successful(None)
+  }
 
   // def getWeeklyTaskUpdates(user: String, gameID: UUID): Future[Option[DailyTask]]
-
   // def getTaskByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   // 	try {
   // 		for {
@@ -82,9 +113,6 @@ class TaskService @Inject()(
    val end1 : Instant =  Instant.parse(startdate)
   */
  // def getTaskByMonthly(start: Instant,  end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
-
- //  // val start1 : java.time.Instant=  Instant.parse(startdate)
- //  // val end1 : java.time.Instant =  Instant.parse(startdate)
  //  	try {
  //  		for {
 	//       txs <- taskRepo.findByDateRange(
@@ -100,7 +128,6 @@ class TaskService @Inject()(
  //  	}
  //  }
  //  def getTaskBy(start: Instant, limit: Int, offset: Int): Future[JsValue] = {
-
  //    try {
  //      for {
  //        txs <- taskRepo.findBy(start.getEpochSecond, limit, offset)
