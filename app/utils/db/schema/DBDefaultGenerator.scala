@@ -8,9 +8,11 @@ import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import play.api.libs.json._
 import models.dao.VIPBenefitDAO
-import models.repo._
+import models.repo.{ GameRepo, GenreRepo, PlatformConfigRepo }
+import models.service.PlatformConfigService
 import models.domain.enum._
 import models.domain._
+import utils.SystemConfig._
 
 @Singleton
 class DBDefaultGenerator @Inject()(
@@ -18,6 +20,7 @@ class DBDefaultGenerator @Inject()(
     gameRepo: GameRepo,
     genreRepo: GenreRepo,
     configRepo: PlatformConfigRepo,
+    configService: PlatformConfigService,
     val dbConfigProvider: DatabaseConfigProvider)
     extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
@@ -79,9 +82,26 @@ class DBDefaultGenerator @Inject()(
     // insert only if table is empty..
     configRepo.add(new PlatformConfig(generateID, games, hosts, currencies))
   }
+  // load default static configs
+  private def loadDefaultConfigs(): Unit = {
+    configService
+      .loadConfig()
+      .map(_.map { conf =>
+          // set default URI's
+          conf.hosts.find(_.name == "node_api").map(x => { NODE_SERVER_URI = x.getURL() })
+          conf.hosts.find(_.name == "scala_api").map(x => { SCALA_SERVER_URI = x.getURL() })
+          conf.hosts.find(_.name == "mailer").map(x => { MAILER_HOST = x.getURL() })
+          conf.hosts.find(_.name == "coinica").map(x => { COINICA_WEB_HOST = x.getURL() })
+          // set default timers
+          DEFAULT_SYSTEM_SCHEDULER_TIMER = conf.tokenExpiration
+          DEFAULT_EXPIRATION = conf.defaultscheduler
+          DEFAULT_WEI_VALUE = BigDecimal(conf.wei)
+      })
+  }
   // run all queries..
   vipBenefitQuery()
   genreQuery()
   systemDefaultConfigQuery()
+  loadDefaultConfigs()
   println("Database default generator definitions are written.")
 }

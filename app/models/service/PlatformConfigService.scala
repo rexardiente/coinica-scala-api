@@ -13,7 +13,7 @@ import utils.SystemConfig._
 class PlatformConfigService @Inject()(configRepo: PlatformConfigRepo) {
   // TODO: setup default data to make sure its working if DB is not setup
   // set as function to make sure changes on DB will reflect realtime..
-  private def loadConfig(): Future[Option[PlatformConfig]] = configRepo.default()
+  def loadConfig(): Future[Option[PlatformConfig]] = configRepo.default()
   // System Configs
   def getTokenExpiration(): Future[Int] =
     loadConfig().map(_.map(_.tokenExpiration).getOrElse(DEFAULT_EXPIRATION))
@@ -21,32 +21,6 @@ class PlatformConfigService @Inject()(configRepo: PlatformConfigRepo) {
     loadConfig().map(_.map(_.defaultscheduler).getOrElse(DEFAULT_SYSTEM_SCHEDULER_TIMER))
   def getDefaultWeiValue(): Future[BigDecimal] =
     loadConfig().map(_.map(x => BigDecimal(x.wei)).getOrElse(DEFAULT_WEI_VALUE))
-  def getSupportedCurrencies(): Future[List[PlatformCurrency]] = {
-    for {
-      config <- loadConfig()
-      currencies <- Future.successful(config.map(_.currencies).getOrElse(List.empty))
-    } yield (currencies)
-  }
-  def isExistsCurrency(name: String): Future[Boolean] = {
-    for {
-      currencies <- getSupportedCurrencies()
-      currencie <- Future.successful {
-        currencies.find(_.name == name).map(_ => true).getOrElse(false)
-      }
-    } yield (currencie)
-  }
-  def getCurrencyByName(name: String): Future[Option[PlatformCurrency]] = {
-    for {
-      currencies <- getSupportedCurrencies()
-      currencie <- Future.successful(currencies.find(_.name == name))
-    } yield (currencie)
-  }
-  def getCurrencyBySymbol(symbol: String): Future[Option[PlatformCurrency]] = {
-    for {
-      currencies <- getSupportedCurrencies()
-      currencie <- Future.successful(currencies.find(_.symbol == symbol))
-    } yield (currencie)
-  }
   def getHosts(): Future[List[PlatformHost]] = {
     for {
       config <- loadConfig()
@@ -59,6 +33,32 @@ class PlatformConfigService @Inject()(configRepo: PlatformConfigRepo) {
       host <- Future.successful(hosts.find(_.name == name))
     } yield (host)
   }
+  // def getSupportedCurrencies(): Future[List[PlatformCurrency]] = {
+  //   for {
+  //     config <- loadConfig()
+  //     currencies <- Future.successful(config.map(_.currencies).getOrElse(List.empty))
+  //   } yield (currencies)
+  // }
+  // def isExistsCurrency(name: String): Future[Boolean] = {
+  //   for {
+  //     currencies <- getSupportedCurrencies()
+  //     currencie <- Future.successful {
+  //       currencies.find(_.name == name).map(_ => true).getOrElse(false)
+  //     }
+  //   } yield (currencie)
+  // }
+  // def getCurrencyByName(name: String): Future[Option[PlatformCurrency]] = {
+  //   for {
+  //     currencies <- getSupportedCurrencies()
+  //     currencie <- Future.successful(currencies.find(_.name == name))
+  //   } yield (currencie)
+  // }
+  // def getCurrencyBySymbol(symbol: String): Future[Option[PlatformCurrency]] = {
+  //   for {
+  //     currencies <- getSupportedCurrencies()
+  //     currencie <- Future.successful(currencies.find(_.symbol == symbol))
+  //   } yield (currencie)
+  // }
 
   // Game Configs
   def getGamesInfo(): Future[List[PlatformGame]] = {

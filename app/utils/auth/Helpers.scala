@@ -28,7 +28,11 @@ class SecureUserAction @Inject()(
   //   //     request.headers.get("CLIENT_TOKEN").getOrElse(null))
   //   //   .map(new SecureUserRequest(_, request))
   // }
-  private def getTokenExpiration(): Future[Int] = configService.getTokenExpiration()
+  private def getTokenExpiration(): Future[Long] = {
+    configService
+      .getTokenExpiration()
+      .map(DEFAULT_TOKEN_EXPIRATION => (Instant.now.getEpochSecond + (DEFAULT_TOKEN_EXPIRATION * 60)).toLong)
+  }
   def transform[A](request: Request[A]): Future[SecureUserRequest[A]] = {
     val clientID: UUID = request.headers.get("CLIENT_ID").map(UUID.fromString(_)).getOrElse(UUID.randomUUID)
     val clientToken: String = request.headers.get("CLIENT_TOKEN").getOrElse(null)
