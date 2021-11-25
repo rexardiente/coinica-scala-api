@@ -2,6 +2,7 @@ package akka
 
 import javax.inject.{ Singleton, Inject }
 import java.util.UUID
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable.HashMap
 import akka.actor._
@@ -12,16 +13,19 @@ import models.domain.eosio.GhostQuestCharacterValue
 import models.repo.UserAccountRepo
 import models.domain.wallet.support.ETHJsonRpc
 import akka.common.objects._
-import utils.GameConfig
+import models.service.PlatformConfigService
 
 object DynamicBroadcastActor {
-  def props(userRepo: UserAccountRepo)(implicit system: ActorSystem) =
-    Props(classOf[DynamicBroadcastActor], userRepo, system)
+  def props(userRepo: UserAccountRepo, platformConfig: PlatformConfigService)(implicit system: ActorSystem) =
+    Props(classOf[DynamicBroadcastActor], userRepo, platformConfig, system)
 }
 
 @Singleton
-class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system: ActorSystem) extends Actor {
+class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo,
+                                    platformConfig: PlatformConfigService,
+                                    implicit val system: ActorSystem) extends Actor {
   private val log: LoggingAdapter = Logging(context.system, this)
+  private val ghostQuestConfig: Future[Option[PlatformGame]] = platformConfig.getGameInfoByName("ghostquest")
 
   override def preStart(): Unit = {
     super.preStart
@@ -39,13 +43,17 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
       }
 
     case "BROADCAST_NEXT_BATTLE" =>
-      WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+      ghostQuestConfig.map { config =>
+        WebSocketActor.subscribers.foreach { case (id, actorRef) =>
+          actorRef ! OutEvent(JsString(config.map(_.code).getOrElse("unknown_game")), Json.obj("STATUS" -> "BATTLE_FINISHED", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+        }
       }
 
     case "BROADCAST_DB_UPDATED" =>
-      WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "CHARACTERS_UPDATED"))
+      ghostQuestConfig.map { config =>
+        WebSocketActor.subscribers.foreach { case (id, actorRef) =>
+          actorRef ! OutEvent(JsString(config.map(_.code).getOrElse("unknown_game")), Json.obj("STATUS" -> "CHARACTERS_UPDATED"))
+        }
       }
 
     case ("BROADCAST_CHARACTER_NO_ENEMY", map: Map[_, _]) =>
@@ -54,15 +62,19 @@ class DynamicBroadcastActor@Inject()(userRepo: UserAccountRepo)(implicit system:
           case (v: GhostQuestCharacterValue, characters) =>
             userRepo.getByGameID(v.owner_id).map {
               case Some(v) =>
-                WebSocketActor.subscribers(v.id) !
-                OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(_._2.toJson).toSeq)))
+                ghostQuestConfig.map { config =>
+                  WebSocketActor.subscribers(v.id) !
+                  OutEvent(JsString(config.map(_.code).getOrElse("unknown_game")), Json.obj("CHARACTER_NO_ENEMY" -> JsArray(characters.map(_._2.toJson).toSeq)))
+                }
               case None => ()
             }
         }
       } catch { case _: Throwable => {} }
     case "BROADCAST_NO_CHARACTERS_AVAILABLE" =>
-      WebSocketActor.subscribers.foreach { case (id, actorRef) =>
-        actorRef ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+      ghostQuestConfig.map { config =>
+        WebSocketActor.subscribers.foreach { case (id, actorRef) =>
+          actorRef ! OutEvent(JsString(config.map(_.code).getOrElse("unknown_game")), Json.obj("STATUS" -> "NO_CHARACTERS_AVAILABLE", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+        }
       }
     case ("BROADCAST_EMAIL_UPDATED", id: UUID, email: String) =>
       WebSocketActor

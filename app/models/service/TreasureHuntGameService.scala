@@ -7,17 +7,19 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorRef
 import play.api.libs.json._
-import utils.GameConfig.{ TH_CODE, TH_GAME_ID }
 import utils.SystemConfig.SUPPORTED_SYMBOLS
 import models.domain.eosio.TreasureHuntGameData
 import models.domain._
 
 @Singleton
 class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
+																				platformConfigService: PlatformConfigService,
 																				userAccountService: UserAccountService,
 																				overAllHistory: OverAllHistoryService,
 																				@Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
 																				@Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
+	private val defaultGameName: String = "treasurehunt"
+
 	def userData(gameID: Int): Future[Option[TreasureHuntGameData]] =
 		contract.treasureHuntGetUserData(gameID)
 	def autoPlay(id: UUID, gameID: Int, username: String, sets: Seq[Int]): Future[(Int, String, Option[TreasureHuntGameData])] = {
@@ -38,6 +40,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 									for {
 										// check if tx_hash already exists to DB history
 										isExists <- overAllHistory.gameIsExistsByTxHash(hash)
+										defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
 										// return true if successful adding to DB else false
 										onSaveHistory <- {
 											if (!isExists) {
@@ -50,7 +53,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 					                                                                      hash,
 					                                                                      gameID,
-					                                                                      TH_CODE,
+					                                                                      defaultGame.map(_.code).getOrElse("default_code"),
 					                                                                      ListOfIntPredictions(username,
 								                                                                                    prediction,
 								                                                                                    result,
@@ -64,7 +67,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 													.map { isAdded =>
 									          if (isAdded > 0) {
 									          	dynamicBroadcast ! Array(gameHistory)
-										          dynamicProcessor ! DailyTask(id, TH_GAME_ID, 1)
+										          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 															dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
 															(2)
 									          }
@@ -105,6 +108,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 											for {
 												// check if tx_hash already exists to DB history
 												isExists <- overAllHistory.gameIsExistsByTxHash(hash)
+												defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
 												// return true if successful adding to DB else false
 												onSaveHistory <- {
 													if (!isExists) {
@@ -117,7 +121,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 														val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 							                                                                      hash,
 							                                                                      gameID,
-							                                                                      TH_CODE,
+							                                                                      defaultGame.map(_.code).getOrElse("default_code"),
 							                                                                      ListOfIntPredictions(username,
 										                                                                                    prediction,
 										                                                                                    result,
@@ -131,7 +135,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 															.map { isAdded =>
 											          if (isAdded > 0) {
 											          	dynamicBroadcast ! Array(gameHistory)
-												          dynamicProcessor ! DailyTask(id, TH_GAME_ID, 1)
+												          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 																	dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
 																	(2)
 											          }
@@ -206,6 +210,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       						val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
       						for {
 										isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
+										defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
 										processedHistory <- {
 											if (!isExists) {
 												val gameID: String = data.game_id
@@ -217,7 +222,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 					                                                                      txHash,
 					                                                                      gameID,
-					                                                                      TH_CODE,
+					                                                                      defaultGame.map(_.code).getOrElse("default_code"),
 					                                                                      ListOfIntPredictions(username,
 								                                                                                    prediction,
 								                                                                                    result,
@@ -230,7 +235,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 												overAllHistory.addHistory(gameHistory)
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
-									          dynamicProcessor ! DailyTask(id, TH_GAME_ID, 1)
+									          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 1)
 										        true
 										      }

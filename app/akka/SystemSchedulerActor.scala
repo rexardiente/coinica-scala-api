@@ -12,13 +12,13 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import Ordering.Double.IeeeOrdering
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
-import utils.{GameConfig, SystemConfig }
+import utils.SystemConfig
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects._
 import models.domain._
 import models.repo._
-import models.service.UserAccountService
+import models.service.{ UserAccountService, PlatformConfigService }
 import models.domain.enum._
 import models.domain.wallet.support._
 import utils.lib.MultiCurrencyHTTPSupport
@@ -27,7 +27,12 @@ object SystemSchedulerActor {
   var currentChallengeGame: Option[UUID] = None
   var isIntialized: Boolean = false
   val walletTransactions = HashMap.empty[String, Event]
-  def props(
+  // game objects here..
+  var ghostquest: Option[PlatformGame] = None
+  var mahjonghilo: Option[PlatformGame] = None
+  var treasurehunt: Option[PlatformGame] = None
+
+  def props(platformConfigService: PlatformConfigService,
             userAccountService: UserAccountService,
             userWalletRepo: UserAccountWalletHistoryRepo,
             gameRepo: GameRepo,
@@ -44,6 +49,7 @@ object SystemSchedulerActor {
             httpSupport: MultiCurrencyHTTPSupport,
             )(implicit system: ActorSystem) =
     Props(classOf[SystemSchedulerActor],
+          platformConfigService,
           userAccountService,
           userWalletRepo,
           gameRepo,
@@ -63,7 +69,8 @@ object SystemSchedulerActor {
 case object WalletTxScheduler
 
 @Singleton
-class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
+class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigService,
+                                    userAccountService: UserAccountService,
                                     userWalletRepo: UserAccountWalletHistoryRepo,
                                     gameRepo: GameRepo,
                                     challengeRepo: ChallengeRepo,
@@ -95,6 +102,13 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
     system.actorSelection("/user/SystemSchedulerActor").resolveOne().onComplete {
       case Success(actor) =>
         if (!SystemSchedulerActor.isIntialized) {
+          // load default SC users/account to avoid adding into user accounts table
+          loadDefaultObjects()
+          Thread.sleep(500)
+          // init notification actor for every games..
+          SystemSchedulerActor.ghostquest.map(game => WebSocketActor.subscribers.addOne(game.id, self))
+          SystemSchedulerActor.mahjonghilo.map(game => WebSocketActor.subscribers.addOne(game.id, self))
+          SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
           val dailySchedInterval: FiniteDuration = { SystemConfig.DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
@@ -116,14 +130,31 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
           })
           // set true if actor already initialized
           SystemSchedulerActor.isIntialized = true
-          // load default SC users/account to avoid adding into user accounts table
-          WebSocketActor.subscribers.addOne(GameConfig.GQ_GAME_ID, self)
-          WebSocketActor.subscribers.addOne(GameConfig.TH_GAME_ID, self)
-          WebSocketActor.subscribers.addOne(GameConfig.MJHilo_GAME_ID, self)
           log.info("System Scheduler Actor Initialized")
         }
       case Failure(ex) =>  ()// if actor is already created do nothing..
     }
+  }
+
+  private def loadDefaultObjects() = {
+    for {
+      // load ghostquest game defaults..
+      _ <- Future.successful {
+        platformConfigService
+          .getGameInfoByName("ghostquest")
+          .map(game => { SystemSchedulerActor.ghostquest = game })
+      }
+      _ <- Future.successful {
+        platformConfigService
+          .getGameInfoByName("mahjonghilo")
+          .map(game => { SystemSchedulerActor.mahjonghilo = game })
+      }
+      _ <- Future.successful {
+        platformConfigService
+          .getGameInfoByName("treasurehunt")
+          .map(game => { SystemSchedulerActor.treasurehunt = game })
+      }
+    } yield ()
   }
 
   def receive: Receive = {

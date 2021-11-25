@@ -11,13 +11,13 @@ import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
 import utils.SystemConfig.SUPPORTED_SYMBOLS
-import utils.GameConfig.{ GQ_CODE, GQ_GAME_ID }
 import models.domain.eosio.{ GhostQuestCharacter, GhostQuestCharacterHistory }
 import models.repo.eosio._
-import models.domain.{ OverAllGameHistory, PaymentType }
+import models.domain.{ OverAllGameHistory, PaymentType, PlatformGame }
 
 @Singleton
 class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
+                                      platformConfigService: PlatformConfigService,
                                       userAccountService: UserAccountService,
                                       overAllHistory: OverAllHistoryService,
                                       battleResult: GhostQuestBattleResultRepo,
@@ -25,7 +25,9 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                                       gameHistoryRepo: GhostQuestCharacterGameHistoryRepo,
                                       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
                                       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
+  private val defaultGameName: String = "ghostquest"
   private def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
+
   def getUserData(id: Int): Future[Option[GhostQuestGameData]] =
     contract.getUserData(id)
   def getAllCharacters(): Future[Option[Seq[GhostQuestTableGameData]]] =
@@ -86,7 +88,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         }
         .getOrElse(Future(0))
       }
-
       isSaveHistory <- {
         if (updateBalance > 0) {
           processWithdraw
@@ -96,6 +97,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                   val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
                   for {
                     isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
+                    config <- platformConfigService.getGameInfoByName(defaultGameName)
                     processedHistory <- {
                       if (!isExists) {
                         val gameID: String = txHash // use tx_hash as game
@@ -104,7 +106,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                         val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
                                                                                 txHash,
                                                                                 gameID,
-                                                                                GQ_CODE,
+                                                                                config.map(_.code).getOrElse("default_code"),
                                                                                 PaymentType(username,
                                                                                             "WITHDRAW",
                                                                                             prize.getOrElse(BigDecimal(0)).toDouble),

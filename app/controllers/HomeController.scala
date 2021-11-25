@@ -31,7 +31,7 @@ import utils.lib.MultiCurrencyHTTPSupport
  */
 @Singleton
 class HomeController @Inject()(
-      // userAccRepo: UserAccountRepo,
+      platformConfigService: PlatformConfigService,
       vipUserRepo: VIPUserRepo,
       accountService: UserAccountService,
       gameRepo: GameRepo,
@@ -104,7 +104,7 @@ class HomeController @Inject()(
 
   def socket = WebSocket.accept[Event, Event] { implicit req =>
     play.api.libs.streams.ActorFlow.actorRef { out =>
-      WebSocketActor.props(out, accountService, overAllGameHistoryRepo, vipUserRepo, ghostQuestEOSIO, dynamicBroadcast, dynamicProcessor)
+      WebSocketActor.props(out, platformConfigService, accountService, overAllGameHistoryRepo, vipUserRepo, ghostQuestEOSIO, dynamicBroadcast, dynamicProcessor)
     }
   }
 

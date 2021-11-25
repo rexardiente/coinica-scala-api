@@ -15,14 +15,15 @@ import models.domain.enum._
 import models.domain.Event._
 import models.domain.eosio.TableRowsRequest
 import models.repo.{ OverAllGameHistoryRepo, VIPUserRepo }
-import models.service.UserAccountService
+import models.service.{ UserAccountService, PlatformConfigService }
 import models.domain.wallet.support.UserAccountWalletHistory
 import utils.lib.GhostQuestEOSIO
-import utils.GameConfig
+// import utils.GameConfig
 
 object WebSocketActor {
   def props(
       out: ActorRef,
+      platformConfigService: PlatformConfigService,
       userAccountService: UserAccountService,
       overAllGameHistory: OverAllGameHistoryRepo,
       vipUserRepo: VIPUserRepo,
@@ -31,6 +32,7 @@ object WebSocketActor {
       dynamicProcessor: ActorRef)(implicit system: ActorSystem) =
     Props(classOf[WebSocketActor],
           out,
+          platformConfigService,
           userAccountService,
           overAllGameHistory,
           vipUserRepo,
@@ -45,6 +47,7 @@ object WebSocketActor {
 @Singleton
 class WebSocketActor@Inject()(
       out: ActorRef,
+      platformConfigService: PlatformConfigService,
       userAccountService: UserAccountService,
       overAllGameHistory: OverAllGameHistoryRepo,
       vipUserRepo: VIPUserRepo,
@@ -53,9 +56,32 @@ class WebSocketActor@Inject()(
       dynamicProcessor: ActorRef)(implicit system: ActorSystem) extends Actor {
   private val code: Int = out.hashCode
   private val log: LoggingAdapter = Logging(context.system, this)
+  // update config every initialization of thread.
+  private var ghostquest: Option[PlatformGame] = None
+  private var mahjonghilo: Option[PlatformGame] = None
+  private var treasurehunt: Option[PlatformGame] = None
 
   override def preStart(): Unit = {
     super.preStart
+    // load game configs..
+    for {
+      // load ghostquest game defaults..
+      _ <- Future.successful {
+        platformConfigService
+          .getGameInfoByName("ghostquest")
+          .map(game => { ghostquest = game })
+      }
+      _ <- Future.successful {
+        platformConfigService
+          .getGameInfoByName("mahjonghilo")
+          .map(game => { mahjonghilo = game })
+      }
+      _ <- Future.successful {
+        platformConfigService
+          .getGameInfoByName("treasurehunt")
+          .map(game => { treasurehunt = game })
+      }
+    } yield ()
     // Insert into the db active users..
     // check if succesfully inserted
     // else send message and close connection
@@ -137,10 +163,12 @@ class WebSocketActor@Inject()(
                 //   }
                 // if result is empty it means on battle else standby mode..
                 case cc: GQGetNextBattle =>
-                  if (GhostQuestSchedulerActor.nextBattle == 0)
-                    out ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
-                  else
-                    out ! OutEvent(JsString(GameConfig.GQ_GAME_CODE), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+                  ghostquest.map { game =>
+                    if (GhostQuestSchedulerActor.nextBattle == 0)
+                      out ! OutEvent(JsString(game.code), Json.obj("STATUS" -> "ON_BATTLE", "NEXT_BATTLE" -> 0))
+                    else
+                      out ! OutEvent(JsString(game.code), Json.obj("STATUS" -> "BATTLE_STANDY", "NEXT_BATTLE" -> GhostQuestSchedulerActor.nextBattle))
+                  }
 
                 case e: EOSNotifyTransaction =>
                   // Check if notification relates to TH

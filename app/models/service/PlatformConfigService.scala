@@ -89,4 +89,13 @@ class PlatformConfigService @Inject()(configRepo: PlatformConfigRepo) {
     getGameInfoByID(id).map(_.map(_.displayName))
   def getGameName(id: UUID): Future[Option[String]] =
     getGameInfoByID(id).map(_.map(_.name))
+
+  def getGameCodeByName(name: String): Future[Option[String]] =
+    getGameInfoByName(name).map(_.map(_.code))
+  def getGameDisplayNameByName(name: String): Future[Option[String]] =
+    getGameInfoByName(name).map(_.map(_.displayName))
+  def getGameNameByName(name: String): Future[Option[String]] =
+    getGameInfoByName(name).map(_.map(_.name))
+  def getGameIDByName(name: String): Future[Option[UUID]] =
+    getGameInfoByName(name).map(_.map(_.id))
 }

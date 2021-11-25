@@ -12,8 +12,6 @@ import models.repo._
 import models.domain.enum._
 import models.domain._
 
-import utils.GameConfig._
-
 @Singleton
 class DBDefaultGenerator @Inject()(
     dao: VIPBenefitDAO,
