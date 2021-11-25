@@ -96,13 +96,8 @@ case class UserAccount(id: UUID,
 }
 
 object UserAccountWallet extends CommonImplicits {
-	val tupled = (apply: (UUID, Coin, Coin, Coin) => UserAccountWallet).tupled
+	val tupled = (apply: (UUID, List[Coin]) => UserAccountWallet).tupled
 }
-case class UserAccountWallet(id: UUID, btc: Coin, eth: Coin, usdc: Coin) {
+case class UserAccountWallet(id: UUID, wallet: List[Coin]) {
 	def toJson(): JsValue = Json.toJson(this)
 }
-
-
-
-
-

@@ -5,6 +5,7 @@ import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import utils.CommonImplicits
+import models.domain.wallet.support.Coin
 
 object PlatformGame extends CommonImplicits
 object PlatformHost extends CommonImplicits
@@ -46,6 +47,7 @@ case class PlatformHost(name: String, uri: String, protocol: String = "https") {
 }
 case class PlatformCurrency(name: String, symbol: String) {
 	def toJson(): JsValue = Json.toJson(this)
+	def toCoin(): Coin = Coin(symbol)
 }
 // platform {
 //   wei.value = "0.000000000000000001"

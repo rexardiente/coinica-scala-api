@@ -21,7 +21,7 @@ import models.service._
 import models.domain.enum._
 import models.domain.wallet.support.Coin
 import akka.WebSocketActor
-import utils.SystemConfig.{ COINICA_WEB_HOST, COIN_BTC, COIN_USDC, COIN_ETH }
+import utils.SystemConfig.{ COINICA_WEB_HOST, SUPPORTED_CURRENCIES }
 import utils.auth.AccountTokenSession.{ LOGIN, UPDATE_EMAIL, RESET_PASSWORD }
 import utils.auth.SecureUserAction
 import utils.lib.MultiCurrencyHTTPSupport
@@ -166,9 +166,7 @@ class HomeController @Inject()(
                     _ <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
                     _ <- accountService.addUserWallet(new UserAccountWallet(
                             userAccount.id,
-                            Coin(COIN_BTC.symbol),
-                            Coin(COIN_ETH.symbol),
-                            Coin(COIN_USDC.symbol)))
+                            SUPPORTED_CURRENCIES.map(_.toCoin)))
                     processCode <- {
                       if (code != None) {
                         for {
