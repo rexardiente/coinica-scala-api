@@ -21,7 +21,7 @@ import models.service._
 import models.domain.enum._
 import models.domain.wallet.support.Coin
 import akka.WebSocketActor
-import utils.SystemConfig.{ COINICA_WEB_HOST, SUPPORTED_SYMBOLS, MAIL_EXPIRATION }
+import utils.SystemConfig.{ COINICA_WEB_HOST, SUPPORTED_SYMBOLS }
 import utils.auth.AccountTokenSession.{ LOGIN, UPDATE_EMAIL, RESET_PASSWORD }
 import utils.auth.SecureUserAction
 import utils.lib.MultiCurrencyHTTPSupport
@@ -206,6 +206,7 @@ class HomeController @Inject()(
                 for {
                   // get account if has existing token..
                   userToken <- Future.successful(LOGIN.filter(_._1 == accountID).headOption)
+                  generateToken <- SecureUserAction.generateToken()
                   // if verify make sure that existing token wont be overrided on this request..
                   verifyToken <- {
                     userToken
@@ -219,13 +220,13 @@ class HomeController @Inject()(
                         }
                         // use the newly generated token and expiration time
                         else {
-                          val newToken: (String, Long) = SecureUserAction.generateToken()
+                          val newToken: (String, Long) = generateToken
                           LOGIN(session._1) = newToken
                           Future.successful(Ok(ClientTokenEndpoint(accountID, newToken._1).toJson()))
                         }
                       }
                       .getOrElse({
-                        val newToken: (String, Long) = SecureUserAction.generateToken()
+                        val newToken: (String, Long) = generateToken
                         LOGIN.addOne(accountID -> newToken)
                         Future.successful(Ok(ClientTokenEndpoint(accountID, newToken._1).toJson()))
                       })
@@ -282,12 +283,13 @@ class HomeController @Inject()(
       { case (email)  =>
         for {
           account <- accountService.getAccountByEmailAddress(email)
+          generateToken <- SecureUserAction.generateToken()
           result <- {
             // update email request limit
             if (account != None) {
               val acc = account.get
               // generate new token for reset password
-              val newToken: (String, Long) = SecureUserAction.generateToken()
+              val newToken: (String, Long) = generateToken
               for {
                 // check if has existing request token to update else create new
                 _ <- Future.successful {

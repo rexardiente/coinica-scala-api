@@ -7,7 +7,7 @@ import scala.concurrent.Future
 import play.api.libs.json._
 import models.domain._
 import models.repo.PlatformConfigRepo
-import utils.SystemConfig
+import utils.SystemConfig._
 
 @Singleton
 class PlatformConfigService @Inject()(configRepo: PlatformConfigRepo) {
@@ -15,10 +15,12 @@ class PlatformConfigService @Inject()(configRepo: PlatformConfigRepo) {
   // set as function to make sure changes on DB will reflect realtime..
   private def loadConfig(): Future[Option[PlatformConfig]] = configRepo.default()
   // System Configs
+  def getTokenExpiration(): Future[Int] =
+    loadConfig().map(_.map(_.tokenExpiration).getOrElse(DEFAULT_EXPIRATION))
   def getSystemScheduler(): Future[Int] =
-    loadConfig().map(_.map(_.defaultscheduler).getOrElse(SystemConfig.DEFAULT_SYSTEM_SCHEDULER_TIMER))
+    loadConfig().map(_.map(_.defaultscheduler).getOrElse(DEFAULT_SYSTEM_SCHEDULER_TIMER))
   def getDefaultWeiValue(): Future[BigDecimal] =
-    loadConfig().map(_.map(x => BigDecimal(x.wei)).getOrElse(SystemConfig.DEFAULT_WEI_VALUE))
+    loadConfig().map(_.map(x => BigDecimal(x.wei)).getOrElse(DEFAULT_WEI_VALUE))
   def getSupportedCurrencies(): Future[List[PlatformCurrency]] = {
     for {
       config <- loadConfig()

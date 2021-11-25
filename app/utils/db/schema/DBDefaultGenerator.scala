@@ -69,7 +69,6 @@ class DBDefaultGenerator @Inject()(
     // val NODE_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(1)}"
     // val SCALA_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(0)}"
     // val COINICA_WEB_HOST: String = s"${PROTOCOL}://${serverAllowedURLs(2)}"
-    // val MAILER_HOST: String = serverAllowedURLs(0)
     val hosts = List(new PlatformHost("scala_api", "api.coinica.net/s1"),
                     new PlatformHost("node_api", "api.coinica.net/s2"),
                     new PlatformHost("coinica", "coinica.net"),

@@ -40,9 +40,9 @@ case class PlatformGame(name: String,
 // val NODE_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(1)}"
 // val SCALA_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(0)}"
 // val COINICA_WEB_HOST: String = s"${PROTOCOL}://${serverAllowedURLs(2)}"
-// val MAILER_HOST: String = serverAllowedURLs(0)
 case class PlatformHost(name: String, uri: String, protocol: String = "https") {
 	def toJson(): JsValue = Json.toJson(this)
+	def getURL(): String = s"${protocol}://${uri}"
 }
 case class PlatformCurrency(name: String, symbol: String) {
 	def toJson(): JsValue = Json.toJson(this)

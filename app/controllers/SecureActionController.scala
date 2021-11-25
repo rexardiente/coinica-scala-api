@@ -167,8 +167,8 @@ class SecureActionController @Inject()(
         { case (email)  =>
           if (Some(email) == account.email) Future.successful(Conflict)
           else {
-            val newToken: (String, Long) = SecureUserAction.generateToken()
               for {
+                newToken <- SecureUserAction.generateToken()
                 // check if has existing request token to update else create new
                 _ <- Future.successful {
                   // add the newly created token to session lists..

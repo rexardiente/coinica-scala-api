@@ -58,8 +58,8 @@ class WebSocketActor@Inject()(
   private val log: LoggingAdapter = Logging(context.system, this)
   // update config every initialization of thread.
   private var ghostquest: Option[PlatformGame] = None
-  private var mahjonghilo: Option[PlatformGame] = None
-  private var treasurehunt: Option[PlatformGame] = None
+  // private var mahjonghilo: Option[PlatformGame] = None
+  // private var treasurehunt: Option[PlatformGame] = None
 
   override def preStart(): Unit = {
     super.preStart
@@ -71,16 +71,16 @@ class WebSocketActor@Inject()(
           .getGameInfoByName("ghostquest")
           .map(game => { ghostquest = game })
       }
-      _ <- Future.successful {
-        platformConfigService
-          .getGameInfoByName("mahjonghilo")
-          .map(game => { mahjonghilo = game })
-      }
-      _ <- Future.successful {
-        platformConfigService
-          .getGameInfoByName("treasurehunt")
-          .map(game => { treasurehunt = game })
-      }
+      // _ <- Future.successful {
+      //   platformConfigService
+      //     .getGameInfoByName("mahjonghilo")
+      //     .map(game => { mahjonghilo = game })
+      // }
+      // _ <- Future.successful {
+      //   platformConfigService
+      //     .getGameInfoByName("treasurehunt")
+      //     .map(game => { treasurehunt = game })
+      // }
     } yield ()
     // Insert into the db active users..
     // check if succesfully inserted
