@@ -7,9 +7,9 @@ import models.dao._
 
 @Singleton
 class Generator @Inject()(
+    platform: PlatformConfigDAO,
     user: UserAccountDAO,
     userWalletHistory: UserAccountWalletHistoryDAO,
-    game: GameDAO,
     genre: GenreDAO,
     task: TaskDAO,
     dailyTask: DailyTaskDAO,
@@ -34,12 +34,12 @@ class Generator @Inject()(
 
   def createDDLScript() = {
     val schemas =
+      platform.Query.schema ++
       user.UserAccountQuery.schema ++
       userWalletHistory.Query.schema ++
       user.VIPUserQuery.schema ++
       user.UserWalletQuery.schema ++
       user.FailedCoinDepositQuery.schema ++
-      game.Query.schema ++
       genre.Query.schema ++
       task.Query.schema ++
       dailyTask.Query.schema ++
