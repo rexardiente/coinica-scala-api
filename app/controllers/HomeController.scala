@@ -351,64 +351,6 @@ class HomeController @Inject()(
     challengeService.getDailyRanksChallenge.map(Ok(_))
   }
 
-  // def getWeeklyTaskUpdates(user: String, gameID: UUID)
-  // def addTask = Action.async { implicit req =>
-  //   taskForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (gameID, info, isValid, datecreated)  =>
-  //       taskRepo
-  //         .add(Task(UUID.randomUUID, gameID, info, isValid, datecreated))
-  //         .map(r => if(r > 0) Created else InternalServerError)
-  //     })
-  // }
-  // def updateTask(id: UUID) = Action.async { implicit req =>
-  //   taskForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (gameID, info, isValid, datecreated) =>
-  //       taskRepo
-  //         .update(Task(id, gameID, info, isValid, datecreated))
-  //         .map(r => if(r > 0) Ok else NotFound)
-  //     })
-  // }
-  // def removeTask(id: UUID) = Action.async { implicit req =>
-  //   taskRepo
-  //     .delete(id)
-  //     .map(r => if(r > 0) Ok else NotFound)
-  // }
-  // def taskdate(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-  //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
-  // }
-  // def taskdaily(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
-  //   taskService.getTaskByDate(start, end, limit, offset).map(Ok(_))
-  // }
-  // def addRanking = Action.async { implicit req =>
-  //   rankingForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (name, bets,profit,multiplieramount,rankingcreated)  =>
-  //       rankingRepo
-  //         .add(Ranking(UUID.randomUUID, name, bets,profit,multiplieramount,rankingcreated))
-  //         .map(r => if(r > 0) Created else InternalServerError)
-  //     })
-  // }
-  // def updateRanking(id: UUID) = Action.async { implicit req =>
-  //   rankingForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (name, bets,profit,multiplieramount,rankingcreated) =>
-  //       rankingRepo
-  //         .update(Ranking(id, name, bets,profit,multiplieramount,rankingcreated))
-  //         .map(r => if(r > 0) Ok else NotFound)
-  //     })
-  // }
-  // def removeRanking(id: UUID) = Action.async { implicit req =>
-  //   rankingRepo
-  //     .delete(id)
-  //     .map(r => if(r > 0) Ok else NotFound)
-  // }
-
-  // def getRankingByDate(date: Option[Instant]) = Action.async { implicit req =>
-  //   rankingService.getRankingByDate(date).map(_.map(x => Ok(x.toJson)).getOrElse(Ok(JsNull)))
-  // }
-
   def getRankingDaily() = Action.async { implicit req =>
     rankingService.getRankingDaily().map(x => Ok(Json.toJson(x)))
   }
@@ -418,48 +360,10 @@ class HomeController @Inject()(
   def games() = Action.async { implicit req =>
     gameRepo.all().map(game => Ok(Json.toJson(game)))
   }
-  // def addGame() = Action.async { implicit req =>
-  //   gameForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (game, imgURL, path, genre, description)  =>
-  //       for {
-  //         isExist <- genreRepo.exist(genre)
-  //         processed  <- {
-  //           if (isExist)
-  //             gameRepo
-  //               .add(Game(UUID.randomUUID, game, path, imgURL, genre, description))
-  //               .map(r => if(r > 0) Created else InternalServerError)
-  //           else Future(NotFound)
-  //         }
-  //       } yield(processed)
-  //     })
-  // }
 
   def findGameByID(id: UUID) = Action.async { implicit req =>
     gameRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
-  // def updateGame(id: UUID) = Action.async { implicit req =>
-  //   gameForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (game, imgURL, path, genre, description) =>
-  //       for {
-  //         isExist <- genreRepo.exist(genre)
-  //          processed <- {
-  //             if (isExist)
-  //               gameRepo
-  //                 .update(Game(id, game, imgURL, path, genre, description))
-  //                 .map(r => if(r > 0) Ok else InternalServerError)
-  //             else Future(NotFound)
-  //          }
-  //       } yield(processed)
-
-  //     })
-  // }
-  // def removeGame(id: UUID) = Action.async { implicit req =>
-  //   gameRepo
-  //     .delete(id)
-  //     .map(r => if(r > 0) Ok else NotFound)
-  // }
 
   /* GENRE API */
   def genres() = Action.async { implicit req =>
@@ -468,29 +372,6 @@ class HomeController @Inject()(
   def findGenreByID(id: UUID) = Action.async { implicit req =>
     genreRepo.findByID(id).map(game => Ok(Json.toJson(game)))
   }
-  // def addGenre() = Action.async { implicit req =>
-  //   genreForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (name, description)  =>
-  //       genreRepo
-  //         .add(Genre(UUID.randomUUID, name, description))
-  //         .map(r => if(r > 0) Created else InternalServerError)
-  //     })
-  // }
-  // def updateGenre(id: UUID) = Action.async { implicit req =>
-  //   genreForm.bindFromRequest.fold(
-  //     formErr => Future.successful(BadRequest("Form Validation Error.")),
-  //     { case (name, description) =>
-  //       genreRepo
-  //         .update(Genre(id, name, description))
-  //         .map(r => if(r > 0) Ok else InternalServerError)
-  //     })
-  // }
-  // def removeGenre(id: UUID) = Action.async { implicit req =>
-  //   genreRepo
-  //     .delete(id)
-  //     .map(r => if(r > 0) Ok else NotFound)
-  // }
 
   def transactions(start: Instant, end: Option[Instant], limit: Int, offset: Int) = Action.async { implicit req =>
     eosNetTransaction.getTxByDateRange(start, end, limit, offset).map(Ok(_))

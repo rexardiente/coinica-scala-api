@@ -3,37 +3,29 @@ package models.repo
 import java.util.UUID
 import javax.inject.{ Inject, Singleton }
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
-import models.domain.Game
+import models.repo.PlatformConfigRepo
+import models.service.PlatformConfigService
+import models.domain._
 
 @Singleton
 class GameRepo @Inject()(
-    dao: models.dao.GameDAO,
+    repo: PlatformConfigRepo,
+    service: PlatformConfigService,
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
-  def add(game: Game): Future[Int] =
-    db.run(dao.Query += game)
+  def all(): Future[List[PlatformGame]] = service.getGamesInfo
 
-  def delete(id: UUID): Future[Int] =
-    db.run(dao.Query(id).delete)
+  def addOrUpdate(game: PlatformGame): Future[Int] = repo.updateOrAddGame(game)
 
-  def update(game: Game): Future[Int] =
-    db.run(dao.Query.filter(_.id === game.id).update(game))
+  def exist(id: UUID): Future[Boolean] = service.isGameExists(id)
 
-  def all(): Future[Seq[Game]] =
-    db.run(dao.Query.result)
+  def findByID(id: UUID): Future[Option[PlatformGame]] =
+    service.getGameInfoByID(id)
 
-  def exist(id: UUID): Future[Boolean] = db.run(dao.Query(id).exists.result)
-
-  def findByID(id: UUID): Future[Option[Game]] =
-    db.run(dao.Query.filter(r => r.id === id)
-      .result
-      .headOption)
-
-  def findByName(name: String): Future[Option[Game]] =
-    db.run(dao.Query.filter(r => r.name === name)
-      .result
-      .headOption)
+  def findByName(name: String): Future[Option[PlatformGame]] =
+    service.getGameInfoByName(name)
 }

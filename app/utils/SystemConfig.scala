@@ -8,8 +8,8 @@ import play.api.{ ConfigLoader, Configuration }
 
 object SystemConfig {
 	val config = ConfigFactory.load()
-	val DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = config.getInt("platform.default.system.scheduler")
-	val DEFAULT_WEI_VALUE: BigDecimal = BigDecimal(config.getString("platform.wei.value"))
+	// val DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = config.getInt("platform.default.system.scheduler")
+	// val DEFAULT_WEI_VALUE: BigDecimal = BigDecimal(config.getString("platform.wei.value"))
 	val SUPPORTED_CURRENCIES: List[String] = config.getStringList("platform.supported.currencies").asScala.toList
 	val SUPPORTED_SYMBOLS: List[String] = config.getStringList("platform.supported.symbols").asScala.toList
 	// Server Host URL
@@ -29,4 +29,8 @@ object SystemConfig {
 	val DEFAULT_TOKEN_EXPIRATION: Int = config.getInt("platform.token.expiration")
 	def MAIL_EXPIRATION: Long = Instant.now.getEpochSecond + (DEFAULT_MAIL_EXPIRATION * 60)
 	def TOKEN_EXPIRATION: Long = Instant.now.getEpochSecond + (DEFAULT_TOKEN_EXPIRATION * 60)
+
+	// new config lists
+	val DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = 24
+	val DEFAULT_WEI_VALUE: BigDecimal = BigDecimal("0.000000000000000001")
 }

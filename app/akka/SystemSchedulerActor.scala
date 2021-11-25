@@ -375,7 +375,7 @@ class SystemSchedulerActor @Inject()(userAccountService: UserAccountService,
               try {
                 // generate random range from 1 - 5
                 // to determine how many games need to play to get points
-                val tasks: Seq[TaskGameInfo] = availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0))))
+                val tasks: Seq[TaskGameInfo] = availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
                 taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay))
               } catch {
                 case e: Throwable => println("Error: No games available")
