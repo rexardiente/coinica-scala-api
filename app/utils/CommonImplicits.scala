@@ -376,9 +376,7 @@ trait CommonImplicits {
 				try {
 					JsSuccess(UserAccountWallet(
 						(json \ "id").as[UUID],
-						(json \ "btc").as[Coin],
-						(json \ "eth").as[Coin],
-						(json \ "usdc").as[Coin]))
+						(json \ "wallet").as[List[Coin]]))
 				} catch {
 					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
 				}
@@ -389,9 +387,7 @@ trait CommonImplicits {
 	implicit val implicitUserAccountWalletWrites = new Writes[UserAccountWallet] {
 	  def writes(tx: UserAccountWallet): JsValue = Json.obj(
 			"id" -> tx.id,
-			"btc" -> tx.btc,
-			"eth" -> tx.eth,
-			"usdc" -> tx.usdc)
+			"wallet" -> tx.wallet)
 	}
 	implicit val implWalletSupportCoinDepositReads: Reads[CoinDeposit] = new Reads[CoinDeposit] {
 		override def reads(js: JsValue): JsResult[CoinDeposit] = js match {

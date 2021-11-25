@@ -80,6 +80,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val listPlatformCurrencyColumnMapper = MappedColumnType.base[List[PlatformCurrency], JsValue](
     s => Json.toJson(s),
     i => i.as[List[PlatformCurrency]])
+  implicit val listCoinColumnMapper = MappedColumnType.base[List[Coin], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[Coin]])
   implicit val gqCharacterGameLogColumnMapper = MappedColumnType.base[List[GhostQuestCharacterGameLog], JsValue](
     s => Json.toJson(s),
     i => i.as[List[GhostQuestCharacterGameLog]])
