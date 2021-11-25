@@ -26,6 +26,10 @@ trait CommonImplicits {
   }
 
 	// Models domain
+	implicit def implicitPlatformGame = Json.format[PlatformGame]
+	implicit def implicitPlatformHost = Json.format[PlatformHost]
+	implicit def implicitPlatformCurrency = Json.format[PlatformCurrency]
+	implicit def implicitPlatformConfig = Json.format[PlatformConfig]
 	implicit def implGame = Json.format[Game]
 	implicit def implGenre = Json.format[Genre]
 	implicit def implicitData = Json.format[Data]
