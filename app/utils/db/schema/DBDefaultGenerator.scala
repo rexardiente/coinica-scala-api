@@ -49,7 +49,7 @@ class DBDefaultGenerator @Inject()(
                                       "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/GQ.jpeg",
                                       "/game/ghostquest",
                                       defaultGenre.id,
-                                      JsNull,
+                                      Json.obj("battle_timer" -> 15),
                                       GQ_DESCRIPTION),
                     new PlatformGame("treasurehunt",
                                       "TREASURE HUNT",
@@ -65,7 +65,7 @@ class DBDefaultGenerator @Inject()(
                                       "https://egs-2.s3.jp-tok.cloud-object-storage.appdomain.cloud/eos-web/imgs/platform/games/MJ.png",
                                       "/game/mahjong",
                                       defaultGenre.id,
-                                      Json.obj("battle_timer" -> 15),
+                                      JsNull,
                                       MJ_DESCRIPTION))
     // val PROTOCOL: String = serverAllowedProtocols(1)
     // val NODE_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(1)}"

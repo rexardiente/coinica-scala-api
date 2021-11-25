@@ -8,7 +8,7 @@ import play.api.{ ConfigLoader, Configuration }
 
 object GameConfig {
 	val config = ConfigFactory.load()
-	val GQ_DEFAULT_BATTLE_TIMER: Int = config.getInt("platform.games.GQ.battle.timer")
+	// val GQ_DEFAULT_BATTLE_TIMER: Int = config.getInt("platform.games.GQ.battle.timer")
 	// Ghost Quest
 	val GQ: List[String] = config.getStringList("platform.games.contracts.ghostquest").asScala.toList
 	val GQ_CODE: String = GQ(0)

@@ -10,24 +10,29 @@ import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
 import akka.util.Timeout
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
+import play.api.libs.json._
 import models.domain._
 import models.domain.eosio._
 import models.service._
 import utils.lib._
-import utils.GameConfig._
 
 object GhostQuestSchedulerActor {
-  val defaultTimeSet: Int            = GQ_DEFAULT_BATTLE_TIMER
-  val scheduledTime : FiniteDuration = { defaultTimeSet }.minutes
-  var isIntialized  : Boolean        = false
-  var nextBattle    : Long           = 0
+  // update based on the latest table changes
+  var isIntialized: Boolean = false
+  var gameInfo: PlatformGame = null
+  var defaultTimeSet: Int = 0
+  var scheduledTime: FiniteDuration = null
+  var nextBattle: Long = 0
+
   val noEnemy: HashMap[String, GhostQuestCharacterValue] = HashMap.empty[String, GhostQuestCharacterValue]
   val scUpdatedBattles = HashMap.empty[String, GhostQuestBattleResult]
-  def props(historyService: HistoryService,
+  def props(platformConfigService: PlatformConfigService,
+            historyService: HistoryService,
             userAccountService: UserAccountService,
             characterService: GhostQuestCharacterService,
             gameService: GhostQuestGameService)(implicit system: ActorSystem) =
     Props(classOf[GhostQuestSchedulerActor],
+          platformConfigService,
           historyService,
           userAccountService,
           characterService,
@@ -37,6 +42,7 @@ object GhostQuestSchedulerActor {
 
 @Singleton
 class GhostQuestSchedulerActor @Inject()(
+      platformConfigService: PlatformConfigService,
       historyService: HistoryService,
       userAccountService: UserAccountService,
       characterService: GhostQuestCharacterService,
@@ -55,12 +61,34 @@ class GhostQuestSchedulerActor @Inject()(
         if (!GhostQuestSchedulerActor.isIntialized) {
           GhostQuestSchedulerActor.isIntialized = true
 
-          GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
-          systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
+          for {
+            hasGame <- platformConfigService.getGameInfoByName("ghostquest")
+            // load default config fromt the DB
+            _ <- Future.successful {
+              hasGame.map { game =>
+                val battleTimer: Option[Int] = (game.others \ "battle_timer").asOpt[Int]
+
+                GhostQuestSchedulerActor.gameInfo = game
+                GhostQuestSchedulerActor.defaultTimeSet = battleTimer.getOrElse(0)
+                GhostQuestSchedulerActor.scheduledTime = { GhostQuestSchedulerActor.defaultTimeSet }.minutes
+              }
+              .getOrElse(0)
+            }
+            _ <- Future.successful {
+              GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
+              systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
+            }
+          } yield ()
           log.info("GQ Scheduler Actor Initialized")
         }
       case Failure(ex) => // if actor is not yet created do nothing..
     }
+  }
+
+  override def postStop: Unit = {
+    super.postStop
+    println("Stop all battles on GhostQuestSchedulerActor")
+    system.stop(self)
   }
 
   def receive: Receive = {
@@ -117,7 +145,7 @@ class GhostQuestSchedulerActor @Inject()(
         userAccountService
           .getAccountByGameID(gameID)
           .map(_.map { acc =>
-            dynamicProcessor ! DailyTask(acc.id, GQ_GAME_ID, 1)
+            dynamicProcessor ! DailyTask(acc.id, GhostQuestSchedulerActor.gameInfo.id, 1)
             dynamicProcessor ! ChallengeTracker(acc.id, 1, (if(v._2._2) 2 else 0), 1, (if(v._2._2) 1 else 0))
           })
       }
@@ -173,7 +201,7 @@ class GhostQuestSchedulerActor @Inject()(
                               UUID.randomUUID,
                               txHash,
                               gameID.toString,
-                              GQ_CODE,
+                              GhostQuestSchedulerActor.gameInfo.code,
                               BooleanPredictions(winnerAcc.map(_.username).getOrElse(""), true, true, 1, 1, None),
                               true,
                               time),
@@ -181,7 +209,7 @@ class GhostQuestSchedulerActor @Inject()(
                               UUID.randomUUID,
                               txHash,
                               gameID.toString,
-                              GQ_CODE,
+                              GhostQuestSchedulerActor.gameInfo.code,
                               BooleanPredictions(loserAcc.map(_.username).getOrElse(""), true, false, 1, 0, None),
                               true,
                               time)),
@@ -279,6 +307,22 @@ class GhostQuestSchedulerActor @Inject()(
     }
   }
   private def defaultSchedule(): Unit = {
+    // update default data just incase DB is updated
+    for {
+      hasGame <- platformConfigService.getGameInfoByName("ghostquest")
+      // load default config fromt the DB
+      _ <- Future.successful {
+        hasGame.map { game =>
+          val battleTimer: Option[Int] = (game.others \ "battle_timer").asOpt[Int]
+
+          GhostQuestSchedulerActor.gameInfo = game
+          GhostQuestSchedulerActor.defaultTimeSet = battleTimer.getOrElse(0)
+          GhostQuestSchedulerActor.scheduledTime = { GhostQuestSchedulerActor.defaultTimeSet }.minutes
+        }
+        .getOrElse(0)
+      }
+    } yield ()
+    // proceed on the next battle
     GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
     systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
   }
