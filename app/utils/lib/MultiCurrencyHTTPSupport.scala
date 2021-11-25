@@ -20,7 +20,7 @@ class MultiCurrencyHTTPSupport @Inject()(config: PlatformConfigService)(implicit
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
-    val reqParams: JsValue = Json.obj("currencies" -> JsArray(SUPPORTED_CURRENCIES.map(JsString(_))))
+    val reqParams: JsValue = Json.obj("currencies" -> JsArray(SUPPORTED_CURRENCIES.map(x => JsString(x.name))))
     complexRequest
       .post(reqParams)
       .map(v => (v.json).as[Seq[CoinCapAsset]])
@@ -32,7 +32,7 @@ class MultiCurrencyHTTPSupport @Inject()(config: PlatformConfigService)(implicit
     for {
       coinCap <- getCoinCapAssets()
       process <- Future.successful {
-        val mainCurency: Seq[CoinCapAsset] = coinCap.filter(_.symbol == SUPPORTED_SYMBOLS(0))
+        val mainCurency: Seq[CoinCapAsset] = coinCap.filter(_.symbol == COIN_USDC.symbol)
         val selectedCurrency: Seq[CoinCapAsset] = coinCap.filter(_.symbol == currency)
         if (!selectedCurrency.isEmpty && !mainCurency.isEmpty)
           mainCurency(0).priceUsd / selectedCurrency(0).priceUsd

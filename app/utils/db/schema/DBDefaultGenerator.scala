@@ -87,15 +87,17 @@ class DBDefaultGenerator @Inject()(
     configService
       .loadConfig()
       .map(_.map { conf =>
-          // set default URI's
-          conf.hosts.find(_.name == "node_api").map(x => { NODE_SERVER_URI = x.getURL() })
-          conf.hosts.find(_.name == "scala_api").map(x => { SCALA_SERVER_URI = x.getURL() })
-          conf.hosts.find(_.name == "mailer").map(x => { MAILER_HOST = x.getURL() })
-          conf.hosts.find(_.name == "coinica").map(x => { COINICA_WEB_HOST = x.getURL() })
-          // set default timers
-          DEFAULT_SYSTEM_SCHEDULER_TIMER = conf.tokenExpiration
-          DEFAULT_EXPIRATION = conf.defaultscheduler
-          DEFAULT_WEI_VALUE = BigDecimal(conf.wei)
+        // set default URI's
+        conf.hosts.find(_.name == "node_api").map(x => { NODE_SERVER_URI = x.getURL() })
+        conf.hosts.find(_.name == "scala_api").map(x => { SCALA_SERVER_URI = x.getURL() })
+        conf.hosts.find(_.name == "mailer").map(x => { MAILER_HOST = x.getURL() })
+        conf.hosts.find(_.name == "coinica").map(x => { COINICA_WEB_HOST = x.getURL() })
+        // set default timers
+        DEFAULT_SYSTEM_SCHEDULER_TIMER = conf.tokenExpiration
+        DEFAULT_EXPIRATION = conf.defaultscheduler
+        DEFAULT_WEI_VALUE = BigDecimal(conf.wei)
+        // set others..
+        SUPPORTED_CURRENCIES = conf.currencies
       })
   }
   // run all queries..

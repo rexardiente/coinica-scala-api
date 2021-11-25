@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorRef
 import play.api.libs.json._
-import utils.SystemConfig.SUPPORTED_SYMBOLS
+import utils.SystemConfig.COIN_USDC
 import models.domain.eosio.TreasureHuntGameData
 import models.domain._
 
@@ -196,7 +196,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       updateBalance <- {
       	hasWallet.map { _ =>
       		processWithdraw
-      			.map(_ => userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize))
+      			.map(_ => userAccountService.addBalanceByCurrency(id, COIN_USDC.symbol.toUpperCase, getPrize))
       			.getOrElse(Future(0))
       	}
       	.getOrElse(Future(0))

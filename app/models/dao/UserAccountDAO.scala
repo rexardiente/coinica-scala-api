@@ -7,7 +7,7 @@ import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.{ UserAccount, VIPUser, UserAccountWallet }
 import models.domain.wallet.support.{ Coin, FailedCoinDeposit }
 import models.domain.enum._
-import utils.SystemConfig.SUPPORTED_SYMBOLS
+import utils.SystemConfig.{ COIN_BTC, COIN_USDC, COIN_ETH }
 
 @Singleton
 final class UserAccountDAO @Inject()(
@@ -58,9 +58,9 @@ final class UserAccountDAO @Inject()(
   }
   protected class UserAccountWalletTable(tag: Tag) extends Table[UserAccountWallet](tag, "USER_ACCOUNT_WALLET") {
     def id = column[UUID]("ID", O.PrimaryKey)
-    def btc = column[Coin](SUPPORTED_SYMBOLS(2))
-    def eth = column[Coin](SUPPORTED_SYMBOLS(1))
-    def usdc = column[Coin](SUPPORTED_SYMBOLS(0))
+    def btc = column[Coin]("BTC")
+    def eth = column[Coin]("ETH")
+    def usdc = column[Coin]("USDC")
 
     def * = (id, btc, eth, usdc) <> (UserAccountWallet.tupled, UserAccountWallet.unapply)
     def fk = foreignKey("USER_ACCOUNT_INFO", id, UserAccountQuery)(_.id)

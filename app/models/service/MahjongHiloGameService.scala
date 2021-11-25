@@ -9,7 +9,7 @@ import scala.language.postfixOps
 import akka.actor.ActorRef
 import play.api.libs.json._
 import Ordering.Double.IeeeOrdering
-import utils.SystemConfig.SUPPORTED_SYMBOLS
+import utils.SystemConfig.COIN_USDC
 import models.domain._
 import models.domain.eosio.{ MahjongHiloGameData, MahjongHiloHistory }
 import models.repo.eosio.MahjongHiloHistoryRepo
@@ -253,7 +253,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       updateBalance <- {
       	hasWallet.map { _ =>
       		processWithdraw
-      			.map(_ => userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, getPrize))
+      			.map(_ => userAccountService.addBalanceByCurrency(id, COIN_USDC.symbol.toUpperCase, getPrize))
       			.getOrElse(Future.successful(0))
       	}
       	.getOrElse(Future.successful(0))

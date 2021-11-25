@@ -17,22 +17,22 @@ class PlatformConfigService @Inject()(configRepo: PlatformConfigRepo) {
   // System Configs
   def getTokenExpiration(): Future[Int] =
     loadConfig().map(_.map(_.tokenExpiration).getOrElse(DEFAULT_EXPIRATION))
-  def getSystemScheduler(): Future[Int] =
-    loadConfig().map(_.map(_.defaultscheduler).getOrElse(DEFAULT_SYSTEM_SCHEDULER_TIMER))
-  def getDefaultWeiValue(): Future[BigDecimal] =
-    loadConfig().map(_.map(x => BigDecimal(x.wei)).getOrElse(DEFAULT_WEI_VALUE))
-  def getHosts(): Future[List[PlatformHost]] = {
-    for {
-      config <- loadConfig()
-      hosts <- Future.successful(config.map(_.hosts).getOrElse(List.empty))
-    } yield (hosts)
-  }
-  def getHostByName(name: String): Future[Option[PlatformHost]] = {
-    for {
-      hosts <- getHosts()
-      host <- Future.successful(hosts.find(_.name == name))
-    } yield (host)
-  }
+  // def getSystemScheduler(): Future[Int] =
+  //   loadConfig().map(_.map(_.defaultscheduler).getOrElse(DEFAULT_SYSTEM_SCHEDULER_TIMER))
+  // def getDefaultWeiValue(): Future[BigDecimal] =
+  //   loadConfig().map(_.map(x => BigDecimal(x.wei)).getOrElse(DEFAULT_WEI_VALUE))
+  // def getHosts(): Future[List[PlatformHost]] = {
+  //   for {
+  //     config <- loadConfig()
+  //     hosts <- Future.successful(config.map(_.hosts).getOrElse(List.empty))
+  //   } yield (hosts)
+  // }
+  // def getHostByName(name: String): Future[Option[PlatformHost]] = {
+  //   for {
+  //     hosts <- getHosts()
+  //     host <- Future.successful(hosts.find(_.name == name))
+  //   } yield (host)
+  // }
   // def getSupportedCurrencies(): Future[List[PlatformCurrency]] = {
   //   for {
   //     config <- loadConfig()
@@ -85,19 +85,19 @@ class PlatformConfigService @Inject()(configRepo: PlatformConfigRepo) {
       game <- Future.successful(games.find(_.id == id))
     } yield (game)
   }
-  def getGameCode(id: UUID): Future[Option[String]] =
-    getGameInfoByID(id).map(_.map(_.code))
-  def getGameDisplayName(id: UUID): Future[Option[String]] =
-    getGameInfoByID(id).map(_.map(_.displayName))
-  def getGameName(id: UUID): Future[Option[String]] =
-    getGameInfoByID(id).map(_.map(_.name))
+  // def getGameCode(id: UUID): Future[Option[String]] =
+  //   getGameInfoByID(id).map(_.map(_.code))
+  // def getGameDisplayName(id: UUID): Future[Option[String]] =
+  //   getGameInfoByID(id).map(_.map(_.displayName))
+  // def getGameName(id: UUID): Future[Option[String]] =
+  //   getGameInfoByID(id).map(_.map(_.name))
 
-  def getGameCodeByName(name: String): Future[Option[String]] =
-    getGameInfoByName(name).map(_.map(_.code))
-  def getGameDisplayNameByName(name: String): Future[Option[String]] =
-    getGameInfoByName(name).map(_.map(_.displayName))
-  def getGameNameByName(name: String): Future[Option[String]] =
-    getGameInfoByName(name).map(_.map(_.name))
-  def getGameIDByName(name: String): Future[Option[UUID]] =
-    getGameInfoByName(name).map(_.map(_.id))
+  // def getGameCodeByName(name: String): Future[Option[String]] =
+  //   getGameInfoByName(name).map(_.map(_.code))
+  // def getGameDisplayNameByName(name: String): Future[Option[String]] =
+  //   getGameInfoByName(name).map(_.map(_.displayName))
+  // def getGameNameByName(name: String): Future[Option[String]] =
+  //   getGameInfoByName(name).map(_.map(_.name))
+  // def getGameIDByName(name: String): Future[Option[UUID]] =
+  //   getGameInfoByName(name).map(_.map(_.id))
 }

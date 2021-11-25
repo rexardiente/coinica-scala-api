@@ -10,7 +10,7 @@ import akka.actor._
 import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
-import utils.SystemConfig.SUPPORTED_SYMBOLS
+import utils.SystemConfig.COIN_USDC
 import models.domain.eosio.{ GhostQuestCharacter, GhostQuestCharacterHistory }
 import models.repo.eosio._
 import models.domain.{ OverAllGameHistory, PaymentType, PlatformGame }
@@ -83,7 +83,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       updateBalance <- {
         hasWallet.map { _ =>
           processWithdraw
-            .map(_ => userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, prize.getOrElse(0)))
+            .map(_ => userAccountService.addBalanceByCurrency(id, COIN_USDC.symbol.toUpperCase, prize.getOrElse(0)))
             .getOrElse(Future(0))
         }
         .getOrElse(Future(0))

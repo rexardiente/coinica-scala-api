@@ -12,7 +12,7 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import Ordering.Double.IeeeOrdering
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
-import utils.SystemConfig
+import utils.SystemConfig.{ DEFAULT_SYSTEM_SCHEDULER_TIMER, DEFAULT_WEI_VALUE, COIN_USDC }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects._
@@ -111,7 +111,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = { SystemConfig.DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
+          val dailySchedInterval: FiniteDuration = { DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
           val dailySchedDelay   : FiniteDuration = {
               val time = LocalTime.of(0, 0).toSecondOfDay
               val now = LocalTime.now().toSecondOfDay
@@ -185,11 +185,11 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                   val initialAmount: Double = detail.result.value.toDouble
                                   val totalAmount: BigDecimal = w.currency match {
                                     case "USDC" =>
-                                      (detail.result.gasPrice * SystemConfig.DEFAULT_WEI_VALUE) + initialAmount
+                                      (detail.result.gasPrice * DEFAULT_WEI_VALUE) + initialAmount
 
                                     case "ETH" =>
                                       val maxTxFeeLimit: BigDecimal = 500000
-                                      (((maxTxFeeLimit * detail.result.gasPrice) * SystemConfig.DEFAULT_WEI_VALUE) + initialAmount)
+                                      (((maxTxFeeLimit * detail.result.gasPrice) * DEFAULT_WEI_VALUE) + initialAmount)
                                   }
                                   userAccountService.deductBalanceByCurrency(account.id, w.currency, totalAmount)
                                 }
@@ -458,7 +458,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
             .filter(_._3 > 0)
             .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, user.username, v._2, v._3)).getOrElse(null)))
         }
-        currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(SystemConfig.SUPPORTED_SYMBOLS(0))
+        currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(COIN_USDC.symbol)
         // total bet amount * (EOS price -> USD)
         wagered <- Future.sequence {
           processedBets
