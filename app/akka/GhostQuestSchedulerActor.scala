@@ -51,6 +51,7 @@ class GhostQuestSchedulerActor @Inject()(
       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
     )(implicit system: ActorSystem ) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, concurrent.TimeUnit.SECONDS)
+  private val defaultGameName: String = "ghostquest"
 
   override def preStart: Unit = {
     super.preStart
@@ -62,7 +63,7 @@ class GhostQuestSchedulerActor @Inject()(
           GhostQuestSchedulerActor.isIntialized = true
 
           for {
-            hasGame <- platformConfigService.getGameInfoByName("ghostquest")
+            hasGame <- platformConfigService.getGameInfoByName(defaultGameName)
             // load default config fromt the DB
             _ <- Future.successful {
               hasGame.map { game =>
@@ -309,7 +310,7 @@ class GhostQuestSchedulerActor @Inject()(
   private def defaultSchedule(): Unit = {
     // update default data just incase DB is updated
     for {
-      hasGame <- platformConfigService.getGameInfoByName("ghostquest")
+      hasGame <- platformConfigService.getGameInfoByName(defaultGameName)
       // load default config fromt the DB
       _ <- Future.successful {
         hasGame.map { game =>
