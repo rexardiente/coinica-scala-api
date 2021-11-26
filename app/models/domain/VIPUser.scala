@@ -28,16 +28,15 @@ case class VIPUser(id: UUID,
 	private val pointsToInt: Int = points.round.toInt
 
 	def toJson(): JsValue = Json.toJson(this)
-	def currentLvlMax(): Double = { if (0 to 200 contains pointsToInt) 200 else if (201 to 500 contains pointsToInt) 500 else 1000 }.toDouble
-	def prevLvlMax(): Double = { if (0 to 200 contains pointsToInt) 0 else if (201 to 500 contains pointsToInt) 200 else 500 }.toDouble
-	def nextLvlMax(): Double = { if (0 to 200 contains pointsToInt) 500 else 1000 }.toDouble
-	def currentRank(): VIP.value = if (0 to 200 contains pointsToInt) VIP.BRONZE else if (201 to 500 contains pointsToInt) VIP.SILVER else VIP.GOLD
-	def nextRank(): VIP.value = if (0 to 200 contains pointsToInt) VIP.SILVER else VIP.GOLD
+	def currentLvlMax(): Double = { if (0 to 50 contains pointsToInt) 50 else if (51 to 150 contains pointsToInt) 150 else 300 }.toDouble
+	def prevLvlMax(): Double = { if (0 to 50 contains pointsToInt) 0 else if (51 to 150 contains pointsToInt) 50 else 150 }.toDouble
+	def nextLvlMax(): Double = { if (0 to 50 contains pointsToInt) 150 else 300 }.toDouble
+	def currentRank(): VIP.value = if (0 to 50 contains pointsToInt) VIP.BRONZE else if (51 to 150 contains pointsToInt) VIP.SILVER else VIP.GOLD
+	def nextRank(): VIP.value = if (0 to 50 contains pointsToInt) VIP.SILVER else VIP.GOLD
 }
 // VIP Percentage calculations:
-// 0 - 100 = Bronze
-// 101 - 500 = Silver
-// 501 and up  = Gold
-
-// sample current_points = 110.600000
-// 110.600000 / 500 * 100 = 22.12% out of 100%
+// 0 - 50 = Bronze
+// 51 - 150 = Silver
+// 251 and up  = Gold
+// sample current_points = 110.300000
+// 110.300000 / 150 * 50 = 22.12% out of 50%
