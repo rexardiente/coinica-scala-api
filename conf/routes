@@ -123,7 +123,7 @@ GET   /donut/api/v1/game/all/history/:game 							controllers.SecureActionContro
 GET   /donut/api/v1/game/all/history/:game/:user 				controllers.SecureActionController.gameHistoryByGameIDAndUser(game: UUID, user: UUID)
 
 # TODO: News with pagination
-GET   /donut/api/v1/news controllers.HomeController.news
+#GET   /donut/api/v1/news controllers.HomeController.news
 
 # User Account
 #GET   /donut/api/v1/get/account/username/by 				controllers.HomeController.getAccountNameByID(id: UUID)

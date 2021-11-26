@@ -26,7 +26,6 @@ class Generator @Inject()(
     ghostQuestBattleResultDAO: GhostQuestBattleResultDAO,
     mahjongHiloHistoryDAO: MahjongHiloHistoryDAO,
     vipBenefit: VIPBenefitDAO,
-    news: NewsDAO,
     overAllGameHistory: OverAllGameHistoryDAO,
     val dbConfigProvider: DatabaseConfigProvider)
   extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
@@ -56,7 +55,6 @@ class Generator @Inject()(
       ghostQuestBattleResultDAO.Query.schema ++
       mahjongHiloHistoryDAO.Query.schema ++
       vipBenefit.Query.schema ++
-      news.Query.schema ++
       overAllGameHistory.Query.schema
 
 

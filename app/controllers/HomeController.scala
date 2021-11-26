@@ -37,13 +37,11 @@ class HomeController @Inject()(
       gameRepo: GameRepo,
       genreRepo: GenreRepo,
       challengeRepo: ChallengeRepo,
-      newsRepo: NewsRepo,
       rankingService: RankingService,
       referralHistoryService:  ReferralHistoryService,
       eosNetTransaction: EOSNetTransactionService,
       challengeService: ChallengeService,
       overAllGameHistoryRepo: OverAllGameHistoryRepo,
-      // overAllHistoryService: OverAllHistoryService,
       ghostQuestEOSIO: utils.lib.GhostQuestEOSIO,
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef,
@@ -381,9 +379,6 @@ class HomeController @Inject()(
     eosNetTransaction.getByTxTraceID(id).map(Ok(_))
   }
 
-  def news() = Action.async { implicit req =>
-    newsRepo.all().map(x => Ok(Json.toJson(x)))
-  }
   def getCoinCapAsset() = Action.async { implicit request =>
     multiCurrencySupport.getCoinCapAssets().map(x => Ok(Json.toJson(x)))
   }
