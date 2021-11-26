@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorRef
 import play.api.libs.json._
-import utils.SystemConfig.COIN_USDC
+import utils.SystemConfig.SUPPORTED_CURRENCIES
 import models.domain.eosio.TreasureHuntGameData
 import models.domain._
 
@@ -19,6 +19,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 																				@Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
 																				@Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
 	private val defaultGameName: String = "treasurehunt"
+	private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
 
 	def userData(gameID: Int): Future[Option[TreasureHuntGameData]] =
 		contract.treasureHuntGetUserData(gameID)
@@ -53,7 +54,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 					                                                                      hash,
 					                                                                      gameID,
-					                                                                      defaultGame.map(_.code).getOrElse("default_code"),
+					                                                                      defaultGame.map(_.name).getOrElse("default_code"),
 					                                                                      ListOfIntPredictions(username,
 								                                                                                    prediction,
 								                                                                                    result,
@@ -121,7 +122,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 														val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 							                                                                      hash,
 							                                                                      gameID,
-							                                                                      defaultGame.map(_.code).getOrElse("default_code"),
+							                                                                      defaultGame.map(_.name).getOrElse("default_code"),
 							                                                                      ListOfIntPredictions(username,
 										                                                                                    prediction,
 										                                                                                    result,
@@ -222,7 +223,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 					                                                                      txHash,
 					                                                                      gameID,
-					                                                                      defaultGame.map(_.code).getOrElse("default_code"),
+					                                                                      defaultGame.map(_.name).getOrElse("default_code"),
 					                                                                      ListOfIntPredictions(username,
 								                                                                                    prediction,
 								                                                                                    result,

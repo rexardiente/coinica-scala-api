@@ -69,7 +69,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         gameData
           .map { data =>
             // val characters: Seq[GhostQuestCharacter] = data.characters
-            val selectedCharacter: Option[GhostQuestCharacter] = data.characters.filter(_.key == key).headOption
+            val selectedCharacter: Option[GhostQuestCharacter] = data.characters.find(_.key == key)
             val prize: BigDecimal = selectedCharacter.map(_.value.prize).getOrElse(BigDecimal(0))
             (selectedCharacter, Some(prize))
           }
@@ -97,7 +97,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                   val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
                   for {
                     isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
-                    config <- platformConfigService.getGameInfoByName(defaultGameName)
+                    defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
                     processedHistory <- {
                       if (!isExists) {
                         val gameID: String = txHash // use tx_hash as game
@@ -106,7 +106,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                         val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
                                                                                 txHash,
                                                                                 gameID,
-                                                                                config.map(_.code).getOrElse("default_code"),
+                                                                                defaultGame.map(_.name).getOrElse("default_code"),
                                                                                 PaymentType(username,
                                                                                             "WITHDRAW",
                                                                                             prize.getOrElse(BigDecimal(0)).toDouble),

@@ -80,7 +80,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 												for {
 													// check if tx_hash already exists to DB history..
 													isExists <- overAllHistory.gameIsExistsByTxHash(hash)
-													config <- platformConfigService.getGameInfoByName(defaultGameName)
+													defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
 													// return true if successful adding to DB else false
 													onSaveHistory <- {
 														if (!isExists) {
@@ -88,7 +88,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 															val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 								                                                                      hash,
 								                                                                      gameID,
-								                                                                      config.map(_.code).getOrElse("default_code"),
+								                                                                      defaultGame.map(_.name).getOrElse("default_code"),
 								                                                                      IntPredictions(username,
 								                                                                                    prediction,
 								                                                                                    result,
@@ -103,7 +103,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 																.map { x =>
 													        if(x > 0) {
 													          dynamicBroadcast ! Array(gameHistory)
-													          dynamicProcessor ! DailyTask(id, config.map(_.id).getOrElse(UUID.randomUUID), 1)
+													          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 																		dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
 																		(2)
 													        }
@@ -267,7 +267,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	      					val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
 									for {
 										isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
-										config <- platformConfigService.getGameInfoByName(defaultGameName)
+										defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
 										processedHistory <- {
 											if (!isExists) {
 												val gameID: String = data.game_id
@@ -281,7 +281,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
 					                                                                      txHash,
 					                                                                      gameID,
-					                                                                      config.map(_.code).getOrElse("default_code"),
+					                                                                      defaultGame.map(_.name).getOrElse("default_code"),
 					                                                                      IntPredictions(username,
 					                                                                                    prediction,
 					                                                                                    result,
@@ -294,7 +294,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 												overAllHistory.addHistory(gameHistory)
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
-									          dynamicProcessor ! DailyTask(id, config.map(_.id).getOrElse(UUID.randomUUID), 1)
+									          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 1)
 										        true
 										      }
