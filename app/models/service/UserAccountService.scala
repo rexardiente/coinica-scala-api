@@ -16,7 +16,7 @@ import models.repo.{
   FailedCoinDepositRepo
 }
 import utils.lib.MultiCurrencyHTTPSupport
-import utils.SystemConfig.{ DEFAULT_WEI_VALUE, COIN_USDC, COIN_ETH, COIN_BTC }
+import utils.SystemConfig.DEFAULT_WEI_VALUE
 
 @Singleton
 class UserAccountService @Inject()(
@@ -141,7 +141,7 @@ class UserAccountService @Inject()(
     } yield toPaginate
   }
 
-  def addBalanceByCurrency(id: UUID, symbol: String, totalAmount: BigDecimal): Future[Int] = {
+  def addBalanceByCurrency(id: UUID, symbol: String, amount: BigDecimal): Future[Int] = {
     for {
       optWallet <- getUserAccountWallet(id)
       process <- Future.successful {
@@ -149,7 +149,7 @@ class UserAccountService @Inject()(
           wallet.wallet
                 .find(_.symbol == symbol)
                 .map { coin =>
-                  val updatedCoin = Coin(COIN_ETH.symbol, coin.amount + totalAmount)
+                  val updatedCoin = Coin(coin.symbol, coin.amount + amount)
                   // remove old record then replace the new updated coin
                   wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
                 }
@@ -160,15 +160,15 @@ class UserAccountService @Inject()(
     } yield (updateBalance)
   }
   // before deduction, make sure amount is already final
-  // if deposit -> (gasPrice, wei and amount) = totalAmount
+  // if deposit -> (gasPrice, wei and amount) = amount
   // case "USDC" =>
-  //   val newBalance: BigDecimal = account.usdc.amount - ((gasPrice * DEFAULT_WEI_VALUE) + totalAmount)
+  //   val newBalance: BigDecimal = account.usdc.amount - ((gasPrice * DEFAULT_WEI_VALUE) + amount)
   //   userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
   // case "ETH" =>
-  //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * DEFAULT_WEI_VALUE) + totalAmount)
+  //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * DEFAULT_WEI_VALUE) + amount)
   //   userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
   // gasPrice: Int
-  def deductBalanceByCurrency(id: UUID, symbol: String, totalAmount: BigDecimal): Future[Int] = {
+  def deductBalanceByCurrency(id: UUID, symbol: String, amount: BigDecimal): Future[Int] = {
     for {
       optWallet <- getUserAccountWallet(id)
       process <- Future.successful {
@@ -176,7 +176,7 @@ class UserAccountService @Inject()(
           wallet.wallet
                 .find(_.symbol == symbol)
                 .map { coin =>
-                  val updatedCoin = Coin(COIN_ETH.symbol, coin.amount - totalAmount)
+                  val updatedCoin = Coin(coin.symbol, coin.amount - amount)
                   // remove old record then replace the new updated coin
                   wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
                 }

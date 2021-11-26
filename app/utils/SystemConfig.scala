@@ -12,8 +12,8 @@ object SystemConfig {
 	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
 	val DEFAULT_HOST: String = "http://127.0.0.1:9000"
 	// auto generated form the DB..
-	var SUPPORTED_CURRENCIES: List[PlatformCurrency] = List.empty
-	def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usdc-coin").getOrElse(null)
+	var SUPPORTED_CURRENCIES: List[PlatformCurrency] = List()
+	def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
 	def COIN_ETH: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "ethereum").getOrElse(null)
 	def COIN_BTC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "bitcoin").getOrElse(null)
 

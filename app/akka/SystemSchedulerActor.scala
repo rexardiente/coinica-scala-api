@@ -12,7 +12,7 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import Ordering.Double.IeeeOrdering
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
-import utils.SystemConfig.{ DEFAULT_SYSTEM_SCHEDULER_TIMER, DEFAULT_WEI_VALUE, COIN_USDC }
+import utils.SystemConfig.{ DEFAULT_SYSTEM_SCHEDULER_TIMER, DEFAULT_WEI_VALUE, SUPPORTED_CURRENCIES }
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects._
@@ -88,6 +88,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
+  private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
 
   private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
 

@@ -7,6 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import play.api.libs.json._
+import akka.actor.{ Actor, ActorSystem, ActorLogging }
 import models.dao.VIPBenefitDAO
 import models.repo.{ GameRepo, GenreRepo, PlatformConfigRepo }
 import models.service.PlatformConfigService
@@ -20,9 +21,9 @@ class DBDefaultGenerator @Inject()(
     gameRepo: GameRepo,
     genreRepo: GenreRepo,
     configRepo: PlatformConfigRepo,
-    configService: PlatformConfigService,
     val dbConfigProvider: DatabaseConfigProvider)
-    extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
+    (implicit system: ActorSystem)
+    extends HasDatabaseConfigProvider[utils.db.PostgresDriver] with Actor with ActorLogging {
   import profile.api._
   // default variables
   private val defaultGenre: Genre = new Genre(generateID, "LUCKY", Some("Play with your luck."))
@@ -82,32 +83,19 @@ class DBDefaultGenerator @Inject()(
     // insert only if table is empty..
     configRepo.add(new PlatformConfig(generateID, games, hosts, currencies))
   }
-  // load default static configs
-  private def loadDefaultConfigs(): Unit = {
-    configService
-      .loadConfig()
-      .foreach(_.foreach { conf =>
-        // set default URI's
-        conf.hosts.foreach { x =>
-          x.name match {
-            case "node_api" => NODE_SERVER_URI = x.getURL()
-            case "scala_api" => SCALA_SERVER_URI = x.getURL()
-            case "mailer" => MAILER_HOST = x.getURL()
-            case "coinica" => COINICA_WEB_HOST = x.getURL()
-          }
-        }
-        // set default timers
-        DEFAULT_SYSTEM_SCHEDULER_TIMER = conf.tokenExpiration
-        DEFAULT_EXPIRATION = conf.defaultscheduler
-        DEFAULT_WEI_VALUE = BigDecimal(conf.wei)
-        // set others..
-        SUPPORTED_CURRENCIES = conf.currencies
-      })
+  override def preStart(): Unit = {
+    super.preStart
+    // run all queries..
+    for {
+      _ <- vipBenefitQuery()
+      _ <- genreQuery()
+      _ <- systemDefaultConfigQuery()
+    } yield ()
+    // add delay to make sure its all updated before exit
+    Thread.sleep(1000)
+    // after variables are updated..terminate akka actor gracefully
+    context.stop(self)
   }
-  // run all queries..
-  vipBenefitQuery()
-  genreQuery()
-  systemDefaultConfigQuery()
-  loadDefaultConfigs()
-  println("Database default generator definitions are written.")
+  override def postStop(): Unit = log.info("Database default generator definitions are written")
+  def receive = { _ => }  // do nothing..
 }

@@ -13,7 +13,7 @@ import models.domain.eosio._
 import utils.SystemConfig.COIN_USDC
 import models.domain.eosio.{ GhostQuestCharacter, GhostQuestCharacterHistory }
 import models.repo.eosio._
-import models.domain.{ OverAllGameHistory, PaymentType, PlatformGame }
+import models.domain.{ OverAllGameHistory, PaymentType, PlatformGame, PlatformCurrency }
 
 @Singleton
 class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,

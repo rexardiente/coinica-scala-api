@@ -39,6 +39,8 @@
   <logger name="akka.SystemSchedulerActor" level="TRACE" />
   <logger name="akka.DynamicBroadcastActor" level="TRACE" />
   <logger name="akka.DynamicSystemProcessActor" level="TRACE" />
+  <logger name="utils.db.schema.DBDefaultGenerator" level="TRACE" />
+  <logger name="utils.db.schema.LoadSystemConfig" level="TRACE" />
 
   <root level="WARN">
     <!--<appender-ref ref="ASYNCFILE" />-->
