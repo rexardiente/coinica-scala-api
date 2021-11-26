@@ -37,4 +37,3 @@ case class TaskGameInfo(game: PlatformGame, count: Int, points: Double, progress
 case class Task(id: UUID, tasks: Seq[TaskGameInfo], created_at: Long) {
 	def toJson(): JsValue = Json.toJson(this)
 }
-

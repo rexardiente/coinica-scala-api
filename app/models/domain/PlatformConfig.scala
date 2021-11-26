@@ -32,7 +32,7 @@ case class PlatformGame(name: String,
 												logo: String,
 												path: String,
 												genre: UUID,
-												 others: JsValue,
+												others: JsValue,
  												description: String = "",
 												id: UUID = UUID.randomUUID()) {
 	def toJson(): JsValue = Json.toJson(this)

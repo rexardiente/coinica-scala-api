@@ -86,12 +86,16 @@ class DBDefaultGenerator @Inject()(
   private def loadDefaultConfigs(): Unit = {
     configService
       .loadConfig()
-      .map(_.map { conf =>
+      .foreach(_.foreach { conf =>
         // set default URI's
-        conf.hosts.find(_.name == "node_api").map(x => { NODE_SERVER_URI = x.getURL() })
-        conf.hosts.find(_.name == "scala_api").map(x => { SCALA_SERVER_URI = x.getURL() })
-        conf.hosts.find(_.name == "mailer").map(x => { MAILER_HOST = x.getURL() })
-        conf.hosts.find(_.name == "coinica").map(x => { COINICA_WEB_HOST = x.getURL() })
+        conf.hosts.foreach { x =>
+          x.name match {
+            case "node_api" => NODE_SERVER_URI = x.getURL()
+            case "scala_api" => SCALA_SERVER_URI = x.getURL()
+            case "mailer" => MAILER_HOST = x.getURL()
+            case "coinica" => COINICA_WEB_HOST = x.getURL()
+          }
+        }
         // set default timers
         DEFAULT_SYSTEM_SCHEDULER_TIMER = conf.tokenExpiration
         DEFAULT_EXPIRATION = conf.defaultscheduler
