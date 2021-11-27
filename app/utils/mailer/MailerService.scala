@@ -16,10 +16,9 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // default constructors
     val mailerAddress: String = SystemConfig.MAILER_ADDRESS
     val url: String = SystemConfig.MAILER_HOST
-    val protocol: String = SystemConfig.PROTOCOL
     // compose code for email link
     val code: String = s"${session._1}_${session._2}"
-    val codeURL: String = s"${protocol}://${url}/donut/api/v1/user/email/confirm?id=${accountID}&email=${address}&code=${code}"
+    val codeURL: String = s"${url}/donut/api/v1/user/email/confirm?id=${accountID}&email=${address}&code=${code}"
     val emailBody: String = views.html.emailConfirmationTemplate.render(username, code, codeURL, isUpdate).toString()
     val email: Email = new Email(
       "ACCOUNT EMAIL VERIFICATION",
@@ -42,11 +41,10 @@ class MailerService @Inject()(mailerClient: MailerClient) {
     // default constructors
     val mailerAddress: String = SystemConfig.MAILER_ADDRESS
     val url: String = SystemConfig.MAILER_HOST
-    val protocol: String = SystemConfig.PROTOCOL
     // compose code for email link
     // sample code ~> ==tokenb2fc31ce-b683-46af-bs1b2-5c579aea39df_123123123213
     val code: String = s"${session._1}_${session._2}"
-    val codeURL: String = s"${protocol}://${url}/donut/api/v1/user/password/reset/confirm?id=${accountID}&code=${code}"
+    val codeURL: String = s"${url}/donut/api/v1/user/password/reset/confirm?id=${accountID}&code=${code}"
     // compose body of the email in template and render as String
     // https://stackoverflow.com/questions/12538368/email-templates-as-scala-templates-in-play/12543639
     val emailBody: String = views.html.resetPasswordEmailConfirmation.render(username, code, codeURL).toString()

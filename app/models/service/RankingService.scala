@@ -35,9 +35,11 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
     val end: Instant = now.plusDays(-1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
 
     Await.ready(for {
-      history <- rankingHistoryRepo.getHistoryByDateRange(
-                                      end.getEpochSecond,
-                                      now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().getEpochSecond)
+      history <- rankingHistoryRepo.getHistoryByDateRange(end.getEpochSecond,
+                                                          now.toLocalDate()
+                                                              .atStartOfDay(ZoneOffset.UTC)
+                                                              .toInstant()
+                                                              .getEpochSecond)
       calc <- calculateRankHistory(history)
     } yield (calc), Duration.Inf)
   }

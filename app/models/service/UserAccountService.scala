@@ -16,7 +16,7 @@ import models.repo.{
   FailedCoinDepositRepo
 }
 import utils.lib.MultiCurrencyHTTPSupport
-import utils.SystemConfig.{ DEFAULT_WEI_VALUE, SUPPORTED_SYMBOLS }
+import utils.SystemConfig.DEFAULT_WEI_VALUE
 
 @Singleton
 class UserAccountService @Inject()(
@@ -141,65 +141,58 @@ class UserAccountService @Inject()(
     } yield toPaginate
   }
 
-  def addBalanceByCurrency(id: UUID, currency: String, totalAmount: BigDecimal): Future[Int] = {
+  def addBalanceByCurrency(id: UUID, symbol: String, amount: BigDecimal): Future[Int] = {
     for {
-      hasWallet <- getUserAccountWallet(id)
+      optWallet <- getUserAccountWallet(id)
       process <- Future.successful {
-        hasWallet.map { wallet =>
-          currency match {
-            case "ETH" =>
-              wallet.copy(eth=Coin(SUPPORTED_SYMBOLS(1), wallet.eth.amount + totalAmount))
-            case "USDC" =>
-              wallet.copy(usdc=Coin(SUPPORTED_SYMBOLS(0), wallet.usdc.amount + totalAmount))
-            case "BTC" =>
-              wallet.copy(btc=Coin(SUPPORTED_SYMBOLS(2), wallet.btc.amount + totalAmount))
-          }
+        optWallet.map { wallet =>
+          wallet.wallet
+                .find(_.symbol == symbol)
+                .map { coin =>
+                  val updatedCoin = Coin(coin.symbol, coin.amount + amount)
+                  // remove old record then replace the new updated coin
+                  wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
+                }
+                .getOrElse(wallet)
         }
       }
       updateBalance <- process.map(userWalletRepo.update(_)).getOrElse(Future(0))
     } yield (updateBalance)
   }
   // before deduction, make sure amount is already final
-  // if deposit -> (gasPrice, wei and amount) = totalAmount
+  // if deposit -> (gasPrice, wei and amount) = amount
   // case "USDC" =>
-  //   val newBalance: BigDecimal = account.usdc.amount - ((gasPrice * DEFAULT_WEI_VALUE) + totalAmount)
+  //   val newBalance: BigDecimal = account.usdc.amount - ((gasPrice * DEFAULT_WEI_VALUE) + amount)
   //   userWalletRepo.update(account.copy(usdc=Coin("USDC", newBalance)))
   // case "ETH" =>
-  //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * DEFAULT_WEI_VALUE) + totalAmount)
+  //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * DEFAULT_WEI_VALUE) + amount)
   //   userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
   // gasPrice: Int
-  def deductBalanceByCurrency(id: UUID, currency: String, totalAmount: BigDecimal): Future[Int] = {
+  def deductBalanceByCurrency(id: UUID, symbol: String, amount: BigDecimal): Future[Int] = {
     for {
-      hasWallet <- getUserAccountWallet(id)
-      process <- {
-        hasWallet.map { wallet =>
-          val updatedBalance: UserAccountWallet = currency match {
-            case "ETH" =>
-              wallet.copy(eth=Coin(SUPPORTED_SYMBOLS(1), wallet.eth.amount - totalAmount))
-            case "USDC" =>
-              wallet.copy(usdc=Coin(SUPPORTED_SYMBOLS(0), wallet.usdc.amount - totalAmount))
-            case "BTC" =>
-              wallet.copy(btc=Coin(SUPPORTED_SYMBOLS(2), wallet.btc.amount - totalAmount))
+      optWallet <- getUserAccountWallet(id)
+      process <- Future.successful {
+        optWallet.map { wallet =>
+          wallet.wallet
+                .find(_.symbol == symbol)
+                .map { coin =>
+                  val updatedCoin = Coin(coin.symbol, coin.amount - amount)
+                  // remove old record then replace the new updated coin
+                  wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
+                }
+                .getOrElse(wallet)
           }
-          userWalletRepo.update(updatedBalance)
-        }.getOrElse(Future(0))
       }
-    } yield (process)
+      updateBalance <- process.map(userWalletRepo.update(_)).getOrElse(Future(0))
+    } yield (updateBalance)
   }
   // 1 quantity = 1 game token
-  def getGameQuantityAmount(currency: String, quantity: Int): Future[BigDecimal] = {
-    httpSupport.getCurrentPriceBasedOnMainCurrency(currency).map(_ * quantity)
+  def getGameQuantityAmount(symbol: String, quantity: Int): Future[BigDecimal] = {
+    httpSupport.getCurrentPriceBasedOnMainCurrency(symbol).map(_ * quantity)
   }
   // amount must be done converted to its currency value
-  def hasEnoughBalanceByCurrency(wallet: UserAccountWallet, currency: String, amount: BigDecimal): Boolean = {
-    val baseAmount: BigDecimal = currency match {
-      case "ETH" => wallet.eth.amount
-      case "USDC" => wallet.usdc.amount
-      case "BTC" => wallet.btc.amount
-      case _ => 0 // unknown currency
-    }
-    if (baseAmount >= amount) true else false
-  }
+  def hasEnoughBalanceByCurrency(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Boolean =
+    wallet.wallet.find(_.symbol == symbol).map(_.amount >= amount).getOrElse(false)
 
   def saveUserWalletHistory(v: UserAccountWalletHistory): Future[Int] = userWalletHistoryRepo.add(v)
   def updateWithWithdrawCoin(id: UUID, coin: CoinWithdraw): Future[Int] = {
@@ -210,14 +203,14 @@ class UserAccountService @Inject()(
       process <- {
         hasWallet.map { account =>
           val destination: String = coin.receiver.address.getOrElse("")
-          val currency: String = coin.receiver.currency
+          val symbol: String = coin.receiver.symbol
           val amount: BigDecimal = coin.receiver.amount
 
-          currency match {
+          symbol match {
             case "USDC" =>
               val gasPrice: BigDecimal = (coin.gasPrice * DEFAULT_WEI_VALUE)
               val toDeductAmount: BigDecimal = gasPrice + amount
-              if (hasEnoughBalanceByCurrency(account, currency, toDeductAmount))
+              if (hasEnoughBalanceByCurrency(account, symbol, toDeductAmount))
                 httpSupport
                   .walletWithdrawUSDC(id, destination, amount, coin.gasPrice)
                   .map(_.getOrElse(0))
@@ -226,7 +219,7 @@ class UserAccountService @Inject()(
             case "ETH" =>
               val gasPrice: BigDecimal = (coin.gasPrice * DEFAULT_WEI_VALUE)
               val toDeductAmount: BigDecimal = gasPrice + amount
-              if (hasEnoughBalanceByCurrency(account, currency, toDeductAmount))
+              if (hasEnoughBalanceByCurrency(account, symbol, toDeductAmount))
                 httpSupport
                   .walletWithdrawETH(id, destination, amount, coin.gasPrice)
                   .map(_.getOrElse(0))
@@ -252,7 +245,7 @@ class UserAccountService @Inject()(
                                                     coin.txHash,
                                                     coin.issuer.address.getOrElse(""),
                                                     coin.receiver.address.getOrElse(""),
-                                                    coin.receiver.currency,
+                                                    coin.receiver.symbol,
                                                     coin.receiver.amount)
             // if tx has failed for unknown reason
             _ <- {

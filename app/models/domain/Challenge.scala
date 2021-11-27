@@ -1,11 +1,11 @@
 package models.domain
 
 import java.util.UUID
-import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import utils.CommonImplicits
 
-object Challenge extends utils.CommonImplicits {
+object Challenge extends CommonImplicits {
 	val tupled = (apply: (UUID, UUID, String, Long, Long) => Challenge).tupled
 	def apply(id: UUID,
 						gameID: UUID,
@@ -28,15 +28,15 @@ case class Challenge(id: UUID,
 										created_at: Long,
 										expiredAt: Long)
 
-object ChallengeTracker extends utils.CommonImplicits {
+object ChallengeTracker extends CommonImplicits {
 	val tupled = (apply: (UUID, Double, Double, Double, Double) => ChallengeTracker).tupled
 }
-object ChallengeHistory extends utils.CommonImplicits {
+object ChallengeHistory extends CommonImplicits {
 	val tupled = (apply: (UUID, Seq[ChallengeTracker], Long) => ChallengeHistory).tupled
 	def apply(id: UUID, rank_users: Seq[ChallengeTracker], created_at: Long): ChallengeHistory =
 			new ChallengeHistory(id, rank_users, created_at)
 	def apply(rank_users: Seq[ChallengeTracker]): ChallengeHistory =
-		new ChallengeHistory(UUID.randomUUID, rank_users, Instant.now.getEpochSecond)
+		new ChallengeHistory(UUID.randomUUID, rank_users, java.time.Instant.now.getEpochSecond)
 }
 
 case class ChallengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double) {

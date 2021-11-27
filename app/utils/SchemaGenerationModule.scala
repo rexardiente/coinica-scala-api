@@ -1,7 +1,11 @@
 package utils
 
-class SchemaGenerationModule extends com.google.inject.AbstractModule {
+import utils.db.schema.{ Generator, DBDefaultGenerator, LoadSystemConfig }
+
+class SchemaGenerationModule extends com.google.inject.AbstractModule with play.api.libs.concurrent.AkkaGuiceSupport {
   override protected def configure() = {
-    bind(classOf[utils.db.schema.Generator]).asEagerSingleton()
+    bind(classOf[Generator]).asEagerSingleton()
+    bindActor[DBDefaultGenerator]("DBDefaultGenerator")
+    bindActor[LoadSystemConfig]("LoadSystemConfig")
   }
 }

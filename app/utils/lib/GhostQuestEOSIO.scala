@@ -2,17 +2,19 @@ package utils.lib
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import com.typesafe.config.{ Config, ConfigFactory}
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
+import models.service.PlatformConfigService
 import models.domain.eosio._
+import utils.SystemConfig.{ NODE_SERVER_URI, DEFAULT_HOST }
 // https://github.com/DonutFactory/eosjs-node-server/blob/master/docs/GHOSTQUEST_V2_API.md
 @Singleton
-class GhostQuestEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val nodeServerURI: String = utils.SystemConfig.NODE_SERVER_URI
+class GhostQuestEOSIO @Inject()(config: PlatformConfigService)(implicit ws: WSClient, ec: ExecutionContext) {
+  private def nodeServerURI: String = NODE_SERVER_URI
+
   def getUserData(id: Int): Future[Option[GhostQuestGameData]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/ghostquest/get_table")
     val complexRequest: WSRequest = request

@@ -4,8 +4,9 @@ import java.time.Instant
 import java.util.UUID
 import play.api.libs.json._
 import models.domain.wallet.support.Coin
+import utils.CommonImplicits
 
-object UserAccount extends utils.CommonImplicits {
+object UserAccount extends CommonImplicits {
 	val tupled = (apply: (UUID,
 												Int,
 												String,
@@ -94,14 +95,9 @@ case class UserAccount(id: UUID,
 	def toJson(): JsValue = Json.toJson(this)
 }
 
-object UserAccountWallet extends utils.CommonImplicits {
-	val tupled = (apply: (UUID, Coin, Coin, Coin) => UserAccountWallet).tupled
+object UserAccountWallet extends CommonImplicits {
+	val tupled = (apply: (UUID, List[Coin]) => UserAccountWallet).tupled
 }
-case class UserAccountWallet(id: UUID, btc: Coin, eth: Coin, usdc: Coin) {
+case class UserAccountWallet(id: UUID, wallet: List[Coin]) {
 	def toJson(): JsValue = Json.toJson(this)
 }
-
-
-
-
-

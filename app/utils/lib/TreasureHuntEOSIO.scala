@@ -1,16 +1,17 @@
 package utils.lib
 
 import javax.inject.{ Inject, Singleton }
-import com.typesafe.config.{ Config, ConfigFactory}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
 import models.domain.eosio.TreasureHuntGameData
+import models.service.PlatformConfigService
+import utils.SystemConfig.{ NODE_SERVER_URI, DEFAULT_HOST }
 
 @Singleton
-class TreasureHuntEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val nodeServerURI: String = utils.SystemConfig.NODE_SERVER_URI
+class TreasureHuntEOSIO @Inject()(config: PlatformConfigService)(implicit ws: WSClient, ec: ExecutionContext) {
+  private def nodeServerURI: String = NODE_SERVER_URI
 
   def treasureHuntAutoPlay(id: Int, username: String, sets: Seq[Int]): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/treasurehunt/autoplay")

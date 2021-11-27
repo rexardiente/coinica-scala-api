@@ -17,7 +17,14 @@ import models.domain.eosio.{
     GhostQuestCharacterGameLog,
     GhostQuestCharacterValue,
     MahjongHiloGameData }
-import models.domain.{ ChallengeTracker, TaskGameInfo, TransactionType, RankType }
+import models.domain.{
+    ChallengeTracker,
+    TaskGameInfo,
+    TransactionType,
+    RankType,
+    PlatformGame,
+    PlatformHost,
+    PlatformCurrency }
 import models.domain.wallet.support.{ Coin, CryptoJsonRpcHistory }
 import models.domain.enum._
 // import ejisan.kuro.otp.OTPKey
@@ -64,6 +71,18 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val listTransactionTypeColumnMapper = MappedColumnType.base[List[TransactionType], JsValue](
     s => Json.toJson(s),
     i => i.as[List[TransactionType]])
+  implicit val listPlatformGameColumnMapper = MappedColumnType.base[List[PlatformGame], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[PlatformGame]])
+  implicit val listPlatformHostColumnMapper = MappedColumnType.base[List[PlatformHost], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[PlatformHost]])
+  implicit val listPlatformCurrencyColumnMapper = MappedColumnType.base[List[PlatformCurrency], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[PlatformCurrency]])
+  implicit val listCoinColumnMapper = MappedColumnType.base[List[Coin], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[Coin]])
   implicit val gqCharacterGameLogColumnMapper = MappedColumnType.base[List[GhostQuestCharacterGameLog], JsValue](
     s => Json.toJson(s),
     i => i.as[List[GhostQuestCharacterGameLog]])

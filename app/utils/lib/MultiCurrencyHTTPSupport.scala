@@ -8,19 +8,21 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
-import utils.SystemConfig._
+import utils.SystemConfig.{ NODE_SERVER_URI, SUPPORTED_CURRENCIES, COIN_USDC }
+import models.service.PlatformConfigService
 import models.domain.wallet.support.{ ETHJsonRpc, CoinCapAsset }
+import models.domain.PlatformCurrency
 
 @Singleton
-class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val nodeServerURI: String = NODE_SERVER_URI
+class MultiCurrencyHTTPSupport @Inject()(config: PlatformConfigService)(implicit ws: WSClient, ec: ExecutionContext) {
+  private def nodeServerURI: String = NODE_SERVER_URI
+
   def getCoinCapAssets(): Future[Seq[CoinCapAsset]] = {
-    val currencies: Seq[String] = SUPPORTED_CURRENCIES
     val request: WSRequest = ws.url(nodeServerURI + "/coincap/assets")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")
       .withRequestTimeout(10000.millis)
-    val reqParams: JsValue = Json.obj("currencies" -> JsArray(currencies.map(JsString(_))))
+    val reqParams: JsValue = Json.obj("currencies" -> JsArray(SUPPORTED_CURRENCIES.map(x => JsString(x.name))))
     complexRequest
       .post(reqParams)
       .map(v => (v.json).as[Seq[CoinCapAsset]])
@@ -32,7 +34,7 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
     for {
       coinCap <- getCoinCapAssets()
       process <- Future.successful {
-        val mainCurency: Seq[CoinCapAsset] = coinCap.filter(_.symbol == SUPPORTED_SYMBOLS(0))
+        val mainCurency: Seq[CoinCapAsset] = coinCap.filter(_.symbol == COIN_USDC.symbol)
         val selectedCurrency: Seq[CoinCapAsset] = coinCap.filter(_.symbol == currency)
         if (!selectedCurrency.isEmpty && !mainCurency.isEmpty)
           mainCurency(0).priceUsd / selectedCurrency(0).priceUsd
@@ -51,8 +53,8 @@ class MultiCurrencyHTTPSupport @Inject()(implicit ws: WSClient, ec: ExecutionCon
       .map(v => (v.json).asOpt[ETHJsonRpc])
       .recover { case e: Exception => None }
   }
-  def walletDeposit(id: UUID, txHash: String, issuer: String, receiver: String, currency: String, amount: BigDecimal)
-    : Future[Option[Int]] = {
+  def walletDeposit(id: UUID, txHash: String, issuer: String, receiver: String, currency: String, amount: BigDecimal):
+    Future[Option[Int]] = {
     val request: WSRequest = ws.url(nodeServerURI + "/wallet/deposit")
     val complexRequest: WSRequest = request
       .addHttpHeaders("Accept" -> "application/json")

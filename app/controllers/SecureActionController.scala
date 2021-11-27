@@ -167,8 +167,8 @@ class SecureActionController @Inject()(
         { case (email)  =>
           if (Some(email) == account.email) Future.successful(Conflict)
           else {
-            val newToken: (String, Long) = SecureUserAction.generateToken()
               for {
+                newToken <- SecureUserAction.generateToken()
                 // check if has existing request token to update else create new
                 _ <- Future.successful {
                   // add the newly created token to session lists..
@@ -238,7 +238,7 @@ class SecureActionController @Inject()(
   def getTodaysTasks() = SecureUserAction.async { implicit request =>
     request
       .account
-      .map(_ => taskService.getTodaysTasks.map(x => Ok(Json.toJson(x))))
+      .map(account => taskService.getTodaysTasks(account.id).map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def getMonthlyTaskUpdates(gameID: UUID) = SecureUserAction.async { implicit request =>

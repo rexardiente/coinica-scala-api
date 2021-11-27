@@ -5,28 +5,24 @@ import java.util.UUID
 import scala.jdk.CollectionConverters._
 import com.typesafe.config.{ ConfigFactory, ConfigList, ConfigValue }
 import play.api.{ ConfigLoader, Configuration }
+import models.domain.PlatformCurrency
 
 object SystemConfig {
 	val config = ConfigFactory.load()
-	val DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = config.getInt("platform.default.system.scheduler")
-	val DEFAULT_WEI_VALUE: BigDecimal = BigDecimal(config.getString("platform.wei.value"))
-	val SUPPORTED_CURRENCIES: List[String] = config.getStringList("platform.supported.currencies").asScala.toList
-	val SUPPORTED_SYMBOLS: List[String] = config.getStringList("platform.supported.symbols").asScala.toList
-	// Server Host URL
-	private val serverAllowedURLs: List[String] = config.getStringList("play.filters.hosts.url").asScala.toList
-	private val serverAllowedProtocols: List[String] = config.getStringList("play.filters.hosts.protocol").asScala.toList
-
-	val PROTOCOL: String = serverAllowedProtocols(1)
-	val NODE_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(1)}"
-	val SCALA_SERVER_URI: String = s"${PROTOCOL}://${serverAllowedURLs(0)}"
-	val COINICA_WEB_HOST: String = s"${PROTOCOL}://${serverAllowedURLs(2)}"
-	val MAILER_HOST: String = serverAllowedURLs(0)
-	// Email Configs
 	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
-	// Instant + (limit * (60:1 minute))
-	val MAIL_RANDOM_CODE_LIMIT: Int = config.getInt("play.mailer.random.code.limit")
-	val DEFAULT_MAIL_EXPIRATION: Int = config.getInt("play.mailer.expiration")
-	val DEFAULT_TOKEN_EXPIRATION: Int = config.getInt("platform.token.expiration")
-	def MAIL_EXPIRATION: Long = Instant.now.getEpochSecond + (DEFAULT_MAIL_EXPIRATION * 60)
-	def TOKEN_EXPIRATION: Long = Instant.now.getEpochSecond + (DEFAULT_TOKEN_EXPIRATION * 60)
+	val DEFAULT_HOST: String = "http://127.0.0.1:9000"
+	// auto generated form the DB..
+	var SUPPORTED_CURRENCIES: List[PlatformCurrency] = List()
+	def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
+	def COIN_ETH: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "ethereum").getOrElse(null)
+	def COIN_BTC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "bitcoin").getOrElse(null)
+
+	var DEFAULT_WEI_VALUE: BigDecimal = 0
+	var DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = 15
+	var DEFAULT_EXPIRATION: Int = 15
+
+	var NODE_SERVER_URI: String = ""
+	var SCALA_SERVER_URI: String = ""
+	var COINICA_WEB_HOST: String = ""
+	var MAILER_HOST: String = ""
 }

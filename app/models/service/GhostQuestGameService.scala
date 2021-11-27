@@ -10,14 +10,14 @@ import akka.actor._
 import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
-import utils.SystemConfig.SUPPORTED_SYMBOLS
-import utils.GameConfig.{ GQ_CODE, GQ_GAME_ID }
+import utils.SystemConfig.COIN_USDC
 import models.domain.eosio.{ GhostQuestCharacter, GhostQuestCharacterHistory }
 import models.repo.eosio._
-import models.domain.{ OverAllGameHistory, PaymentType }
+import models.domain.{ OverAllGameHistory, PaymentType, PlatformGame, PlatformCurrency }
 
 @Singleton
 class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
+                                      platformConfigService: PlatformConfigService,
                                       userAccountService: UserAccountService,
                                       overAllHistory: OverAllHistoryService,
                                       battleResult: GhostQuestBattleResultRepo,
@@ -25,7 +25,9 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                                       gameHistoryRepo: GhostQuestCharacterGameHistoryRepo,
                                       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
                                       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
+  private val defaultGameName: String = "ghostquest"
   private def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
+
   def getUserData(id: Int): Future[Option[GhostQuestGameData]] =
     contract.getUserData(id)
   def getAllCharacters(): Future[Option[Seq[GhostQuestTableGameData]]] =
@@ -67,7 +69,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         gameData
           .map { data =>
             // val characters: Seq[GhostQuestCharacter] = data.characters
-            val selectedCharacter: Option[GhostQuestCharacter] = data.characters.filter(_.key == key).headOption
+            val selectedCharacter: Option[GhostQuestCharacter] = data.characters.find(_.key == key)
             val prize: BigDecimal = selectedCharacter.map(_.value.prize).getOrElse(BigDecimal(0))
             (selectedCharacter, Some(prize))
           }
@@ -81,12 +83,11 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       updateBalance <- {
         hasWallet.map { _ =>
           processWithdraw
-            .map(_ => userAccountService.addBalanceByCurrency(id, SUPPORTED_SYMBOLS(0).toUpperCase, prize.getOrElse(0)))
+            .map(_ => userAccountService.addBalanceByCurrency(id, COIN_USDC.symbol.toUpperCase, prize.getOrElse(0)))
             .getOrElse(Future(0))
         }
         .getOrElse(Future(0))
       }
-
       isSaveHistory <- {
         if (updateBalance > 0) {
           processWithdraw
@@ -96,6 +97,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                   val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
                   for {
                     isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
+                    defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
                     processedHistory <- {
                       if (!isExists) {
                         val gameID: String = txHash // use tx_hash as game
@@ -104,7 +106,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                         val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
                                                                                 txHash,
                                                                                 gameID,
-                                                                                GQ_CODE,
+                                                                                defaultGame.map(_.name).getOrElse("default_code"),
                                                                                 PaymentType(username,
                                                                                             "WITHDRAW",
                                                                                             prize.getOrElse(BigDecimal(0)).toDouble),

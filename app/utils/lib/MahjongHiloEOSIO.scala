@@ -9,10 +9,12 @@ import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
 import models.domain.eosio.MahjongHiloGameData
+import models.service.PlatformConfigService
+import utils.SystemConfig.{ NODE_SERVER_URI, DEFAULT_HOST }
 
 @Singleton
-class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
-  val nodeServerURI: String = utils.SystemConfig.NODE_SERVER_URI
+class MahjongHiloEOSIO @Inject()(config: PlatformConfigService)(implicit ws: WSClient, ec: ExecutionContext) {
+  private def nodeServerURI: String = NODE_SERVER_URI
 
   def declareWinHand(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/declare-win-hand")
@@ -92,19 +94,6 @@ class MahjongHiloEOSIO @Inject()(implicit ws: WSClient, ec: ExecutionContext) {
         else None
       }.recover { case e: Exception => None }
   }
-  // def reset(id: Int): Future[Option[String]] =  {
-  //   val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/reset")
-  //   val complexRequest: WSRequest = request
-  //     .addHttpHeaders("Accept" -> "application/json")
-  //     .withRequestTimeout(10000.millis)
-
-  //   complexRequest.post(Json.obj("id" -> id))
-  //     .map { v =>
-  //       if (!(v.json \ "error").asOpt[Boolean].getOrElse(true) && (v.json \ "code").asOpt[Int].getOrElse(0) == 200)
-  //         (v.json \ "data" \ "transaction_id").asOpt[String]
-  //       else None
-  //     }.recover { case e: Exception => None }
-  // }
   def end(id: Int): Future[Option[String]] =  {
     val request: WSRequest = ws.url(nodeServerURI +  "/mahjong-hilo/end")
     val complexRequest: WSRequest = request
