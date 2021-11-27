@@ -427,16 +427,17 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
         gameHistory <- overAllGameHistory.getByDateRange(start.toInstant().getEpochSecond, (end.toInstant().getEpochSecond - 1))
         // grouped by user -> Map[String, Seq[OverAllGameHistory]]
         grouped <- Future.successful(gameHistory.groupBy(_.info.user))
+        currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(COIN_USDC.symbol)
         // grouped history by user..
         processedHistory <- Future.successful {
           grouped
             .map { case (user, histories) =>
               val amountHistories: List[(Double, Double)] = histories.map(x => (x.info.bet, x.info.amount)).toList
               // calculate total bet, earn and multiplier
-              val bets: Double = amountHistories.map(_._1).sum
-              val earnings: Double = amountHistories.map(_._2).sum
+              // amounts are converted into USD
+              val bets: Double = amountHistories.map(_._1).sum * currentUSDValue.toDouble
+              val earnings: Double = amountHistories.map(_._2).sum * currentUSDValue.toDouble
               val multipliers: Int = amountHistories.map(_._2).filter(_ > 0).size
-
               (user, bets, earnings, multipliers)
             }.toSeq
         }
@@ -446,37 +447,34 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
             .filter(_._3 > 0)
             .sortBy(-_._3)
             .take(10)
-            .map { case (user, bets, earnings) =>
+            .map { case (user, bets, profit) =>
               userAccountRepo
                 .getByName(user)
-                .map(_.map(account => RankProfit(account.id, account.username, bets, earnings)))
+                .map(_.map(account => RankProfit(account.id, account.username, bets, profit)))
             }
         }
-        // total bet amount - total win amount
         payout <- Future.sequence {
           processedHistory
               .map { case (user, bets, earnings, multipliers) => (user, bets, earnings) }
               .filter(_._3 > 0)
               .sortBy(-_._3)
               .take(10)
-              .map { case (user, bets, earnings) =>
+              .map { case (user, bets, payout) =>
                 userAccountRepo
                   .getByName(user)
-                  .map(_.map(account => RankPayout(account.id, account.username, bets, earnings)))
+                  .map(_.map(account => RankPayout(account.id, account.username, bets, payout)))
               }
         }
-        currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(COIN_USDC.symbol)
-        // total bet amount * (EOS price -> USD)
         wagered <- Future.sequence {
           processedHistory
-              .map { case (user, bets, earnings, multipliers) => (user, bets, earnings * currentUSDValue.toDouble) }
+              .map { case (user, bets, earnings, multipliers) => (user, bets, bets) }
               .filter(_._3 > 0)
               .sortBy(-_._3)
               .take(10)
-              .map { case (user, bets, earnings) =>
+              .map { case (user, bets, wagered) =>
                 userAccountRepo
                   .getByName(user)
-                  .map(_.map(account => RankWagered(account.id, account.username, bets, earnings)))
+                  .map(_.map(account => RankWagered(account.id, account.username, bets, wagered)))
               }
         }
         // total win size
