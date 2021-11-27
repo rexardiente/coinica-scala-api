@@ -36,7 +36,13 @@ class DBDefaultGenerator @Inject()(
 
     Future.sequence(querySet.map(x => db.run(dao.Query += x)))
   }
-  private def genreQuery(): Future[Int] = genreRepo.add(defaultGenre)
+  // if genre table is not empty do nothing..
+  private def genreQuery(): Future[Int] = {
+    for {
+      genres <- genreRepo.all()
+      update <- if (genres.size > 0) Future.successful(0) else genreRepo.add(defaultGenre)
+    } yield (update)
+  }
   private def systemDefaultConfigQuery(): Future[Int] = {
     val GQ_DESCRIPTION: String = """Idle game with character-battle. You need only to draw loot box and summon ghosts and send them in battle field. If your ghost wins, you can get rewrard."""
     val TH_DESCRIPTION: String = """Seeking for treasure in three different ocean maps without being spotted by rival pirates!"""

@@ -89,7 +89,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneId = ZoneOffset.UTC
   private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
-
+  private def defaultScheduler: Int = DEFAULT_SYSTEM_SCHEDULER_TIMER
   private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
 
   override def preStart: Unit = {
@@ -103,16 +103,13 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
     system.actorSelection("/user/SystemSchedulerActor").resolveOne().onComplete {
       case Success(actor) =>
         if (!SystemSchedulerActor.isIntialized) {
-          // load default SC users/account to avoid adding into user accounts table
-          loadDefaultObjects()
-          Thread.sleep(500)
           // init notification actor for every games..
           SystemSchedulerActor.ghostquest.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           SystemSchedulerActor.mahjonghilo.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = { DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
+          val dailySchedInterval: FiniteDuration = { defaultScheduler }.hours
           val dailySchedDelay   : FiniteDuration = {
               val time = LocalTime.of(0, 0).toSecondOfDay
               val now = LocalTime.now().toSecondOfDay
@@ -125,6 +122,10 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
               }
             }.seconds
           system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => {
+            // reload config with scheduler to apply changes in config table
+            loadDefaultObjects()
+            // block runners to make sure configs are laoded..
+            Thread.sleep(1000)
             self ! ChallengeScheduler
             self ! DailyTaskScheduler
             self ! RankingScheduler
