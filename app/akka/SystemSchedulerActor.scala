@@ -539,7 +539,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       }
     }
 
-  private def processChallengeTrackerAndEarnedVIPPoints(time: Instant): Future[Unit] = {
+  private def processChallengeTrackerAndEarnedVIPPoints(time: Instant): Future[Int] = {
     for {
       challenges <- challengeTrackerRepo.all()
       // update all users vip account points earned..
@@ -563,11 +563,12 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       topHighestWagered <- Future.successful(challenges.sortBy(-_.wagered).take(10))
       addToHistory <- {
         // get all top 10 challenge result
-        challengeHistoryRepo
-          .add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
-          .map(x => if (x > 0) challengeTrackerRepo.clearTable else ())
+        for {
+          isAdded <- challengeHistoryRepo.add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
+          done <- if (isAdded > 0) challengeTrackerRepo.clearTable else Future.successful(0)
+        } yield (done)
       }
-    } yield ()
+    } yield (addToHistory)
   }
 
   private def isUpdateToNewVIPLvl(vip: VIPUser): Future[Boolean] = {
