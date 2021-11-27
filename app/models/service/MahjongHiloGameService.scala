@@ -295,7 +295,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
 									          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 1)
+														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, betAmount)
 										        true
 										      }
 											}
