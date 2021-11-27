@@ -61,7 +61,6 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
     for {
       profit <- Future.successful {
         try {
-          println("totalbet", v)
           v.map(_.profits).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalprofit = seq.asInstanceOf[Seq[RankProfit]].map(_.profit).sum
