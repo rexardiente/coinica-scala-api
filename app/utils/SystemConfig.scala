@@ -18,7 +18,7 @@ object SystemConfig {
 	def COIN_BTC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "bitcoin").getOrElse(null)
 
 	var DEFAULT_WEI_VALUE: BigDecimal = 0
-	var DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = 15
+	var DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = 24
 	var DEFAULT_EXPIRATION: Int = 15
 
 	var NODE_SERVER_URI: String = ""
