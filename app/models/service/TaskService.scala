@@ -4,7 +4,7 @@ import javax.inject.{ Inject, Singleton }
 import java.util.UUID
 import java.time.{ Instant, LocalDate, ZoneId, ZoneOffset }
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ Future, Promise }
 import play.api.libs.json._
 import models.domain.{ PaginatedResult, Task, DailyTask, TaskHistory, TaskGameInfo }
 import models.repo.{ TaskRepo, TaskHistoryRepo, DailyTaskRepo }
@@ -15,7 +15,7 @@ class TaskService @Inject()(
                           taskHistoryRepo: TaskHistoryRepo,
                           dailyTaskRepo: DailyTaskRepo
                           ) {
-  private var defaultTimeZone: ZoneId = ZoneOffset.UTC
+  private val defaultTimeZone: ZoneId = ZoneOffset.UTC
   def paginatedResult[T >: Task](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 
 	  for {
@@ -49,34 +49,38 @@ class TaskService @Inject()(
       case (other, list) => other :: list
     }
   }
-
   def getTodaysTasks(id: UUID): Future[Option[Task]] = {
     for {
-      // get tasks data
-      hasTask <- taskRepo.getDailyTaskByDate(LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant())
-      // update data based on players progress..
-      processTask <- {
-        f[Task]({
-          hasTask.map { task =>
-          // find task then update else return unchanged
+      // due to timezon difference from server, result are not reflecting on users query..
+      // to avoid this situation, directly get the latest task
+      hasTask <- taskRepo.getLatestTask
+      updatedTask <- f[Task]{
+        hasTask.map { task =>
+          // map task tasks to update each game progress.
+          val aPromise = Promise[Future[Seq[TaskGameInfo]]]()
+          val updateSeq: Future[Seq[TaskGameInfo]] = Future.sequence({task.tasks.map { game =>
             dailyTaskRepo
-              .getTodayTaskByUserAndGame(id, task.id)
+              .getTodayTaskByUserAndGame(id, game.game.id)
               .map { hasDailyTask =>
-                hasDailyTask
-                  .map { dailyTask =>
-                    val currentTask: Option[TaskGameInfo] = task.tasks.filter(_.game.id == dailyTask.game_id).headOption
-                    val updatedTask: Option[TaskGameInfo] = currentTask.map(_.copy(progress = Some(dailyTask.game_count)))
-                    // remove existing task on the list.
-                    val updatedTasks: Seq[TaskGameInfo] = task.tasks.filter(_.game.id != dailyTask.game_id) :+ (updatedTask.get)
-                    // return udpate tasks
-                    task.copy(tasks = updatedTasks)
-                  }
-                  .getOrElse(task)
+                // return default if has no daily tasks
+                hasDailyTask.map { dailyTask =>
+                  val currentTask: Option[TaskGameInfo] = task.tasks.find(_.game.id == dailyTask.game_id)
+                  val updatedTask: Option[TaskGameInfo] = currentTask.map(_.copy(progress = Some(dailyTask.game_count)))
+                  // remove existing task on the list.
+                  updatedTask.get
+                }.getOrElse(game)
               }
-          }
-        })
+          }})
+          // wait the process to be completed
+          aPromise.success(updateSeq)
+          // get the future result from promise action
+          // flatten to convert Future[Future[]] to Future[]
+          val updateTask: Future[Seq[TaskGameInfo]] = aPromise.future.flatten
+          // update game tasks from future result
+          updateTask.map(x => task.copy(tasks = x))
+        }
       }
-    } yield (processTask)
+    } yield (updatedTask)
   }
   // convernt Option[Future[T]] to Future[Option[T]]
   def f[A](v: Option[Future[A]]): Future[Option[A]] = v match {

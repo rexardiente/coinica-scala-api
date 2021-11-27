@@ -41,6 +41,9 @@ class TaskRepo @Inject()(
 
   def getDailyTaskByDate(createdAt: Instant): Future[Option[Task]] =
     db.run(dao.Query.filter(v => v.createdAt === createdAt.getEpochSecond).result.headOption)
+
+  def getLatestTask(): Future[Option[Task]] =
+    db.run(dao.Query.sortBy(_.createdAt.desc).result.headOption)
   // def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
   //  db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate )
   //    .drop(offset)
