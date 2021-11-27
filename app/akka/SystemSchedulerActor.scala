@@ -427,90 +427,116 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
         // grouped by user -> Map[String, Seq[OverAllGameHistory]]
         grouped <- Future.successful(gameHistory.groupBy(_.info.user))
         // grouped history by user..
-        processedBets <- Future.successful {
-          grouped.map { case (user, histories) =>
-            // val bets: Seq[(Double, Double)] = histories.map { history =>
-            //   history.info match {
-            //     case BooleanPredictions(name, prediction, result, bet, amount) =>
-            //       if (prediction == result) (bet, amount) else (bet, amount)
-            //     case ListOfIntPredictions(name, prediction, result, bet, amount) =>
-            //       if (prediction == result) (bet, amount) else (bet, amount)
-            //     case e => (e.bet, 0)
-            //   }
-            // }
-            (user, histories.map(x => (x.info.bet, x.info.amount)))
-          }
-          .toSeq
+        processedHistory <- Future.successful {
+          grouped
+            .map { case (user, histories) =>
+              val amountHistories: List[(Double, Double)] = histories.map(x => (x.info.bet, x.info.amount)).toList
+              // calculate total bet, earn and multiplier
+              val bets: Double = amountHistories.map(_._1).sum
+              val earnings: Double = amountHistories.map(_._2).sum
+              val multipliers: Int = amountHistories.map(_._2).filter(_ > 0).size
+
+              (user, bets, earnings, multipliers)
+            }.toSeq
         }
         profit <- Future.sequence {
-          processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum - bets.map(_._1).sum) }
+          processedHistory
+            .map { case (user, bets, earnings, multipliers) => (user, bets, earnings - bets) }
+            .filter(_._3 > 0)
             .sortBy(-_._3)
             .take(10)
-            .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankProfit(user.id, user.username, v._2, v._3)).getOrElse(null)))
+            .map { case (user, bets, earnings) =>
+              userAccountRepo
+                .getByName(user)
+                .map(_.map(account => RankProfit(account.id, account.username, bets, earnings)))
+            }
         }
         // total bet amount - total win amount
         payout <- Future.sequence {
-          processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).sum) }
-            .sortBy(-_._3)
-            .take(10)
-            .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankPayout(user.id, user.username, v._2, v._3)).getOrElse(null)))
+          processedHistory
+              .map { case (user, bets, earnings, multipliers) => (user, bets, earnings) }
+              .filter(_._3 > 0)
+              .sortBy(-_._3)
+              .take(10)
+              .map { case (user, bets, earnings) =>
+                userAccountRepo
+                  .getByName(user)
+                  .map(_.map(account => RankPayout(account.id, account.username, bets, earnings)))
+              }
         }
         currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(COIN_USDC.symbol)
         // total bet amount * (EOS price -> USD)
         wagered <- Future.sequence {
-          processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._1).sum * currentUSDValue.toDouble) }
-            .sortBy(-_._3)
-            .take(10)
-            .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankWagered(user.id, user.username, v._2, v._3)).getOrElse(null)))
+          processedHistory
+              .map { case (user, bets, earnings, multipliers) => (user, bets, earnings * currentUSDValue.toDouble) }
+              .filter(_._3 > 0)
+              .sortBy(-_._3)
+              .take(10)
+              .map { case (user, bets, earnings) =>
+                userAccountRepo
+                  .getByName(user)
+                  .map(_.map(account => RankWagered(account.id, account.username, bets, earnings)))
+              }
         }
         // total win size
         multiplier <- Future.sequence {
-          processedBets
-            .map { case (user, bets) => (user, bets.map(_._1).sum, bets.map(_._2).filter(_ > 0).size) }
-            .sortBy(-_._3)
-            .take(10)
-            .filter(_._3 > 0)
-            .map(v => userAccountRepo.getByName(v._1).map(_.map(user => RankMultiplier(user.id, user.username, v._2, v._3)).getOrElse(null)))
+          processedHistory
+              .map { case (user, bets, earnings, multipliers) => (user, bets, multipliers) }
+              .filter(_._3 > 0)
+              .sortBy(-_._3)
+              .take(10)
+              .map { case (user, bets, multipliers) =>
+                userAccountRepo
+                  .getByName(user)
+                  .map(_.map(account => RankMultiplier(account.id, account.username, bets, multipliers)))
+              }
         }
         // save ranking to history..
-        _ <- {
-          val rank: RankingHistory = RankingHistory(profit, payout, wagered, multiplier, start.toInstant().getEpochSecond)
+        rankAdded <- {
+          //  remove null values from the list..
+          val aProfit: Seq[RankType] = removeNoneValue[RankType](profit)
+          val aPayout: Seq[RankType] = removeNoneValue[RankType](payout)
+          val aWagered: Seq[RankType] = removeNoneValue[RankType](wagered)
+          val aMultiplier: Seq[RankType] = removeNoneValue[RankType](multiplier)
+          val rank: RankingHistory = RankingHistory(aProfit, aPayout, aWagered, aMultiplier, start.toInstant().getEpochSecond)
           // insert into DB, if failed then re-insert
-          Await.ready(rankingHistoryRepo.add(rank), Duration.Inf)
+          rankingHistoryRepo.add(rank)
         }
-        // update users VIP accounts with new points claimed..
-        _ <- Await.ready(processOverallHistoryPointsPerUser(processedBets), Duration.Inf)
-      } yield ()
+        // update users VIP accounts with after rankAdded
+        claimPoints <- claimPointsPerUser(processedHistory)
+      } yield (claimPoints)
 
     case _ => ()
   }
-
+  // remove null values from list[RankType]
+  private def removeNoneValue[T >: RankType](v: Seq[Option[T]]): Seq[T] = v.map(_.getOrElse(null))
   // process overall Game History in 24hrs
-  private def processOverallHistoryPointsPerUser(txs: Seq[(String, Seq[(Double, Double)])]): Future[Unit] =
-    Future.successful {
-      txs.map { case (user, bets) =>
-        try {
-          for {
-            userAcc <- userAccountRepo.getByName(user)
-            vipAcc <- vipUserRepo.findByID(userAcc.get.id)
-            result <- {
-              vipAcc.map { vip =>
-                val newTotalPayout = bets.map(_._2).sum + vip.payout
-                // create new updated VIP User payout
-                vipUserRepo.update(vip.copy(payout = newTotalPayout))
-              }
-              .getOrElse(Future(1))
+  private def claimPointsPerUser(txs: Seq[(String, Double, Double, Int)]): Future[Seq[Int]] =
+    Future.sequence {
+      txs.map { case (user, bets, earnings, multipliers) =>
+        for {
+          userAcc <- userAccountRepo.getByName(user)
+          vipAcc <- vipUserRepo.findByID(userAcc.get.id)
+          updatePoints <- {
+            vipAcc.map { vip =>
+              // find VIP account
+              for {
+                hasBnft <- vipUserRepo.getBenefitByID(vip.rank)
+                update <- {
+                  hasBnft
+                    .map { bnft =>
+                      // multiply earnings with account vip multiplier + old point
+                      val newTotalPayout = vip.payout + (earnings * bnft.redemption_rate)
+                      // update VIP User payout
+                      vipUserRepo.update(vip.copy(payout = newTotalPayout))
+                    }
+                    .getOrElse(Future.successful(0))
+                }
+              } yield (update)
             }
-          } yield (result)
-        } catch {
-          case _ : Throwable => ()
-        }
+            .getOrElse(Future(0))
+          }
+        } yield (updatePoints)
       }
     }
 
