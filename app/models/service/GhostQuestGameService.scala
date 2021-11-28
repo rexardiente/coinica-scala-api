@@ -103,15 +103,14 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                         val gameID: String = txHash // use tx_hash as game
                         // val prize: Double = data.prize.toDouble
                         // create OverAllGameHistory object..
-                        val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-                                                                                txHash,
-                                                                                gameID,
-                                                                                defaultGame.map(_.name).getOrElse("default_code"),
-                                                                                PaymentType(username,
-                                                                                            "WITHDRAW",
-                                                                                            prize.getOrElse(BigDecimal(0)).toDouble),
-                                                                                true,
-                                                                                Instant.now.getEpochSecond)
+                        val gameHistory: OverAllGameHistory =
+                          OverAllGameHistory(UUID.randomUUID,
+                                            txHash,
+                                            gameID,
+                                            defaultGame.map(_.name).getOrElse("default_code"),
+                                            PaymentType(username, "WITHDRAW", prize.getOrElse(BigDecimal(0)).toDouble),
+                                            true,
+                                            Instant.now.getEpochSecond)
 
                         overAllHistory.addHistory(gameHistory)
                           .map { _ =>

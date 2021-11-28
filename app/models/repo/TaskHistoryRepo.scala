@@ -12,33 +12,33 @@ import models.domain.TaskHistory
 
 @Singleton
 class TaskHistoryRepo @Inject()(
-    dao: models.dao.TaskHistoryDAO,
+    dao: models.dao.TaskDAO,
     protected val dbConfigProvider: DatabaseConfigProvider
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
 
   def add(task: TaskHistory): Future[Int] =
-    db.run(dao.Query += task)
+    db.run(dao.TaskHistoryQuery += task)
 
   def delete(id: UUID): Future[Int] =
-    db.run(dao.Query(id).delete)
+    db.run(dao.TaskHistoryQuery(id).delete)
 
   def update(task: TaskHistory): Future[Int] =
-    db.run(dao.Query.filter(_.id === task.id).update(task))
+    db.run(dao.TaskHistoryQuery.filter(_.id === task.id).update(task))
 
   def all(): Future[Seq[TaskHistory]] =
-    db.run(dao.Query.result)
+    db.run(dao.TaskHistoryQuery.result)
 
   def exist(id: UUID): Future[Boolean] =
-    db.run(dao.Query(id).exists.result)
+    db.run(dao.TaskHistoryQuery(id).exists.result)
 
-  def existByDate(createdAt: Instant): Future[Boolean] =
-    db.run(dao.Query.filter(_.createdAt === createdAt).exists.result)
+  def existByDate(validAt: Instant): Future[Boolean] =
+    db.run(dao.TaskHistoryQuery.filter(_.validAt === validAt).exists.result)
 
   def findByID(id: UUID): Future[Seq[TaskHistory]] =
-    db.run(dao.Query.filter(r => r.id === id).result)
+    db.run(dao.TaskHistoryQuery.filter(r => r.id === id).result)
   // def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[TaskHistory]] =
-  //  db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate )
+  //  db.run(dao.TaskHistoryQuery.filter(r => r.datecreated >= startdate && r.datecreated <= enddate )
   //    .drop(offset)
   //    .take(limit)
   //    .result)
@@ -48,13 +48,13 @@ class TaskHistoryRepo @Inject()(
   // }
 
   def withLimit(limit: Int, offset: Int): Future[Seq[TaskHistory]] =
-    db.run(dao.Query.drop(offset).take(limit).result)
+    db.run(dao.TaskHistoryQuery.drop(offset).take(limit).result)
 
   def getSize(): Future[Int] =
-    db.run(dao.Query.length.result)
+    db.run(dao.TaskHistoryQuery.length.result)
 
-  def getMonthlyTaskByUserAndGame(user: UUID, gameID: UUID, start: Instant, end: Instant): Future[Seq[TaskHistory]] =
-    db.run(dao.Query.filter(x => x.user === user && x.gameID === gameID && x.createdAt >= start && x.expiredAt >= end).result)
+  def getMonthlyTaskByUserAndGame(start: Instant, end: Instant): Future[Seq[TaskHistory]] =
+    db.run(dao.TaskHistoryQuery.filter(x => x.validAt >= start && x.expiredAt >= end).result)
 }
 
 

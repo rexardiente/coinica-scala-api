@@ -13,6 +13,7 @@ import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellab
 import play.api.libs.json._
 import models.domain._
 import models.domain.eosio._
+import models.repo.TaskRepo
 import models.service._
 import utils.lib._
 
@@ -29,12 +30,14 @@ object GhostQuestSchedulerActor {
   def props(platformConfigService: PlatformConfigService,
             historyService: HistoryService,
             userAccountService: UserAccountService,
+            taskRepo: TaskRepo,
             characterService: GhostQuestCharacterService,
             gameService: GhostQuestGameService)(implicit system: ActorSystem) =
     Props(classOf[GhostQuestSchedulerActor],
           platformConfigService,
           historyService,
           userAccountService,
+          taskRepo,
           characterService,
           gameService,
           system)
@@ -45,6 +48,7 @@ class GhostQuestSchedulerActor @Inject()(
       platformConfigService: PlatformConfigService,
       historyService: HistoryService,
       userAccountService: UserAccountService,
+      taskRepo: TaskRepo,
       characterService: GhostQuestCharacterService,
       gameService: GhostQuestGameService,
       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
@@ -128,19 +132,29 @@ class GhostQuestSchedulerActor @Inject()(
 		case _ => ()
 	}
   // challengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double)
-  private def insertOrUpdateSystemProcess(): Future[Seq[Unit]] = Future.successful {
-    GhostQuestSchedulerActor.scUpdatedBattles.toSeq.map { case (hash, result) =>
-      result.characters.map { v =>
-        val gameID: Int = v._2._1
-        // find account by gameID
-        userAccountService
-          .getAccountByGameID(gameID)
-          .map(_.map { acc =>
-            dynamicProcessor ! DailyTask(acc.id, GhostQuestSchedulerActor.gameInfo.id, 1)
-            dynamicProcessor ! ChallengeTracker(acc.id, 1, (if(v._2._2) 2 else 0), 1, (if(v._2._2) 1 else 0))
-          })
+  private def insertOrUpdateSystemProcess(): Future[Seq[Any]] = {
+    for {
+      // get latest Task
+      hasTask <- taskRepo.getTaskWithOffset(0)
+      process <- Future.successful {
+        hasTask
+          .map { task =>
+            GhostQuestSchedulerActor.scUpdatedBattles.toSeq.map { case (hash, result) =>
+              result.characters.map { v =>
+                val gameID: Int = v._2._1
+                // find account by gameID
+                userAccountService
+                  .getAccountByGameID(gameID)
+                  .map(_.map { acc =>
+                    dynamicProcessor ! DailyTask(task.id, acc.id, GhostQuestSchedulerActor.gameInfo.id, 1)
+                    dynamicProcessor ! ChallengeTracker(acc.id, 1, (if(v._2._2) 2 else 0), 1, (if(v._2._2) 1 else 0))
+                  })
+              }
+            }
+          }
+          .getOrElse(Seq.empty)
       }
-    }
+    } yield (process)
   }
   // returns Option[Future[Seq[Future[Int]]]]
   private def removeNoLifeCharacters() = {

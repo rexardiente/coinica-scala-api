@@ -19,6 +19,7 @@ import models.domain.eosio.{
     MahjongHiloGameData }
 import models.domain.{
     ChallengeTracker,
+    DailyTask,
     TaskGameInfo,
     TransactionType,
     RankType,
@@ -83,6 +84,9 @@ trait ColumnTypeImplicits extends HasDatabaseConfigProvider[utils.db.PostgresDri
   implicit val listCoinColumnMapper = MappedColumnType.base[List[Coin], JsValue](
     s => Json.toJson(s),
     i => i.as[List[Coin]])
+  implicit val listDailyTaskColumnMapper = MappedColumnType.base[List[DailyTask], JsValue](
+    s => Json.toJson(s),
+    i => i.as[List[DailyTask]])
   implicit val gqCharacterGameLogColumnMapper = MappedColumnType.base[List[GhostQuestCharacterGameLog], JsValue](
     s => Json.toJson(s),
     i => i.as[List[GhostQuestCharacterGameLog]])

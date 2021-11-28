@@ -241,13 +241,13 @@ class SecureActionController @Inject()(
       .map(account => taskService.getTodaysTasks(account.id).map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
-  def getMonthlyTaskUpdates(gameID: UUID) = SecureUserAction.async { implicit request =>
-    request
-      .account
-      .map { account =>
-        taskService.getTodayTaskUpdates(account.id, gameID).map(x => Ok(Json.toJson(x)))
-      }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
-  }
+  // def getMonthlyTaskUpdates(gameID: UUID) = SecureUserAction.async { implicit request =>
+  //   request
+  //     .account
+  //     .map { account =>
+  //       taskService.getTodayTaskUpdates(account.id, gameID).map(x => Ok(Json.toJson(x)))
+  //     }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
+  // }
   // def getAccountNameByID(id: UUID) = SecureUserAction.async { implicit request =>
   //   request
   //     .account

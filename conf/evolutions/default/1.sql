@@ -16,9 +16,9 @@ create table "GENRE" ("ID" UUID NOT NULL PRIMARY KEY,"NAME" VARCHAR NOT NULL,"DE
 
 create table "TASK" ("ID" UUID NOT NULL PRIMARY KEY,"TASKS" VARCHAR NOT NULL,"CREATED_AT" BIGINT NOT NULL);
 
-create table "TASK_TRACKER" ("USER" UUID NOT NULL,"GAME_ID" UUID NOT NULL,"RATIO" INTEGER NOT NULL);
+create table "TASK_HISTORY" ("ID" UUID NOT NULL PRIMARY KEY,"TASKS" VARCHAR NOT NULL,"VALID_AT" timestamp NOT NULL,"EXPIRED_AT" timestamp NOT NULL);
 
-create table "TASK_HISTORY" ("ID" UUID NOT NULL PRIMARY KEY,"TASKS_ID" UUID NOT NULL,"GAME_ID" UUID NOT NULL,"USER" UUID NOT NULL,"GAME_COUNT" INTEGER NOT NULL,"CREATED_AT" timestamp NOT NULL,"EXPIRED_AT" timestamp NOT NULL);
+create table "TASK_TRACKER" ("ID" UUID NOT NULL,"USER" UUID NOT NULL,"GAME_ID" UUID NOT NULL,"RATIO" INTEGER NOT NULL);
 
 create table "EOS_NET_TRANSACTION" ("ID" UUID NOT NULL PRIMARY KEY,"TRACE_ID" VARCHAR NOT NULL,"BLOCK_NUM" BIGINT NOT NULL,"BLOCK_TIMESTAMP" BIGINT NOT NULL,"TRACE" VARCHAR NOT NULL);
 
@@ -52,10 +52,16 @@ alter table "USER_ACCOUNT_WALLET" add constraint "USER_ACCOUNT_INFO" foreign key
 
 alter table "FAILED_COIN_DEPOSIT" add constraint "USER_ACCOUNT_INFO" foreign key("ACCOUNT_ID") references "USER_ACCOUNT_INFO"("ID") on update NO ACTION on delete NO ACTION;
 
+alter table "TASK_HISTORY" add constraint "TASK" foreign key("ID") references "TASK"("ID") on update NO ACTION on delete NO ACTION;
+
+alter table "TASK_TRACKER" add constraint "TASK" foreign key("ID") references "TASK"("ID") on update NO ACTION on delete NO ACTION;
+
 
 
 # --- !Downs
 
+alter table "TASK_TRACKER" drop constraint "TASK";
+alter table "TASK_HISTORY" drop constraint "TASK";
 alter table "FAILED_COIN_DEPOSIT" drop constraint "USER_ACCOUNT_INFO";
 alter table "USER_ACCOUNT_WALLET" drop constraint "USER_ACCOUNT_INFO";
 alter table "USER_ACCOUNT_VIP" drop constraint "USER_ACCOUNT_INFO";
@@ -72,8 +78,8 @@ drop table "CHALLENGE";
 drop table "RANKING_HISTORY";
 drop table "REFERRAL_HISTORY";
 drop table "EOS_NET_TRANSACTION";
-drop table "TASK_HISTORY";
 drop table "TASK_TRACKER";
+drop table "TASK_HISTORY";
 drop table "TASK";
 drop table "GENRE";
 drop table "FAILED_COIN_DEPOSIT";

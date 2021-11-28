@@ -11,21 +11,18 @@ object TaskHistory extends CommonImplicits
 object TaskGameInfo extends CommonImplicits
 object Task extends CommonImplicits
 object DailyTask extends CommonImplicits {
-	val tupled = (apply: (UUID, UUID, Int) => DailyTask).tupled
+	val tupled = (apply: (UUID, UUID, UUID, Int) => DailyTask).tupled
 }
 // case class TaskPerGame(game_id: UUID, game: String, limit: Int)
 // before adding new Task if not user already exists else update
 // Note: do not add if game hasnt exist in the list of tasks..
-case class DailyTask(user: UUID, game_id: UUID, game_count: Int) {
+case class DailyTask(id: UUID, user: UUID, game_id: UUID, game_count: Int) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 // for getting history by week and month
 // new UUID will be created so dont use this ID for matching..
 case class TaskHistory(id: UUID,
-											task_id: UUID,
-											game_id: UUID,
-											user: UUID,
-											game_count: Int,
+											tasks: List[DailyTask],
 											valid_at: Instant,
 											expired_at: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
