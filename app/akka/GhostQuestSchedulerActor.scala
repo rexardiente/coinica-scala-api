@@ -52,6 +52,7 @@ class GhostQuestSchedulerActor @Inject()(
     )(implicit system: ActorSystem ) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, concurrent.TimeUnit.SECONDS)
   private val defaultGameName: String = "ghostquest"
+  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
 
   override def preStart: Unit = {
     super.preStart
@@ -61,20 +62,9 @@ class GhostQuestSchedulerActor @Inject()(
       case Success(actor) =>
         if (!GhostQuestSchedulerActor.isIntialized) {
           GhostQuestSchedulerActor.isIntialized = true
-
+          // load default config fromt the DB
           for {
-            hasGame <- platformConfigService.getGameInfoByName(defaultGameName)
-            // load default config fromt the DB
-            _ <- Future.successful {
-              hasGame.map { game =>
-                val battleTimer: Option[Int] = (game.others \ "battle_timer").asOpt[Int]
-
-                GhostQuestSchedulerActor.gameInfo = game
-                GhostQuestSchedulerActor.defaultTimeSet = battleTimer.getOrElse(0)
-                GhostQuestSchedulerActor.scheduledTime = { GhostQuestSchedulerActor.defaultTimeSet }.minutes
-              }
-              .getOrElse(0)
-            }
+            _ <- updateSchedulerConfig()
             _ <- Future.successful {
               GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
               systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
@@ -251,19 +241,16 @@ class GhostQuestSchedulerActor @Inject()(
         GhostQuestSchedulerActor.noEnemy.addOne(player._1, player._2.value)
       }
       else {
-        val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
+        val dateTime: LocalDateTime = LocalDateTime.ofInstant(Instant.now, defaultTimeZone)
         // set date range for characters that can battle again each other...
-        val filteredDateForBattle: Instant = now.plusDays(-7).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
+        val start: Long = dateTime.plusDays(-7).toLocalDate().atStartOfDay().toInstant(defaultTimeZone).getEpochSecond
+        val end: Long = dateTime.toInstant(defaultTimeZone).getEpochSecond
         // remove his other owned characters from the list
         // check chracters spicific history to avoid battling again as posible..
         Await.ready(for {
           filterNotOwned <- Future.successful(characters.filter(_._2.value.owner_id != player._2.value.owner_id))
           characterHistory <- {
-            characterService.getGameHistoryByUsernameCharacterIDAndDate(
-                                        player._1,
-                                        player._2.value.owner_id,
-                                        filteredDateForBattle.getEpochSecond,
-                                        now.toInstant(ZoneOffset.UTC).getEpochSecond)
+            characterService.getGameHistoryByUsernameCharacterIDAndDate(player._1, player._2.value.owner_id, start, end)
           }
           // remove played characters from the current history result
           finalCharactersToBattle <- Future.successful {
@@ -308,6 +295,13 @@ class GhostQuestSchedulerActor @Inject()(
     }
   }
   private def defaultSchedule(): Unit = {
+    updateSchedulerConfig()
+    // proceed on the next battle
+    GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
+    systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
+  }
+
+  private def updateSchedulerConfig(): Future[Unit] = {
     // update default data just incase DB is updated
     for {
       hasGame <- platformConfigService.getGameInfoByName(defaultGameName)
@@ -320,11 +314,8 @@ class GhostQuestSchedulerActor @Inject()(
           GhostQuestSchedulerActor.defaultTimeSet = battleTimer.getOrElse(0)
           GhostQuestSchedulerActor.scheduledTime = { GhostQuestSchedulerActor.defaultTimeSet }.minutes
         }
-        .getOrElse(0)
+        .getOrElse(())
       }
     } yield ()
-    // proceed on the next battle
-    GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
-    systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
   }
 }

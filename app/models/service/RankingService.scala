@@ -2,7 +2,7 @@ package models.service
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneOffset, ZoneId}
+import java.time.{ Instant, LocalDate, LocalDateTime, ZoneOffset }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
@@ -13,6 +13,7 @@ import models.repo.RankingHistoryRepo
 
 @Singleton
 class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
+  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
   def paginatedResult[T >: RankingHistory](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 	  for {
       tasks <- rankingHistoryRepo.findAll(limit, offset)
@@ -23,7 +24,7 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
   // prev 24hrs tx results
   // def getRankingDaily(): Future[Option[RankingHistory]] = {
   //   val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
-  //   val end: Instant = now.plusDays(-1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
+  //   val end: Instant = now.plusDays(-1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant(defaultTimeZone)
 
   //   rankingHistoryRepo.getHistoryByDateRange(
   //                       end.getEpochSecond,
@@ -31,27 +32,24 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
   //                     .map(_.headOption)
   // }
   def getRankingDaily(): Future[RankingHistory] = {
-    val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
-    val end: Instant = now.plusDays(-1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
+    val dateTime: LocalDateTime = LocalDate.now(defaultTimeZone).atStartOfDay()
+    val start: Long = dateTime.plusDays(-1).toInstant(defaultTimeZone).getEpochSecond
+    val end: Long = dateTime.toInstant(defaultTimeZone).getEpochSecond
 
     Await.ready(for {
-      history <- rankingHistoryRepo.getHistoryByDateRange(end.getEpochSecond,
-                                                          now.toLocalDate()
-                                                              .atStartOfDay(ZoneOffset.UTC)
-                                                              .toInstant()
-                                                              .getEpochSecond)
+      history <- rankingHistoryRepo.getHistoryByDateRange(start, end)
       calc <- calculateRankHistory(history)
     } yield (calc), Duration.Inf)
   }
 
   def getRankingHistory(): Future[RankingHistory] = {
-    val now: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
-    val end: Instant = now.plusDays(-30).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
+    val dateTime: LocalDateTime = LocalDate.now(defaultTimeZone).atStartOfDay()
+    val lengthOfMonth: Int = LocalDate.now(defaultTimeZone).lengthOfMonth
+    val start: Long = dateTime.plusDays(-lengthOfMonth).toInstant(defaultTimeZone).getEpochSecond
+    val end: Long = dateTime.toInstant(defaultTimeZone).getEpochSecond
 
     Await.ready(for {
-      history <- rankingHistoryRepo.getHistoryByDateRange(
-                                      end.getEpochSecond,
-                                      now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().getEpochSecond)
+      history <- rankingHistoryRepo.getHistoryByDateRange(start, end)
       calc <- calculateRankHistory(history)
     } yield (calc), Duration.Inf)
   }

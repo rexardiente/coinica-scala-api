@@ -309,12 +309,7 @@ class SecureActionController @Inject()(
   def gameHistoryByGameIDAndUser(game: UUID, userID: UUID) = SecureUserAction.async { implicit request =>
     request
       .account
-      .map { account =>
-        if (account.id == userID)
-          allGameHistoryService.gameHistoryByGameIDAndUser(userID, game).map(x => Ok(Json.toJson(x)))
-        else
-          Future(Unauthorized(views.html.defaultpages.unauthorized()))
-      }
+      .map(account => allGameHistoryService.gameHistoryByGameIDAndUser(account.username, game).map(x => Ok(Json.toJson(x))))
       .getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
 }
