@@ -28,7 +28,7 @@ class TaskRepo @Inject()(
     db.run(dao.Query.filter(_.id === task.id).update(task))
 
   def all(): Future[Seq[Task]] =
-    db.run(dao.Query.result)
+    db.run(dao.Query.sortBy(_.createdAt.desc).result)
 
   def exist(id: UUID): Future[Boolean] =
     db.run(dao.Query(id).exists.result)
@@ -41,9 +41,9 @@ class TaskRepo @Inject()(
 
   def getDailyTaskByDate(createdAt: Instant): Future[Option[Task]] =
     db.run(dao.Query.filter(v => v.createdAt === createdAt.getEpochSecond).result.headOption)
-
-  def getLatestTask(): Future[Option[Task]] =
-    db.run(dao.Query.sortBy(_.createdAt.desc).result.headOption)
+  // use offset to get the send result
+  def getTaskWithOffset(offset: Int): Future[Option[Task]] =
+    db.run(dao.Query.sortBy(_.createdAt.desc).drop(offset).result.headOption)
   // def findByDateRange(startdate: Long, enddate : Long, limit: Int, offset: Int): Future[Seq[Task]] =
   //  db.run(dao.Query.filter(r => r.datecreated >= startdate && r.datecreated <= enddate )
   //    .drop(offset)
