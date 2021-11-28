@@ -10,6 +10,7 @@ import akka.actor.ActorRef
 import play.api.libs.json._
 import Ordering.Double.IeeeOrdering
 import utils.SystemConfig.COIN_USDC
+import models.repo.TaskRepo
 import models.domain._
 import models.domain.eosio.{ MahjongHiloGameData, MahjongHiloHistory }
 import models.repo.eosio.MahjongHiloHistoryRepo
@@ -17,6 +18,7 @@ import models.repo.eosio.MahjongHiloHistoryRepo
 @Singleton
 class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 																			platformConfigService: PlatformConfigService,
+																			taskRepo: TaskRepo,
 																			historyRepo: MahjongHiloHistoryRepo,
 																			userAccountService: UserAccountService,
 																			overAllHistory: OverAllHistoryService,
@@ -81,29 +83,26 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 													// check if tx_hash already exists to DB history..
 													isExists <- overAllHistory.gameIsExistsByTxHash(hash)
 													defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+													task <- taskRepo.getTaskWithOffset(0)
 													// return true if successful adding to DB else false
 													onSaveHistory <- {
 														if (!isExists) {
 															// create OverAllGameHistory object..
-															val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-								                                                                      hash,
-								                                                                      gameID,
-								                                                                      defaultGame.map(_.name).getOrElse("default_code"),
-								                                                                      IntPredictions(username,
-								                                                                                    prediction,
-								                                                                                    result,
-								                                                                                    betAmount,
-								                                                                                  	prize,
-								                                                                                  	Some(predictionTiles)),
-								                                                                      true,
-								                                                                      Instant.now.getEpochSecond)
+															val gameHistory: OverAllGameHistory =
+																OverAllGameHistory(UUID.randomUUID,
+                                                  hash,
+                                                  gameID,
+                                                  defaultGame.map(_.name).getOrElse("default_code"),
+                                                  IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
+                                                  true,
+                                                  Instant.now.getEpochSecond)
 
 															overAllHistory
 																.addHistory(gameHistory)
 																.map { x =>
 													        if(x > 0) {
 													          dynamicBroadcast ! Array(gameHistory)
-													          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
+													          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 																		dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
 																		(2)
 													        }
@@ -268,6 +267,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 									for {
 										isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
 										defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+										task <- taskRepo.getTaskWithOffset(0)
 										processedHistory <- {
 											if (!isExists) {
 												val gameID: String = data.game_id
@@ -278,23 +278,19 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
 				              																					"standard_tile" -> data.standard_tile)
 												// create OverAllGameHistory object..
-												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-					                                                                      txHash,
-					                                                                      gameID,
-					                                                                      defaultGame.map(_.name).getOrElse("default_code"),
-					                                                                      IntPredictions(username,
-					                                                                                    prediction,
-					                                                                                    result,
-					                                                                                    betAmount,
-					                                                                                    prize,
-					                                                                                  	Some(predictionTiles)),
-					                                                                      true,
-					                                                                      Instant.now.getEpochSecond)
+												val gameHistory: OverAllGameHistory =
+													OverAllGameHistory(UUID.randomUUID,
+                                            txHash,
+                                            gameID,
+                                            defaultGame.map(_.name).getOrElse("default_code"),
+                                            IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
+                                            true,
+                                            Instant.now.getEpochSecond)
 
 												overAllHistory.addHistory(gameHistory)
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
-									          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
+									          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, betAmount)
 										        true
 										      }

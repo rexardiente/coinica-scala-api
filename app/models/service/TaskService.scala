@@ -28,28 +28,27 @@ class TaskService @Inject()(
   def getTodayTaskUpdates(user: UUID, gameID: UUID): Future[Option[DailyTask]] = {
     dailyTaskRepo.getTodayTaskByUserAndGame(user, gameID)
   }
-
-  def getMonthlyTaskUpdates(user: UUID, gameID: UUID): Future[Seq[TaskHistory]] = {
-    val dateTime: LocalDateTime = LocalDate.now(defaultTimeZone).atStartOfDay()
-    val lengthOfMonth: Int = LocalDate.now(defaultTimeZone).lengthOfMonth
-    val start: Instant = dateTime.withDayOfMonth(1).toInstant(defaultTimeZone)
-    val end: Instant = dateTime.withDayOfMonth(lengthOfMonth).toInstant(defaultTimeZone)
-
-    for {
-      history <- taskHistoryRepo.getMonthlyTaskByUserAndGame(user, gameID, start, end)
-      processed <- Future.successful(mergeSeqTaskHistory(history))
-    } yield (processed)
-  }
+  // def getMonthlyTaskUpdates(user: UUID, gameID: UUID): Future[Seq[TaskHistory]] = {
+  //   val dateTime: LocalDateTime = LocalDate.now(defaultTimeZone).atStartOfDay()
+  //   val lengthOfMonth: Int = LocalDate.now(defaultTimeZone).lengthOfMonth
+  //   val start: Instant = dateTime.withDayOfMonth(1).toInstant(defaultTimeZone)
+  //   val end: Instant = dateTime.withDayOfMonth(lengthOfMonth).toInstant(defaultTimeZone)
+  //   val userTaskHistory: Seq[DailyTask] = Seq.empty
+  //   for {
+  //     history <- taskHistoryRepo.getMonthlyTaskByUserAndGame(start, end)
+  //     processed <- Future.successful(mergeSeqTaskHistory(history))
+  //   } yield (processed)
+  // }
   // TODO: need proper testing
-  def mergeSeqTaskHistory(sequence: Seq[TaskHistory]) = {
-    val newTempID: UUID = UUID.randomUUID
-    sequence.foldRight(List.empty[TaskHistory]) {
-      // case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) if (c == j && d == k) =>
-      case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) =>
-        TaskHistory(newTempID, b, c, d, (e + l), f, n) :: list
-      case (other, list) => other :: list
-    }
-  }
+  // def mergeSeqTaskHistory(sequence: Seq[TaskHistory]) = {
+  //   val newTempID: UUID = UUID.randomUUID
+  //   sequence.foldRight(List.empty[TaskHistory]) {
+  //     // case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) if (c == j && d == k) =>
+  //     case (TaskHistory(a, b, c, d, e, f, g), TaskHistory(h, i, j, k, l, m, n) :: list) =>
+  //       TaskHistory(newTempID, b, c, d, (e + l), f, n) :: list
+  //     case (other, list) => other :: list
+  //   }
+  // }
   def getTodaysTasks(id: UUID): Future[Option[Task]] = {
     for {
       // due to timezon difference from server, result are not reflecting on users query..

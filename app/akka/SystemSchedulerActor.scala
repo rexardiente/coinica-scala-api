@@ -87,7 +87,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
-  private val defaultTimeZoneOffset: ZoneOffset = ZoneOffset.UTC
+  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
   private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
   private def defaultScheduler: Int = DEFAULT_SYSTEM_SCHEDULER_TIMER
   private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
@@ -109,7 +109,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           // if server has stop due to some updates or restart...
           // check if has existing tasks create for today based on UTC
-          val startOfDay: Instant = LocalDate.now(defaultTimeZoneOffset).atStartOfDay().toInstant(defaultTimeZoneOffset)
+          val startOfDay: Instant = LocalDate.now(defaultTimeZone).atStartOfDay().toInstant(defaultTimeZone)
           for {
             isExists <- taskRepo.existByDate(startOfDay)
             randomTasks <- createRandomTasks()
@@ -124,7 +124,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           val dailySchedInterval: FiniteDuration = { defaultScheduler }.hours
           val dailySchedDelay   : FiniteDuration = {
               val startTime = LocalTime.of(0, 0).toSecondOfDay
-              val now = LocalTime.now(defaultTimeZoneOffset).toSecondOfDay
+              val now = LocalTime.now(defaultTimeZone).toSecondOfDay
               val fullDay = 60 * 60 * 24
               val difference = startTime - now
               if (difference < 0) {
@@ -309,7 +309,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
 
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
-      val yesterday: Instant = LocalDate.now(defaultTimeZoneOffset).atStartOfDay().plusDays(-1).toInstant(defaultTimeZoneOffset)
+      val yesterday: Instant = LocalDate.now(defaultTimeZone).atStartOfDay().plusDays(-1).toInstant(defaultTimeZone)
       // update all earned points into users Account
       Await.ready(processChallengeTrackerAndEarnedVIPPoints(yesterday), Duration.Inf)
       Thread.sleep(2000)
@@ -351,59 +351,51 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       // }
     // Daily tasks rewards are fixed amount based on time of tasks reward generation
     case DailyTaskScheduler =>
-      val yesterday: Instant = LocalDate.now(defaultTimeZoneOffset).atStartOfDay().plusDays(-1).toInstant(defaultTimeZoneOffset)
+      val yesterday: Instant = LocalDate.now(defaultTimeZone).atStartOfDay().plusDays(-1).toInstant(defaultTimeZone)
       // process first all available task before creating new tasks
       val trackedFailedInsertion = ListBuffer.empty[TaskHistory]
       val aPromise = Promise[Future[Int]]()
       val processedTasks: Future[Int] = taskRepo.getDailyTaskByDate(yesterday).map(_.map { v =>
         for {
           tracked <- dailyTaskRepo.all()
+          // update users vip points from daily tasks
           processes <- Future.sequence {
-            tracked.map(x => {
-              val taskHistory = new TaskHistory(UUID.randomUUID,
-                                                v.id,
-                                                x.game_id,
-                                                x.user,
-                                                x.game_count,
-                                                Instant.ofEpochSecond(v.created_at),
-                                                Instant.ofEpochSecond(Instant.ofEpochSecond(v.created_at).getEpochSecond + ((60 * 60 * 24) - 1)))
-              // insert and if failed do insert 1 more time..
-              // taskHistoryRepo.add(taskHistory).map(isAdded => if(isAdded > 0)() else trackedFailedInsertion.addOne(taskHistory) )
-              taskHistoryRepo
-                .add(taskHistory)
-                .map { isAdded =>
-                  //  update vip points after added into history..
-                  if(isAdded > 0) {
-                    for {
-                      vipAcc <- vipUserRepo.findByID(x.user)
-                      updatedVIPAcc <- Future.successful {
-                        vipAcc.map { vip =>
-                          // points (fixed 1 VIP per day) * rank benefit
-                          vipUserRepo.getBenefitByID(vip.rank).map {
-                            case Some(b) =>
-                              val isTaskExists: Option[TaskGameInfo] = v.tasks.filter(_.game.id == x.game_id).headOption
-                              // user play count >= task play count
-                              isTaskExists.map { gameInfo =>
-                                // update User VIP points
-                                if (x.game_count >= gameInfo.count) {
-                                  for {
-                                    _ <- vipUserRepo.update(vip.copy(points = vip.points + gameInfo.points))
-                                    _ <- isUpdateToNewVIPLvl(vip)
-                                  } yield ()
-                                }
-                                else () // do nothing..
-                              }
-
-                            case None => ()
+            tracked.map { x =>
+                for {
+                  vipAcc <- vipUserRepo.findByID(x.user)
+                  updatedVIPAcc <- Future.successful {
+                    vipAcc.map { vip =>
+                      // points (fixed 1 VIP per day) * rank benefit
+                      vipUserRepo.getBenefitByID(vip.rank).map {
+                        case Some(b) =>
+                          val isTaskExists: Option[TaskGameInfo] = v.tasks.filter(_.game.id == x.game_id).headOption
+                          // user play count >= task play count
+                          isTaskExists.map { gameInfo =>
+                            // update User VIP points
+                            if (x.game_count >= gameInfo.count) {
+                              for {
+                                _ <- vipUserRepo.update(vip.copy(points = vip.points + gameInfo.points))
+                                _ <- isUpdateToNewVIPLvl(vip)
+                              } yield ()
+                            }
+                            else () // do nothing..
                           }
-                        }
-                        .getOrElse(Future.successful(0))
+
+                        case None => ()
                       }
-                    } yield (updatedVIPAcc)
+                    }
+                    .getOrElse(Future.successful(0))
                   }
-                  else trackedFailedInsertion.addOne(taskHistory)
-                }
-            })
+                } yield (updatedVIPAcc)
+            }
+          }
+          // insert all data into database history
+          insertHistory <- {
+            val taskHistory = new TaskHistory(UUID.randomUUID,
+                                              tracked.toList,
+                                              yesterday,
+                                              Instant.ofEpochSecond(yesterday.getEpochSecond + ((60 * 60 * 24) - 1)))
+            taskHistoryRepo.add(taskHistory)
           }
           clean <- dailyTaskRepo.clearTable
         } yield (clean)
@@ -415,11 +407,8 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       // get the future result from promise action
       // flatten to convert Future[Future[]] to Future[]
       val completedTasks: Future[Int] = aPromise.future.flatten
-      // re-insert failed txs on DB
-      completedTasks.map { _ =>
-        trackedFailedInsertion.map(taskHistoryRepo.add)
-        self ! (CreateNewDailyTask, yesterday)
-      }
+      // create new tasks for another day
+      completedTasks.map { _ => self ! (CreateNewDailyTask, yesterday) }
 
     case (CreateNewDailyTask, yesterday: Instant) =>
       val startOfDay: Long = yesterday.getEpochSecond + (60 * 60 * 24)
@@ -436,9 +425,9 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
 
     case RankingScheduler =>
       // get date range to fecth from overall history...
-      val timeZone = LocalDate.now(defaultTimeZoneOffset).atStartOfDay().plusDays(-1)
-      val start: Long = timeZone.toInstant(defaultTimeZoneOffset).getEpochSecond
-      val end: Long = timeZone.plusDays(1).toInstant(defaultTimeZoneOffset).getEpochSecond
+      val timeZone = LocalDate.now(defaultTimeZone).atStartOfDay().plusDays(-1)
+      val start: Long = timeZone.toInstant(defaultTimeZone).getEpochSecond
+      val end: Long = timeZone.plusDays(1).toInstant(defaultTimeZone).getEpochSecond
       // fetch overAllGameHistory by date ranges
       for {
         gameHistory <- overAllGameHistory.getByDateRange(start, (end - 1))

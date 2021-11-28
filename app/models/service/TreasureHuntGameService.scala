@@ -8,12 +8,14 @@ import scala.concurrent.Future
 import akka.actor.ActorRef
 import play.api.libs.json._
 import utils.SystemConfig.SUPPORTED_CURRENCIES
+import models.repo.TaskRepo
 import models.domain.eosio.TreasureHuntGameData
 import models.domain._
 
 @Singleton
 class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 																				platformConfigService: PlatformConfigService,
+																				taskRepo: TaskRepo,
 																				userAccountService: UserAccountService,
 																				overAllHistory: OverAllHistoryService,
 																				@Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
@@ -42,6 +44,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 										// check if tx_hash already exists to DB history
 										isExists <- overAllHistory.gameIsExistsByTxHash(hash)
 										defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+										task <- taskRepo.getTaskWithOffset(0)
 										// return true if successful adding to DB else false
 										onSaveHistory <- {
 											if (!isExists) {
@@ -51,24 +54,20 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 					              val betAmount: Double = data.destination
 					              val prize: Double = 0
 												// create OverAllGameHistory object..
-												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-					                                                                      hash,
-					                                                                      gameID,
-					                                                                      defaultGame.map(_.name).getOrElse("default_code"),
-					                                                                      ListOfIntPredictions(username,
-								                                                                                    prediction,
-								                                                                                    result,
-								                                                                                    betAmount,
-								                                                                                    prize,
-								                                                                                  	None),
-					                                                                      true,
-					                                                                      Instant.now.getEpochSecond)
+												val gameHistory: OverAllGameHistory =
+													OverAllGameHistory(UUID.randomUUID,
+                                            hash,
+                                            gameID,
+                                            defaultGame.map(_.name).getOrElse("default_code"),
+                                            ListOfIntPredictions(username, prediction, result, betAmount, prize, None),
+                                            true,
+                                            Instant.now.getEpochSecond)
 
 												overAllHistory.addHistory(gameHistory)
 													.map { isAdded =>
 									          if (isAdded > 0) {
 									          	dynamicBroadcast ! Array(gameHistory)
-										          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
+										          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 															dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
 															(2)
 									          }
@@ -110,6 +109,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 												// check if tx_hash already exists to DB history
 												isExists <- overAllHistory.gameIsExistsByTxHash(hash)
 												defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+												task <- taskRepo.getTaskWithOffset(0)
 												// return true if successful adding to DB else false
 												onSaveHistory <- {
 													if (!isExists) {
@@ -119,24 +119,20 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 							              val betAmount: Double = data.destination
 							              val prize: Double = 0
 														// create OverAllGameHistory object..
-														val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-							                                                                      hash,
-							                                                                      gameID,
-							                                                                      defaultGame.map(_.name).getOrElse("default_code"),
-							                                                                      ListOfIntPredictions(username,
-										                                                                                    prediction,
-										                                                                                    result,
-										                                                                                    betAmount,
-										                                                                                    prize,
-										                                                                                  	None),
-							                                                                      true,
-							                                                                      Instant.now.getEpochSecond)
+														val gameHistory: OverAllGameHistory =
+															OverAllGameHistory(UUID.randomUUID,
+                                                hash,
+                                                gameID,
+                                                defaultGame.map(_.name).getOrElse("default_code"),
+                                                ListOfIntPredictions(username, prediction, result, betAmount, prize, None),
+                                                true,
+                                                Instant.now.getEpochSecond)
 
 														overAllHistory.addHistory(gameHistory)
 															.map { isAdded =>
 											          if (isAdded > 0) {
 											          	dynamicBroadcast ! Array(gameHistory)
-												          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
+												          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 																	dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
 																	(2)
 											          }
@@ -159,7 +155,8 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 	}
 	def quit(gameID: Int, username: String): Future[Option[String]] =
 		contract.treasureHuntQuit(gameID, username)
-	def initialize(id: UUID, gameID: Int, currency: String, quantity: Int, destination: Int, enemy: Int): Future[Option[String]] = {
+	def initialize(id: UUID, gameID: Int, currency: String, quantity: Int, destination: Int, enemy: Int):
+	Future[Option[String]] = {
 		for {
       hasWallet <- userAccountService.getUserAccountWallet(id)
       currentValue <- userAccountService.getGameQuantityAmount(currency, quantity)
@@ -212,6 +209,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       						for {
 										isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
 										defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+										task <- taskRepo.getTaskWithOffset(0)
 										processedHistory <- {
 											if (!isExists) {
 												val gameID: String = data.game_id
@@ -220,23 +218,19 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 					              val betAmount: Double = data.destination
 					              val prize: Double = data.prize.toDouble
 												// create OverAllGameHistory object..
-												val gameHistory: OverAllGameHistory = OverAllGameHistory(UUID.randomUUID,
-					                                                                      txHash,
-					                                                                      gameID,
-					                                                                      defaultGame.map(_.name).getOrElse("default_code"),
-					                                                                      ListOfIntPredictions(username,
-								                                                                                    prediction,
-								                                                                                    result,
-								                                                                                    betAmount,
-								                                                                                    prize,
-								                                                                                  	None),
-					                                                                      true,
-					                                                                      Instant.now.getEpochSecond)
+												val gameHistory: OverAllGameHistory =
+													OverAllGameHistory(UUID.randomUUID,
+                                            txHash,
+                                            gameID,
+                                            defaultGame.map(_.name).getOrElse("default_code"),
+                                            ListOfIntPredictions(username, prediction, result, betAmount, prize, None),
+                                            true,
+                                            Instant.now.getEpochSecond)
 
 												overAllHistory.addHistory(gameHistory)
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
-									          dynamicProcessor ! DailyTask(id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
+									          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
 														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, betAmount)
 										        true
 										      }

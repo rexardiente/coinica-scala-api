@@ -12,8 +12,6 @@ class Generator @Inject()(
     userWalletHistory: UserAccountWalletHistoryDAO,
     genre: GenreDAO,
     task: TaskDAO,
-    dailyTask: DailyTaskDAO,
-    taskHistory: TaskHistoryDAO,
     eosNetTx: EOSNetTransactionDAO,
     referral: ReferralHistoryDAO,
     ranking: RankingHistoryDAO,
@@ -41,8 +39,8 @@ class Generator @Inject()(
       user.FailedCoinDepositQuery.schema ++
       genre.Query.schema ++
       task.Query.schema ++
-      dailyTask.Query.schema ++
-      taskHistory.Query.schema ++
+      task.TaskHistoryQuery.schema ++
+      task.DailyTaskQuery.schema ++
       eosNetTx.Query.schema ++
       referral.Query.schema ++
       ranking.Query.schema ++
