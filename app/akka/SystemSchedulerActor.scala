@@ -107,6 +107,18 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           SystemSchedulerActor.ghostquest.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           SystemSchedulerActor.mahjonghilo.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
+          // if server has stop due to some updates or restart...
+          // check if has existing tasks create for today based on UTC
+          val startOfDay: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant()
+          for {
+            isExists <- taskRepo.existByDate(startOfDay)
+            randomTasks <- createRandomTasks()
+            updateTask <- {
+              if (!isExists) taskRepo.add(new Task(UUID.randomUUID, randomTasks, startOfDay.getEpochSecond))
+              else Future.successful(0) // do nothing..
+            }
+          } yield (updateTask)
+
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
           val dailySchedInterval: FiniteDuration = { defaultScheduler }.hours
@@ -416,17 +428,9 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
         if (!isCreated) {
           for {
             availableGames <- gameRepo.all()
-            _ <- Future.successful {
-              try {
-                // generate random range from 1 - 5
-                // to determine how many games need to play to get points
-                val tasks: Seq[TaskGameInfo] = availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
-                taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay))
-              } catch {
-                case e: Throwable => println("Error: No games available")
-              }
-            }
-          } yield ()
+            tasks <- createRandomTasks()
+            updateTask <- taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay))
+          } yield (updateTask)
         }
       }
 
@@ -592,5 +596,16 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
         .update(vip.copy(rank = vip.currentRank, next_rank = vip.nextRank()))
         .map { isUpdated => if (isUpdated > 0) true else false }
     }
+  }
+
+  private def createRandomTasks(): Future[List[TaskGameInfo]] = {
+    for {
+      availableGames <- gameRepo.all()
+      tasks <- Future.successful {
+        // generate random range from 1 - 5
+        // to determine how many games need to play to get points
+        availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
+      }
+    } yield (tasks)
   }
 }
