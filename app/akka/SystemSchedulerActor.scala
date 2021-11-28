@@ -88,7 +88,6 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
   private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
-  private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
   private def defaultScheduler: Int = DEFAULT_SYSTEM_SCHEDULER_TIMER
   private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
 
@@ -433,7 +432,6 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
         gameHistory <- overAllGameHistory.getByDateRange(start, (end - 1))
         // grouped by user -> Map[String, Seq[OverAllGameHistory]]
         grouped <- Future.successful(gameHistory.groupBy(_.info.user))
-        currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(COIN_USDC.symbol)
         // grouped history by user..
         processedHistory <- Future.successful {
           grouped
@@ -441,8 +439,8 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
               val amountHistories: List[(Double, Double)] = histories.map(x => (x.info.bet, x.info.amount)).toList
               // calculate total bet, earn and multiplier
               // amounts are converted into USD
-              val bets: Double = amountHistories.map(_._1).sum * currentUSDValue.toDouble
-              val earnings: Double = amountHistories.map(_._2).sum * currentUSDValue.toDouble
+              val bets: Double = amountHistories.map(_._1).sum
+              val earnings: Double = amountHistories.map(_._2).sum
               val multipliers: Int = amountHistories.map(_._2).filter(_ > 0).size
               (user, bets, earnings, multipliers)
             }.toSeq
