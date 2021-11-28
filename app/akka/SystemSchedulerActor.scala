@@ -2,7 +2,7 @@ package akka
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
-import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset, ZoneId, ZonedDateTime }
+import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset }
 import scala.util.{ Success, Failure, Random }
 import scala.concurrent.{ Await, Future, Promise }
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -87,7 +87,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
-  private val defaultTimeZone: ZoneId = ZoneOffset.UTC
+  private val defaultTimeZoneOffset: ZoneOffset = ZoneOffset.UTC
   private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
   private def defaultScheduler: Int = DEFAULT_SYSTEM_SCHEDULER_TIMER
   private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
@@ -109,7 +109,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           // if server has stop due to some updates or restart...
           // check if has existing tasks create for today based on UTC
-          val startOfDay: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant()
+          val startOfDay: Instant = LocalDate.now(defaultTimeZoneOffset).atStartOfDay().toInstant(defaultTimeZoneOffset)
           for {
             isExists <- taskRepo.existByDate(startOfDay)
             randomTasks <- createRandomTasks()
@@ -124,7 +124,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           val dailySchedInterval: FiniteDuration = { defaultScheduler }.hours
           val dailySchedDelay   : FiniteDuration = {
               val startTime = LocalTime.of(0, 0).toSecondOfDay
-              val now = LocalTime.now(defaultTimeZone).toSecondOfDay
+              val now = LocalTime.now(defaultTimeZoneOffset).toSecondOfDay
               val fullDay = 60 * 60 * 24
               val difference = startTime - now
               if (difference < 0) {
@@ -309,7 +309,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
 
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
-      val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
+      val yesterday: Instant = LocalDate.now(defaultTimeZoneOffset).atStartOfDay().plusDays(-1).toInstant(defaultTimeZoneOffset)
       // update all earned points into users Account
       Await.ready(processChallengeTrackerAndEarnedVIPPoints(yesterday), Duration.Inf)
       Thread.sleep(2000)
@@ -351,7 +351,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       // }
     // Daily tasks rewards are fixed amount based on time of tasks reward generation
     case DailyTaskScheduler =>
-      val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
+      val yesterday: Instant = LocalDate.now(defaultTimeZoneOffset).atStartOfDay().plusDays(-1).toInstant(defaultTimeZoneOffset)
       // process first all available task before creating new tasks
       val trackedFailedInsertion = ListBuffer.empty[TaskHistory]
       val aPromise = Promise[Future[Int]]()
@@ -436,11 +436,12 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
 
     case RankingScheduler =>
       // get date range to fecth from overall history...
-      val start = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1)
-      val end = start.plusDays(1)
+      val timeZone = LocalDate.now(defaultTimeZoneOffset).atStartOfDay().plusDays(-1)
+      val start: Long = timeZone.toInstant(defaultTimeZoneOffset).getEpochSecond
+      val end: Long = timeZone.plusDays(1).toInstant(defaultTimeZoneOffset).getEpochSecond
       // fetch overAllGameHistory by date ranges
       for {
-        gameHistory <- overAllGameHistory.getByDateRange(start.toInstant().getEpochSecond, (end.toInstant().getEpochSecond - 1))
+        gameHistory <- overAllGameHistory.getByDateRange(start, (end - 1))
         // grouped by user -> Map[String, Seq[OverAllGameHistory]]
         grouped <- Future.successful(gameHistory.groupBy(_.info.user))
         currentUSDValue <- httpSupport.getCurrentPriceBasedOnMainCurrency(COIN_USDC.symbol)
@@ -513,7 +514,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           val aPayout: Seq[RankType] = removeNoneValue[RankType](payout)
           val aWagered: Seq[RankType] = removeNoneValue[RankType](wagered)
           val aMultiplier: Seq[RankType] = removeNoneValue[RankType](multiplier)
-          val rank: RankingHistory = RankingHistory(aProfit, aPayout, aWagered, aMultiplier, start.toInstant().getEpochSecond)
+          val rank: RankingHistory = RankingHistory(aProfit, aPayout, aWagered, aMultiplier, start)
           // insert into DB, if failed then re-insert
           rankingHistoryRepo.add(rank)
         }

@@ -1,7 +1,6 @@
 package models.service
 
 import javax.inject.{ Inject, Singleton }
-import java.time.{ LocalTime, LocalDate, LocalDateTime, Instant, ZoneId, ZoneOffset }
 import java.util.UUID
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,8 +20,6 @@ class ChallengeService @Inject()(
   tracker: ChallengeTrackerRepo,
   history: ChallengeHistoryRepo,
   userAccount: UserAccountService) {
-  private val defaultTimeZone: ZoneId = ZoneOffset.UTC
-
   def paginatedResult[T >: Challenge](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 	  for {
       tasks <- challenge.all()

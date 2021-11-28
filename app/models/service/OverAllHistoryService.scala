@@ -14,6 +14,7 @@ class OverAllHistoryService @Inject()(
     userAccountRepo: UserAccountRepo,
     gameRepo: GameRepo,
     overallGameHistory: OverAllGameHistoryRepo) {
+  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
   // def paginatedResult[T >: ReferralHistory](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
   //    for {
   //     tasks <- referralRepo.findAll(limit, offset)
@@ -35,36 +36,35 @@ class OverAllHistoryService @Inject()(
   // get latest 10 result for history..
   def gameHistoryByGameID(id: UUID): Future[Seq[OverAllGameHistory]] = {
     for {
-      game <- gameRepo.findByID(id)
+      hasGame <- gameRepo.findByID(id)
       txs <- {
-        if (game != None) {
-          val now = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
-          val lastSevenDays: Instant = now.plusDays(-7).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant()
-          // fetch only range of 1 week of txs
-          overallGameHistory
-            .getByDateRangeAndGame(
-                game.get.name.replaceAll(" ", "").toLowerCase,
-                lastSevenDays.getEpochSecond,
-                now.toInstant(ZoneOffset.UTC).getEpochSecond)
-            .map(x => x.sortBy(- _.createdAt).take(10))
-        }
-        else Future(Seq.empty)
+        hasGame
+          .map { game =>
+            val dateTime: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
+            val start: Long = dateTime.plusDays(-7).toLocalDate().atStartOfDay().toInstant(defaultTimeZone).getEpochSecond
+            val end: Long = dateTime.toInstant(defaultTimeZone).getEpochSecond
+            // fetch only range of 1 week of txs
+            overallGameHistory
+              .getByDateRangeAndGame(game.name, start, end)
+              .map(x => x.sortBy(- _.createdAt).take(10))
+          }
+          .getOrElse(Future.successful(Seq.empty))
       }
     } yield (txs)
   }
 
-  def gameHistoryByGameIDAndUser(account: UUID, gameID: UUID): Future[Seq[OverAllGameHistory]] = {
+  def gameHistoryByGameIDAndUser(username: String, gameID: UUID): Future[Seq[OverAllGameHistory]] = {
     for {
-      game <- gameRepo.findByID(gameID)
-      user <- userAccountRepo.getByID(account)
+      hasGame <- gameRepo.findByID(gameID)
       txs <- {
-        if (game != None && user != None) {
-          overallGameHistory
-            .getByGameName(game.get.name.replaceAll(" ", "").toLowerCase)
-            .map(_.filter(_.info.user == user.get.username))
-            .map(_.sortBy(- _.createdAt).take(10))
-        }
-        else Future(Seq.empty)
+        hasGame
+          .map { game =>
+            overallGameHistory
+              .getByGameName(game.name)
+              .map(_.filter(_.info.user == username))
+              .map(_.sortBy(- _.createdAt).take(10))
+          }
+          .getOrElse(Future.successful(Seq.empty))
       }
     } yield (txs)
   }

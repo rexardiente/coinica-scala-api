@@ -2,7 +2,7 @@ package models.service
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.{ Instant, LocalDate, ZoneId, ZoneOffset }
+import java.time.{ Instant, LocalDate, LocalDateTime, ZoneOffset }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Future, Promise }
 import play.api.libs.json._
@@ -15,7 +15,7 @@ class TaskService @Inject()(
                           taskHistoryRepo: TaskHistoryRepo,
                           dailyTaskRepo: DailyTaskRepo
                           ) {
-  private val defaultTimeZone: ZoneId = ZoneOffset.UTC
+  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
   def paginatedResult[T >: Task](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 
 	  for {
@@ -30,9 +30,10 @@ class TaskService @Inject()(
   }
 
   def getMonthlyTaskUpdates(user: UUID, gameID: UUID): Future[Seq[TaskHistory]] = {
-    val startOfDay: LocalDate = LocalDate.now()
-    val start: Instant = startOfDay.atStartOfDay().withDayOfMonth(1).toInstant(ZoneOffset.UTC)
-    val end: Instant = startOfDay.atStartOfDay().withDayOfMonth(startOfDay.lengthOfMonth()).toInstant(ZoneOffset.UTC)
+    val dateTime: LocalDateTime = LocalDate.now(defaultTimeZone).atStartOfDay()
+    val lengthOfMonth: Int = LocalDate.now(defaultTimeZone).lengthOfMonth
+    val start: Instant = dateTime.withDayOfMonth(1).toInstant(defaultTimeZone)
+    val end: Instant = dateTime.withDayOfMonth(lengthOfMonth).toInstant(defaultTimeZone)
 
     for {
       history <- taskHistoryRepo.getMonthlyTaskByUserAndGame(user, gameID, start, end)
