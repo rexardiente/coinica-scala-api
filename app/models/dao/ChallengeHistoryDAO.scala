@@ -15,9 +15,8 @@ final class ChallengeHistoryDAO @Inject()(
 
   protected class ChallengeHistoryTable(tag: Tag) extends Table[ChallengeHistory](tag, "CHALLENGE_HISTORY") {
     def id = column[UUID] ("ID", O.PrimaryKey)
-    // def challengeID = column[UUID] ("CHALLENGE_ID")
     def users = column[Seq[ChallengeTracker]] ("USERS")
-    def createdAt = column[Long] ("CREATED_AT")
+    def createdAt = column[Long] ("CREATED_AT", O.Unique)
 
     def * = (id, users, createdAt) <> (ChallengeHistory.tupled, ChallengeHistory.unapply)
   }
