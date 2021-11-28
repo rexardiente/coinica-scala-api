@@ -18,7 +18,7 @@ GET   	/donut/api/v1/sign-out           					controllers.SecureActionController.
 #PUT     /donut/api/v1/challenge/update          	controllers.HomeController.updateChallenge(id: UUID)
 #POST    /donut/api/v1/challenge/remove           controllers.HomeController.removeChallenge(id: UUID)
 
-GET     /donut/api/v1/challenge               		controllers.HomeController.getChallenge(date: Option[java.time.Instant])
+GET     /donut/api/v1/challenge               		controllers.HomeController.getChallenge
 GET     /donut/api/v1/challenge/ranks/daily   		controllers.HomeController.getDailyRanksChallenge()
 # GET     /donut/api/v1/challenge/daily           controllers.HomeController.challengedaily(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
 # GET     /donut/api/v1/challenge/monthly         controllers.HomeController.challengedate(startdate: java.time.Instant, enddate: Option[java.time.Instant], limit: Int ?= 50, offset: Int ?= 0)
