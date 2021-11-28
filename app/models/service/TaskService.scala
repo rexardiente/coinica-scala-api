@@ -53,7 +53,7 @@ class TaskService @Inject()(
     for {
       // due to timezon difference from server, result are not reflecting on users query..
       // to avoid this situation, directly get the latest task
-      hasTask <- taskRepo.getLatestTask
+      hasTask <- taskRepo.getTaskWithOffset(0)
       updatedTask <- f[Task]{
         hasTask.map { task =>
           // map task tasks to update each game progress.

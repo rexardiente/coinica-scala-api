@@ -4,7 +4,7 @@ import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
 import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset, ZoneId, ZonedDateTime }
 import scala.util.{ Success, Failure, Random }
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{ Await, Future, Promise }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.collection.mutable.{ ListBuffer, HashMap }
@@ -111,14 +111,14 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           // any time the system started it will start at 12:AM
           val dailySchedInterval: FiniteDuration = { defaultScheduler }.hours
           val dailySchedDelay   : FiniteDuration = {
-              val time = LocalTime.of(0, 0).toSecondOfDay
-              val now = LocalTime.now().toSecondOfDay
+              val startTime = LocalTime.of(0, 0).toSecondOfDay
+              val now = LocalTime.now(defaultTimeZone).toSecondOfDay
               val fullDay = 60 * 60 * 24
-              val difference = time - now
+              val difference = startTime - now
               if (difference < 0) {
                 fullDay + difference
               } else {
-                time - now
+                startTime - now
               }
             }.seconds
           system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => {
@@ -136,6 +136,11 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
         }
       case Failure(ex) =>  ()// if actor is already created do nothing..
     }
+  }
+  override def postStop: Unit = {
+    super.postStop
+    println("Stop all threads on SystemSchedulerActor")
+    system.stop(self)
   }
 
   private def loadDefaultObjects() = {
@@ -337,11 +342,11 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       val yesterday: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).plusDays(-1).toInstant()
       // process first all available task before creating new tasks
       val trackedFailedInsertion = ListBuffer.empty[TaskHistory]
-
-      taskRepo.getDailyTaskByDate(yesterday).map(_.map { v =>
+      val aPromise = Promise[Future[Int]]()
+      val processedTasks: Future[Int] = taskRepo.getDailyTaskByDate(yesterday).map(_.map { v =>
         for {
           tracked <- dailyTaskRepo.all()
-          _ <- Future.successful {
+          processes <- Future.sequence {
             tracked.map(x => {
               val taskHistory = new TaskHistory(UUID.randomUUID,
                                                 v.id,
@@ -388,14 +393,21 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                 }
             })
           }
-          _ <- Future.successful(dailyTaskRepo.clearTable)
-        } yield ()
-      })
+          clean <- dailyTaskRepo.clearTable
+        } yield (clean)
+      }
+      .getOrElse(Future.successful(0)))
+      .flatten
+      // wait the process to be completed
+      aPromise.success(processedTasks)
+      // get the future result from promise action
+      // flatten to convert Future[Future[]] to Future[]
+      val completedTasks: Future[Int] = aPromise.future.flatten
       // re-insert failed txs on DB
-      // TODO: if failed again make new DB records to track and manually insert it..
-      trackedFailedInsertion.map(taskHistoryRepo.add)
-      Thread.sleep(2000)
-      self ! (CreateNewDailyTask, yesterday)
+      completedTasks.map { _ =>
+        trackedFailedInsertion.map(taskHistoryRepo.add)
+        self ! (CreateNewDailyTask, yesterday)
+      }
 
     case (CreateNewDailyTask, yesterday: Instant) =>
       val startOfDay: Long = yesterday.getEpochSecond + (60 * 60 * 24)
