@@ -228,7 +228,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       // deduct balance on the account
       updateBalance <- {
       	isAdded
-      		.map(_ => userAccountService.deductBalanceByCurrency(id, currency, currentValue))
+      		.map(_ => userAccountService.deductBalanceByCurrency(hasWallet.get, currency, currentValue))
       		.getOrElse(Future.successful(0))
       }
     } yield (updateBalance)
@@ -253,7 +253,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       updateBalance <- {
       	hasWallet.map { _ =>
       		processWithdraw
-      			.map(_ => userAccountService.addBalanceByCurrency(id, COIN_USDC.symbol.toUpperCase, getPrize))
+      			.map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, getPrize))
       			.getOrElse(Future.successful(0))
       	}
       	.getOrElse(Future.successful(0))

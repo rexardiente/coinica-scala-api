@@ -140,22 +140,20 @@ class UserAccountService @Inject()(
     } yield toPaginate
   }
 
-  def addBalanceByCurrency(id: UUID, symbol: String, amount: BigDecimal): Future[Int] = {
+  def addBalanceByCurrency(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Future[Int] = {
     for {
-      optWallet <- getUserAccountWallet(id)
-      process <- Future.successful {
-        optWallet.map { wallet =>
-          wallet.wallet
-                .find(_.symbol == symbol)
-                .map { coin =>
-                  val updatedCoin = Coin(coin.symbol, coin.amount + amount)
-                  // remove old record then replace the new updated coin
-                  wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
-                }
-                .getOrElse(wallet)
-        }
+      wallet <- Future.successful {
+        wallet
+          .wallet
+          .find(_.symbol == symbol)
+          .map { coin =>
+            val updatedCoin = Coin(coin.symbol, coin.amount + amount)
+            // remove old record then replace the new updated coin
+            wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
+          }
+          .getOrElse(wallet)
       }
-      updateBalance <- process.map(userWalletRepo.update(_)).getOrElse(Future(0))
+      updateBalance <- userWalletRepo.update(wallet)
     } yield (updateBalance)
   }
   // before deduction, make sure amount is already final
@@ -167,22 +165,20 @@ class UserAccountService @Inject()(
   //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * DEFAULT_WEI_VALUE) + amount)
   //   userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
   // gasPrice: Int
-  def deductBalanceByCurrency(id: UUID, symbol: String, amount: BigDecimal): Future[Int] = {
+  def deductBalanceByCurrency(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Future[Int] = {
     for {
-      optWallet <- getUserAccountWallet(id)
-      process <- Future.successful {
-        optWallet.map { wallet =>
-          wallet.wallet
-                .find(_.symbol == symbol)
-                .map { coin =>
-                  val updatedCoin = Coin(coin.symbol, coin.amount - amount)
-                  // remove old record then replace the new updated coin
-                  wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
-                }
-                .getOrElse(wallet)
+      wallet <- Future.successful {
+        wallet
+          .wallet
+          .find(_.symbol == symbol)
+          .map { coin =>
+            val updatedCoin = Coin(coin.symbol, coin.amount - amount)
+            // remove old record then replace the new updated coin
+            wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
           }
+          .getOrElse(wallet)
       }
-      updateBalance <- process.map(userWalletRepo.update(_)).getOrElse(Future(0))
+      updateBalance <- userWalletRepo.update(wallet)
     } yield (updateBalance)
   }
   // 1 quantity = 1 game token
