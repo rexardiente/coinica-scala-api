@@ -9,7 +9,7 @@ import scala.language.postfixOps
 import akka.actor.ActorRef
 import play.api.libs.json._
 import Ordering.Double.IeeeOrdering
-import utils.SystemConfig.COIN_USDC
+import utils.SystemConfig.SUPPORTED_CURRENCIES
 import models.repo.TaskRepo
 import models.domain._
 import models.domain.eosio.{ MahjongHiloGameData, MahjongHiloHistory }
@@ -25,6 +25,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 																			@Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
 																			@Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
 	private val defaultGameName: String = "mahjonghilo"
+	private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
 
 	def declareWinHand(userGameID: Int): Future[Option[String]] =
 		contract.declareWinHand(userGameID)

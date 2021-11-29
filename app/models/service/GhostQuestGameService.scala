@@ -10,7 +10,7 @@ import akka.actor._
 import Ordering.Double.IeeeOrdering
 import play.api.libs.json._
 import models.domain.eosio._
-import utils.SystemConfig.COIN_USDC
+import utils.SystemConfig.SUPPORTED_CURRENCIES
 import models.domain.eosio.{ GhostQuestCharacter, GhostQuestCharacterHistory }
 import models.repo.eosio._
 import models.domain.{ OverAllGameHistory, PaymentType, PlatformGame, PlatformCurrency }
@@ -26,6 +26,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                                       @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef,
                                       @Named("DynamicSystemProcessActor") dynamicProcessor: ActorRef) {
   private val defaultGameName: String = "ghostquest"
+  private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
   private def mergeSeq[A, T <: Seq[A]](seq1: T, seq2: T) = (seq1 ++ seq2)
 
   def getUserData(id: Int): Future[Option[GhostQuestGameData]] =
