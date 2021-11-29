@@ -174,7 +174,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       // deduct balance on the account
       updateBalance <- {
       	initGame
-      		.map(_ => userAccountService.deductBalanceByCurrency(hasWallet.get, currency, currentValue))
+      		.map(_ => userAccountService.deductWalletBalance(hasWallet.get, currency, currentValue))
       		.getOrElse(Future.successful(0))
       }
       isConfirmed <- Future.successful { if (updateBalance > 0) initGame else None }
@@ -193,7 +193,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       // if successful, add new balance to account..
       updateBalance <- {
       	processWithdraw
-    			.map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, getPrize))
+    			.map(_ => userAccountService.addWalletBalance(hasWallet.get, COIN_USDC.symbol, getPrize))
     			.getOrElse(Future.successful(0))
       }
       isSaveHistory <- {

@@ -52,7 +52,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       }
       // deduct balance on the account
       updateBalance <- {
-        if (initGame != None) userAccountService.deductBalanceByCurrency(hasWallet.get, currency, currentValue)
+        if (initGame != None) userAccountService.deductWalletBalance(hasWallet.get, currency, currentValue)
         else Future.successful(0)
       }
       // update Characters list for battle and broadcast to UI the newly created character
@@ -83,7 +83,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       // if successful, add new balance to account..
       updateBalance <- {
         processWithdraw
-          .map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, prize))
+          .map(_ => userAccountService.addWalletBalance(hasWallet.get, COIN_USDC.symbol, prize))
           .getOrElse(Future.successful(0))
       }
       isSaveHistory <- {
