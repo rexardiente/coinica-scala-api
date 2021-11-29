@@ -132,7 +132,7 @@ class GameActionController @Inject()(
           for {
             (isWin, hash, gameData) <- mjHiloGameService.playHilo(account.id, account.username, account.userGameID, option)
             process <- Future.successful {
-              if (isWin <= 2) {
+              if (isWin > 0) {
                 gameData
                   .map(v => Ok(v.toJson.as[JsObject] + ("transaction_id" -> JsString(hash))))
                   .getOrElse(InternalServerError)
@@ -278,15 +278,10 @@ class GameActionController @Inject()(
           for {
             (isWin, hash, gameData) <- treasureHuntGameService.openTile(account.id, account.userGameID, account.username, tile)
             process <- Future.successful {
-              // isWin = 1 is win
-              // isWin = 2 is lost
-              // return true=win or false=lose
-              if (isWin <= 2) {
+              if (isWin > 0)
                 gameData
                   .map(v => Ok(v.toJson.as[JsObject] + ("transaction_id" -> JsString(hash))))
                   .getOrElse(InternalServerError)
-              }
-              // isWin = 3 server error
               else InternalServerError
             }
           } yield (process)
@@ -303,15 +298,10 @@ class GameActionController @Inject()(
           for {
             (isWin, hash, gameData) <- treasureHuntGameService.autoPlay(account.id, account.userGameID, account.username, sets)
             process <- Future.successful {
-              // isWin = 1 is win
-              // isWin = 2 is lost
-              // return true=win or false=lose
-              if (isWin <= 2) {
+              if (isWin > 0)
                 gameData
                   .map(v => Ok(v.toJson.as[JsObject] + ("transaction_id" -> JsString(hash))))
                   .getOrElse(InternalServerError)
-              }
-              // isWin = 3 server error
               else InternalServerError
             }
           } yield (process)
