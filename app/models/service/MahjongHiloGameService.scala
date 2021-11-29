@@ -198,40 +198,40 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			// after resetting contract, save mahjong game history into overall game history
 			// broadcast history to all users currently online after process
 			overallHistory <- {
-				hasHistory
-					.map { history =>
-						if (history.predictions.isEmpty) Future.successful(1)
-						else {
-							val txHash: String = updatedContract.getOrElse(null)
-							val data: MahjongHiloGameData = history.gameData.get
-							val gameID: String = data.game_id
-							val prediction: Int = data.prediction
-	            val result: Int = data.prediction
-	            val betAmount: Double = data.hi_lo_stake.toDouble
-	            val prize: Double = data.hi_lo_balance.toDouble
-	            val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
-	          																					"standard_tile" -> data.standard_tile)
-							val gameHistory: OverAllGameHistory =
-								OverAllGameHistory(UUID.randomUUID,
-			                            txHash,
-			                            history.gameID,
-			                            defaultGame.map(_.name).getOrElse("default_code"),
-			                            IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
-			                            true,
-			                            instantNowUTC().getEpochSecond)
+				updatedContract.map { txHash =>
+					val history: MahjongHiloHistory = hasHistory.get
 
-							overAllHistory
-								.addHistory(gameHistory)
-								.map { x =>
-					        if(x > 0) {
-					          dynamicBroadcast ! Array(gameHistory)
-										(1)
-					        }
-					      	else (0)
-				      	}
-						}
+					if (history.predictions.isEmpty) Future.successful(1)
+					else {
+						val data: MahjongHiloGameData = history.gameData.get
+						val gameID: String = data.game_id
+						val prediction: Int = data.prediction
+	          val result: Int = data.prediction
+	          val betAmount: Double = data.hi_lo_stake.toDouble
+	          val prize: Double = data.hi_lo_balance.toDouble
+	          val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
+	        																					"standard_tile" -> data.standard_tile)
+						val gameHistory: OverAllGameHistory =
+							OverAllGameHistory(UUID.randomUUID,
+		                            txHash,
+		                            history.gameID,
+		                            defaultGame.map(_.name).getOrElse("default_code"),
+		                            IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
+		                            true,
+		                            instantNowUTC().getEpochSecond)
+
+						overAllHistory
+							.addHistory(gameHistory)
+							.map { x =>
+				        if(x > 0) {
+				          dynamicBroadcast ! Array(gameHistory)
+									(1)
+				        }
+				      	else (0)
+			      	}
 					}
-					.getOrElse(Future.successful(0))
+				}
+				.getOrElse(Future.successful(0))
 			}
 		} yield (overallHistory)
 	}
