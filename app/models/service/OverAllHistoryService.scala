@@ -68,4 +68,5 @@ class OverAllHistoryService @Inject()(
   }
   def gameIsExistsByTxHash(txHash: String): Future[Boolean] = overallGameHistory.isExistsByTxHash(txHash)
   def addHistory(history: OverAllGameHistory): Future[Int] = overallGameHistory.add(history)
+  def addSeqHistory(v: Seq[OverAllGameHistory]): Future[Seq[Int]] = overallGameHistory.++=(v)
 }

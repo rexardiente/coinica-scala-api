@@ -71,19 +71,19 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
             // val characters: Seq[GhostQuestCharacter] = data.characters
             val selectedCharacter: Option[GhostQuestCharacter] = data.characters.find(_.key == key)
             val prize: BigDecimal = selectedCharacter.map(_.value.prize).getOrElse(BigDecimal(0))
-            (selectedCharacter, Some(prize))
+            (selectedCharacter, prize)
           }
-          .getOrElse(None, None)
+          .getOrElse((None, BigDecimal(0)))
       }
       processWithdraw <- {
-        if (prize.getOrElse(BigDecimal(0)) > 0) contract.withdraw(gameID, key)
+        if (prize > 0) contract.withdraw(gameID, key)
         else Future.successful(None)
       }
       hasWallet <- userAccountService.getUserAccountWallet(id)
       // if successful, add new balance to account..
       updateBalance <- {
         processWithdraw
-          .map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, prize.getOrElse(0)))
+          .map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, prize))
           .getOrElse(Future.successful(0))
       }
       isSaveHistory <- {
@@ -92,29 +92,29 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
             .map { txHash =>
               gameData
                 .map { data =>
-                  val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
                   for {
                     isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
                     defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
                     processedHistory <- {
                       if (!isExists) {
                         val gameID: String = txHash // use tx_hash as game
-                        // val prize: Double = data.prize.toDouble
                         // create OverAllGameHistory object..
                         val gameHistory: OverAllGameHistory =
                           OverAllGameHistory(UUID.randomUUID,
                                             txHash,
                                             gameID,
                                             defaultGame.map(_.name).getOrElse("default_code"),
-                                            PaymentType(username, "WITHDRAW", prize.getOrElse(BigDecimal(0)).toDouble),
+                                            PaymentType(username, "WITHDRAW", prize.toDouble),
                                             true,
                                             instantNowUTC().getEpochSecond)
 
-                        overAllHistory.addHistory(gameHistory)
-                          .map { _ =>
+                        overAllHistory.addHistory(gameHistory).map { x =>
+                          if (x > 0) {
                             dynamicBroadcast ! Array(gameHistory)
                             true
                           }
+                          else false
+                        }
                       }
                       else Future.successful(false)
                     }
