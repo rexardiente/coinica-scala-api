@@ -8,6 +8,7 @@ import models.domain.UserAccount
 import models.service.UserAccountService
 import utils.SystemConfig
 import utils.auth.AccountTokenSession.{ RESET_PASSWORD, UPDATE_EMAIL }
+import utils.SystemConfig.instantNowUTC
 
 @Singleton
 class EmailValidation @Inject()(accountService: UserAccountService)(implicit val ec: ExecutionContext) {
@@ -19,7 +20,7 @@ class EmailValidation @Inject()(accountService: UserAccountService)(implicit val
       // check if valid code or not
       val hasSession = UPDATE_EMAIL.filter(x => x._1 == id && x._2 == (token, expiration)).headOption
 
-      hasSession.map(session => if (session._2._2 >= Instant.now.getEpochSecond) true else false).getOrElse(false)
+      hasSession.map(session => if (session._2._2 >= instantNowUTC().getEpochSecond) true else false).getOrElse(false)
     }
     catch { case _: Throwable => false }
   }
@@ -31,7 +32,7 @@ class EmailValidation @Inject()(accountService: UserAccountService)(implicit val
       val expiration: Long = raw(1).toLong
       // check if valid code or not
       val hasSession = RESET_PASSWORD.filter(x => x._1 == id && x._2 == (token, expiration)).headOption
-      hasSession.map(session => if (session._2._2 >= Instant.now.getEpochSecond) true else false).getOrElse(false)
+      hasSession.map(session => if (session._2._2 >= instantNowUTC().getEpochSecond) true else false).getOrElse(false)
     }
     catch { case _: Throwable => false }
   }

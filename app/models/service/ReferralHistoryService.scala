@@ -4,9 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.Instant
 import java.time.ZoneId
-import java.time.{ Instant, ZoneId }
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,6 +13,7 @@ import play.api.libs.json.{ Json, JsValue }
 import models.domain.{ PaginatedResult, ReferralHistory, UserAccount, VIPUser, VIPBenefit }
 import models.repo.{ UserAccountRepo, ReferralHistoryRepo, VIPUserRepo }
 import models.domain.enum._
+import utils.SystemConfig.instantNowUTC
 
 @Singleton
 class ReferralHistoryService @Inject()(
@@ -94,7 +93,7 @@ class ReferralHistoryService @Inject()(
                       }
                     } yield ()
                   }
-                  _ <- referralRepoHistory.add(new ReferralHistory(UUID.randomUUID, code, appliedBy, Instant.now))
+                  _ <- referralRepoHistory.add(new ReferralHistory(UUID.randomUUID, code, appliedBy, instantNowUTC()))
                 } yield ();
                 (1)
               }

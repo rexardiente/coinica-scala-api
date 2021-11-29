@@ -54,7 +54,7 @@ object MahjongHiloHistory extends utils.CommonImplicits {
                         Boolean,
                         Instant) => MahjongHiloHistory).tupled
   def apply(gameID: String, userGameID: Int): MahjongHiloHistory =
-    new MahjongHiloHistory(gameID, userGameID, Seq.empty, None, false, Instant.now)
+    new MahjongHiloHistory(gameID, userGameID, Seq.empty, None, false, utils.SystemConfig.instantNowUTC())
   def apply(gameID: String,
             userGameID: Int,
             predictions: Seq[(Int, Int, Int, Int)],

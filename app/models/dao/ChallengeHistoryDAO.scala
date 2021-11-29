@@ -2,7 +2,6 @@ package models.dao
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.Instant
 import play.api.libs.json._
 import play.api.db.slick.{ DatabaseConfigProvider, HasDatabaseConfigProvider }
 import models.domain.{ ChallengeHistory, ChallengeTracker }

@@ -2,7 +2,6 @@ package controllers
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api._
@@ -167,7 +166,7 @@ class GameActionController @Inject()(
       .account
       .map { account =>
         mjHiloGameService
-          .end(account.userGameID)
+          .end(account.userGameID, account.username)
           .map(x => if (x > 0) Ok(JsBoolean(true)) else InternalServerError)
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }

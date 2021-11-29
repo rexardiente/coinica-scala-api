@@ -21,7 +21,7 @@ import models.service._
 import models.domain.enum._
 import models.domain.wallet.support.Coin
 import akka.WebSocketActor
-import utils.SystemConfig.{ COINICA_WEB_HOST, SUPPORTED_CURRENCIES }
+import utils.SystemConfig.{ COINICA_WEB_HOST, SUPPORTED_CURRENCIES, instantNowUTC }
 import utils.auth.AccountTokenSession.{ LOGIN, UPDATE_EMAIL, RESET_PASSWORD }
 import utils.auth.SecureUserAction
 import utils.lib.MultiCurrencyHTTPSupport
@@ -120,7 +120,7 @@ class HomeController @Inject()(
         for {
           // check if account has requested to reset password by accountid and still valid expiration time
           hasSession <- Future.successful {
-            RESET_PASSWORD.filter(x => x._1 == accountid && x._2._2 >= Instant.now.getEpochSecond).headOption
+            RESET_PASSWORD.filter(x => x._1 == accountid && x._2._2 >= instantNowUTC().getEpochSecond).headOption
           }
           // if process successful, you can now remove the session token
           _ <- Future.successful(RESET_PASSWORD.remove(accountid))
@@ -208,7 +208,7 @@ class HomeController @Inject()(
                     userToken
                       .map { session =>
                         // check if has existing then extend expiration time..
-                        val currentTime: Long = Instant.now.getEpochSecond
+                        val currentTime: Long = instantNowUTC().getEpochSecond
                         // reuse and do not update sessions to avoid spam
                         if (session._2._2 >= currentTime) {
                           // LOGIN(session._1) = (session._2._1, newToken._2)

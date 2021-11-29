@@ -1,7 +1,6 @@
 package models.domain.eosio
 
 import java.util.UUID
-import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 

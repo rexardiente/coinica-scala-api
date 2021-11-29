@@ -14,19 +14,16 @@ class PlatformConfigRepo @Inject()(
   ) extends HasDatabaseConfigProvider[utils.db.PostgresDriver] {
   import profile.api._
   // do not add if table is not empty//
+  def size(): Future[Int] = db.run(dao.Query.size.result)
   def add(config: PlatformConfig): Future[Int] = {
     for {
-      isEmpty <- default()
-      process <- isEmpty.map(_ => Future.successful(1)).getOrElse(db.run(dao.Query += config))
+      size <- size()
+      process <- if (size > 0) Future.successful(1) else db.run(dao.Query += config)
     } yield (process)
   }
-  def delete(id: UUID): Future[Int] =
-    db.run(dao.Query(id).delete)
-  def update(config: PlatformConfig): Future[Int] =
-    db.run(dao.Query(config.id).update(config))
-  def default(): Future[Option[PlatformConfig]] =
-    db.run(dao.Query.result.headOption)
-
+  def delete(id: UUID): Future[Int] = db.run(dao.Query(id).delete)
+  def update(config: PlatformConfig): Future[Int] = db.run(dao.Query(config.id).update(config))
+  def default(): Future[Option[PlatformConfig]] = db.run(dao.Query.result.headOption)
   def updateOrAddGame(game: PlatformGame): Future[Int] = {
     for {
       config <- default()

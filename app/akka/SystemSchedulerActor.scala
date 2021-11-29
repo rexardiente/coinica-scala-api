@@ -2,7 +2,7 @@ package akka
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ UUID, Calendar }
-import java.time.{ Instant, LocalTime, LocalDate, LocalDateTime, ZoneOffset }
+import java.time.{ Instant, LocalTime, LocalDate }
 import scala.util.{ Success, Failure, Random }
 import scala.concurrent.{ Await, Future, Promise }
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -12,7 +12,7 @@ import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import Ordering.Double.IeeeOrdering
 import akka.actor.{ ActorRef, Actor, ActorSystem, Props, ActorLogging, Cancellable }
 import akka.util.Timeout
-import utils.SystemConfig.{ DEFAULT_SYSTEM_SCHEDULER_TIMER, DEFAULT_WEI_VALUE, SUPPORTED_CURRENCIES }
+import utils.SystemConfig._
 import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects._
@@ -87,7 +87,6 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
-  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
   private def defaultScheduler: Int = DEFAULT_SYSTEM_SCHEDULER_TIMER
   private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
 
@@ -108,12 +107,11 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
           // if server has stop due to some updates or restart...
           // check if has existing tasks create for today based on UTC
-          val startOfDay: Instant = LocalDate.now(defaultTimeZone).atStartOfDay().toInstant(defaultTimeZone)
           for {
-            isExists <- taskRepo.existByDate(startOfDay)
+            isExists <- taskRepo.existByDate(startOfDayUTC())
             randomTasks <- createRandomTasks()
             updateTask <- {
-              if (!isExists) taskRepo.add(new Task(UUID.randomUUID, randomTasks, startOfDay.getEpochSecond))
+              if (!isExists) taskRepo.add(new Task(UUID.randomUUID, randomTasks, startOfDayUTC().getEpochSecond))
               else Future.successful(0) // do nothing..
             }
           } yield (updateTask)
@@ -223,7 +221,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                                                 w.currency,
                                                                 w.tx_type,
                                                                 txDetails.map(_.result).getOrElse(null),
-                                                                Instant.now))
+                                                                instantNowUTC()))
                                     .map { isAdded =>
                                       if (isAdded > 0) {
                                         // send user a notification process sucessful
@@ -274,7 +272,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                                                 d.currency,
                                                                 d.tx_type,
                                                                 txDetails.map(_.result).getOrElse(null),
-                                                                Instant.now))
+                                                                instantNowUTC()))
                                     .map { isAdded =>
                                       if (isAdded > 0) {
                                         // send user a notification process sucessful
@@ -308,49 +306,12 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
 
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
-      val yesterday: Instant = LocalDate.now(defaultTimeZone).atStartOfDay().plusDays(-1).toInstant(defaultTimeZone)
+      val yesterday: Instant = dateNowPlusDaysUTC(-1)
       // update all earned points into users Account
       Await.ready(processChallengeTrackerAndEarnedVIPPoints(yesterday), Duration.Inf)
-      Thread.sleep(2000)
-      // ProcessOverAllChallenge(yesterday.getEpochSecond)
-      // val startOfDay: LocalDateTime = LocalDate.now().atStartOfDay()
-      // // convert LocalDatetime to Instant
-      // val createdAt: Long = startOfDay.atZone(defaultTimeZone).toInstant().getEpochSecond
-      // val expiredAt: Long = createdAt + ((60 * 60 * 24) - 1)
-      // // val todayEpoch: Long = todayInstant.getEpochSecond
-      // // check if challenge already for today else do nothing..
-      // challengeRepo.existByDate(createdAt).map { isCreated =>
-      //   if (!isCreated) {
-      //     for {
-      //       // remove currentChallengeGame and shuffle the result
-      //       availableGames <- gameRepo
-      //         .all()
-      //         .map(games => Random.shuffle(games.filterNot(_.id == SystemSchedulerActor.currentChallengeGame.getOrElse(None))))
-      //       // get head, and create new Challenge for the day
-      //       _ <- Future.successful {
-      //         try {
-      //           val game: Game = availableGames.head
-      //           val newChallenge = new Challenge(UUID.randomUUID,
-      //                                           game.id,
-      //                                           "Challenge content is different every day, use your ingenuity to get the first place.",
-      //                                           createdAt,
-      //                                           expiredAt)
-
-      //           SystemSchedulerActor.currentChallengeGame = Some(game.id)
-      //           challengeRepo.add(newChallenge)
-      //         } catch {
-      //           case e: Throwable => println("Error: No games available")
-      //         }
-      //       }
-      //       // after creating new challenge..
-      //       // calculate overe all challenge and save to Challengehistory for tracking top ranks
-      //     } yield (self ! ProcessOverAllChallenge(expiredAt))
-      //   }
-      //   // else self ! ProcessOverAllChallenge(expiredAt)
-      // }
     // Daily tasks rewards are fixed amount based on time of tasks reward generation
     case DailyTaskScheduler =>
-      val yesterday: Instant = LocalDate.now(defaultTimeZone).atStartOfDay().plusDays(-1).toInstant(defaultTimeZone)
+      val yesterday: Instant = dateNowPlusDaysUTC(-1)
       // process first all available task before creating new tasks
       val trackedFailedInsertion = ListBuffer.empty[TaskHistory]
       val aPromise = Promise[Future[Int]]()

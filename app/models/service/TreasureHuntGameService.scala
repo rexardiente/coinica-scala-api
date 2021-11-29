@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorRef
 import play.api.libs.json._
-import utils.SystemConfig.SUPPORTED_CURRENCIES
+import utils.SystemConfig._
 import models.repo.TaskRepo
 import models.domain.eosio.TreasureHuntGameData
 import models.domain._
@@ -61,7 +61,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
                                             defaultGame.map(_.name).getOrElse("default_code"),
                                             ListOfIntPredictions(username, prediction, result, betAmount, prize, None),
                                             true,
-                                            Instant.now.getEpochSecond)
+                                            instantNowUTC().getEpochSecond)
 
 												overAllHistory.addHistory(gameHistory)
 													.map { isAdded =>
@@ -126,7 +126,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
                                                 defaultGame.map(_.name).getOrElse("default_code"),
                                                 ListOfIntPredictions(username, prediction, result, betAmount, prize, None),
                                                 true,
-                                                Instant.now.getEpochSecond)
+                                                instantNowUTC().getEpochSecond)
 
 														overAllHistory.addHistory(gameHistory)
 															.map { isAdded =>
@@ -222,7 +222,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
                                             defaultGame.map(_.name).getOrElse("default_code"),
                                             ListOfIntPredictions(username, prediction, result, betAmount, prize, None),
                                             true,
-                                            Instant.now.getEpochSecond)
+                                            instantNowUTC().getEpochSecond)
 
 												overAllHistory.addHistory(gameHistory)
 													.map { _ =>

@@ -2,7 +2,6 @@ package models.service
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.UUID
-import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.collection.mutable.{ HashMap, ListBuffer }
@@ -14,6 +13,7 @@ import utils.SystemConfig.SUPPORTED_CURRENCIES
 import models.domain.eosio.{ GhostQuestCharacter, GhostQuestCharacterHistory }
 import models.repo.eosio._
 import models.domain.{ OverAllGameHistory, PaymentType, PlatformGame, PlatformCurrency }
+import utils.SystemConfig.{ instantNowUTC, dateNowPlusDaysUTC }
 
 @Singleton
 class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
@@ -108,7 +108,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                                             defaultGame.map(_.name).getOrElse("default_code"),
                                             PaymentType(username, "WITHDRAW", prize.getOrElse(BigDecimal(0)).toDouble),
                                             true,
-                                            Instant.now.getEpochSecond)
+                                            instantNowUTC().getEpochSecond)
 
                         overAllHistory.addHistory(gameHistory)
                           .map { _ =>
@@ -249,7 +249,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
   }
   def highEarnCharactersDaily(): Future[Seq[GhostQuestCharactersRankByEarned]] = {
     for {
-      txs <- gameHistoryRepo.getGameHistoryByDateRange(Instant.now.getEpochSecond - (24*60*60), Instant.now.getEpochSecond)
+      txs <- gameHistoryRepo.getGameHistoryByDateRange(dateNowPlusDaysUTC(-1).getEpochSecond, instantNowUTC().getEpochSecond)
       grouped <- Future.successful(classifyHighEarnCharacter(txs, 10))
       getCharaterInfo <- Future.sequence {
         grouped.map { case (key, (ownerID, amount)) =>
@@ -267,7 +267,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
   }
   def highEarnCharactersWeekly(): Future[Seq[GhostQuestCharactersRankByEarned]] = {
     for {
-      txs <- gameHistoryRepo.getGameHistoryByDateRange(Instant.now.getEpochSecond - ((24*60*60) * 7), Instant.now.getEpochSecond)
+      txs <- gameHistoryRepo.getGameHistoryByDateRange(dateNowPlusDaysUTC(-7).getEpochSecond, instantNowUTC().getEpochSecond)
       grouped <- Future.successful(classifyHighEarnCharacter(txs, 10))
       getCharaterInfo <- Future.sequence {
         grouped.map { case (key, (ownerID, amount)) =>
@@ -399,7 +399,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
     .map { case (id, (owner, counter)) => (id, (owner, counter.maxOption.getOrElse(0))) }
   }
   def winStreakPerDay(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
-    val today: Long = Instant.now().getEpochSecond
+    val today: Long = instantNowUTC().getEpochSecond
      try {
         for {
           history <- gameHistoryRepo.getGameHistoryByDateRange(today - (24*60*60), today)
@@ -412,7 +412,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       }
   }
   def winStreakPerWeekly(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
-    val today: Long = Instant.now().getEpochSecond
+    val today: Long = instantNowUTC().getEpochSecond
     for {
       history <- gameHistoryRepo.getGameHistoryByDateRange(today - ((24*60*60) * 7), today)
       separatedHistory <- Future.successful(separateHistoryByCharID(history))
