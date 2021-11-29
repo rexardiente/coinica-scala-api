@@ -207,7 +207,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                       val maxTxFeeLimit: BigDecimal = 500000
                                       (((maxTxFeeLimit * detail.result.gasPrice) * DEFAULT_WEI_VALUE) + initialAmount)
                                   }
-                                  userAccountService.deductBalanceByCurrency(account, w.currency, totalAmount)
+                                  userAccountService.deductWalletBalance(account, w.currency, totalAmount)
                                 }
                                 .getOrElse(Future(0))
                               }
@@ -256,7 +256,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     val result: ETHJsonRpcResult = detail.result
 
                                     if (result.from == d.issuer && result.to == d.receiver) {
-                                      userAccountService.addBalanceByCurrency(account, d.currency, result.value.toDouble)
+                                      userAccountService.addWalletBalance(account, d.currency, result.value.toDouble)
                                     }
                                     else Future(0)
                                 }

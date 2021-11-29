@@ -140,21 +140,10 @@ class UserAccountService @Inject()(
     } yield toPaginate
   }
 
-  def addBalanceByCurrency(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Future[Int] = {
-    for {
-      wallet <- Future.successful {
-        wallet
-          .wallet
-          .find(_.symbol == symbol)
-          .map { coin =>
-            val updatedCoin = Coin(coin.symbol, coin.amount + amount)
-            // remove old record then replace the new updated coin
-            wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
-          }
-          .getOrElse(wallet)
-      }
-      updateBalance <- userWalletRepo.update(wallet)
-    } yield (updateBalance)
+  def addWalletBalance(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Future[Int] = {
+    val updatedCoin = wallet.wallet.map { case coin@Coin(addr, s, am) => if (symbol == s) Coin(s, (amount + am))  else coin }
+    val updatedWallet = wallet.copy(wallet = updatedCoin)
+    userWalletRepo.update(updatedWallet)
   }
   // before deduction, make sure amount is already final
   // if deposit -> (gasPrice, wei and amount) = amount
@@ -165,21 +154,10 @@ class UserAccountService @Inject()(
   //   val newBalance: BigDecimal = account.eth.amount - (((500000 * gasPrice) * DEFAULT_WEI_VALUE) + amount)
   //   userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
   // gasPrice: Int
-  def deductBalanceByCurrency(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Future[Int] = {
-    for {
-      wallet <- Future.successful {
-        wallet
-          .wallet
-          .find(_.symbol == symbol)
-          .map { coin =>
-            val updatedCoin = Coin(coin.symbol, coin.amount - amount)
-            // remove old record then replace the new updated coin
-            wallet.copy(wallet = (wallet.wallet.filter(_.symbol != symbol) :+ updatedCoin))
-          }
-          .getOrElse(wallet)
-      }
-      updateBalance <- userWalletRepo.update(wallet)
-    } yield (updateBalance)
+  def deductWalletBalance(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Future[Int] = {
+    val updatedCoin = wallet.wallet.map { case coin@Coin(addr, s, am) => if (symbol == s) Coin(s, (amount - am))  else coin }
+    val updatedWallet = wallet.copy(wallet = updatedCoin)
+    userWalletRepo.update(updatedWallet)
   }
   // 1 quantity = 1 game token
   def getGameQuantityAmount(symbol: String, quantity: Int): Future[BigDecimal] = {
