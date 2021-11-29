@@ -141,7 +141,7 @@ class UserAccountService @Inject()(
   }
 
   def addWalletBalance(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Future[Int] = {
-    val updatedCoin = wallet.wallet.map { case coin@Coin(addr, s, am) => if (symbol == s) Coin(s, (amount + am))  else coin }
+    val updatedCoin = wallet.wallet.map { case coin@Coin(addr, s, am) => if (symbol == s) Coin(s, (am + amount))  else coin }
     val updatedWallet = wallet.copy(wallet = updatedCoin)
     userWalletRepo.update(updatedWallet)
   }
@@ -155,11 +155,11 @@ class UserAccountService @Inject()(
   //   userWalletRepo.update(account.copy(eth=Coin("ETH", newBalance)))
   // gasPrice: Int
   def deductWalletBalance(wallet: UserAccountWallet, symbol: String, amount: BigDecimal): Future[Int] = {
-    val updatedCoin = wallet.wallet.map { case coin@Coin(addr, s, am) => if (symbol == s) Coin(s, (amount - am))  else coin }
+    val updatedCoin = wallet.wallet.map { case coin@Coin(addr, s, am) => if (symbol == s) Coin(s, (am - amount))  else coin }
     val updatedWallet = wallet.copy(wallet = updatedCoin)
     userWalletRepo.update(updatedWallet)
   }
-  // 1 quantity = 1 game token
+  // if returns 0 value throw an error..
   def getGameQuantityAmount(symbol: String, quantity: Int): Future[BigDecimal] = {
     httpSupport.getCurrentPriceBasedOnMainCurrency(symbol).map(_ * quantity)
   }

@@ -41,9 +41,11 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       currentValue <- userAccountService.getGameQuantityAmount(currency, quantity)
       // check if has enough balance..
       hasEnoughBalance <- Future.successful {
-        hasWallet
-          .map(v => userAccountService.hasEnoughBalanceByCurrency(v, currency, currentValue))
-          .getOrElse(false)
+        if (currentValue > 0)
+          hasWallet
+            .map(v => userAccountService.hasEnoughBalanceByCurrency(v, currency, currentValue))
+            .getOrElse(false)
+        else false
       }
       // if has enough balance send tx on smartcontract, else do nothing
       initGame <- {
