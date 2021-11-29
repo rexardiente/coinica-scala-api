@@ -65,7 +65,10 @@ class TaskService @Inject()(
                 // return default if has no daily tasks
                 hasDailyTask.map { dailyTask =>
                   val currentTask: Option[TaskGameInfo] = task.tasks.find(_.game.id == dailyTask.game_id)
-                  val updatedTask: Option[TaskGameInfo] = currentTask.map(_.copy(progress = Some(dailyTask.game_count)))
+                  val updatedTask: Option[TaskGameInfo] = currentTask.map { x =>
+                    val taskMaxLimit: Int = if (dailyTask.game_count > x.count) x.count else dailyTask.game_count
+                    x.copy(progress = Some(taskMaxLimit))
+                  }
                   // remove existing task on the list.
                   updatedTask.get
                 }.getOrElse(game)
