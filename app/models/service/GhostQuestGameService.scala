@@ -48,12 +48,12 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       // if has enough balance send tx on smartcontract, else do nothing
       initGame <- {
         if (hasEnoughBalance) contract.generateCharacter(gameID, username, quantity, limit)
-        else Future(None)
+        else Future.successful(None)
       }
       // deduct balance on the account
       updateBalance <- {
         if (initGame != None) userAccountService.deductBalanceByCurrency(hasWallet.get, currency, currentValue)
-        else Future(0)
+        else Future.successful(0)
       }
       // update Characters list for battle and broadcast to UI the newly created character
     } yield (updateBalance)
@@ -64,7 +64,6 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
     contract.eliminate(id, key)
   def withdraw(id: UUID, username: String, gameID: Int, key: String): Future[(Boolean, Option[String])] = {
     for {
-      hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- getUserData(gameID)
       (character, prize) <- Future.successful {
         gameData
@@ -78,16 +77,14 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
       }
       processWithdraw <- {
         if (prize.getOrElse(BigDecimal(0)) > 0) contract.withdraw(gameID, key)
-        else Future(None)
+        else Future.successful(None)
       }
+      hasWallet <- userAccountService.getUserAccountWallet(id)
       // if successful, add new balance to account..
       updateBalance <- {
-        hasWallet.map { _ =>
-          processWithdraw
-            .map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, prize.getOrElse(0)))
-            .getOrElse(Future(0))
-        }
-        .getOrElse(Future(0))
+        processWithdraw
+          .map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, prize.getOrElse(0)))
+          .getOrElse(Future.successful(0))
       }
       isSaveHistory <- {
         if (updateBalance > 0) {
@@ -119,15 +116,15 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
                             true
                           }
                       }
-                      else Future(false)
+                      else Future.successful(false)
                     }
                   } yield (processedHistory)
                 }
-                .getOrElse(Future(false))
+                .getOrElse(Future.successful(false))
             }
-            .getOrElse(Future(false))
+            .getOrElse(Future.successful(false))
         }
-        else Future(false)
+        else Future.successful(false)
       }
     } yield ((isSaveHistory, processWithdraw))
   }
@@ -411,7 +408,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
           result <- calcStreakToStreakObject(winStreak.toList)
         } yield result
       } catch {
-        case e: Throwable => Future(List.empty)
+        case e: Throwable => Future.successful(List.empty)
       }
   }
   def winStreakPerWeekly(): Future[List[GhostQuestCharactersRankByWinStreak]] = {
@@ -432,7 +429,7 @@ class GhostQuestGameService @Inject()(contract: utils.lib.GhostQuestEOSIO,
         result <- calcStreakToStreakObject(winStreak.toList)
       } yield result
     } catch {
-      case _: Throwable => Future(List.empty)
+      case _: Throwable => Future.successful(List.empty)
     }
   }
   // params:: (character, (owner, counter))

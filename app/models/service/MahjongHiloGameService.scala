@@ -38,12 +38,6 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	def playHilo(id: UUID, username: String, userGameID: Int, option: Int): Future[(Int, String, Option[MahjongHiloGameData])] = {
 		for {
 			currentGameData <- getUserData(userGameID)
-			// hasHistory <- {
-			// 	currentGameData
-			// 		.map(x => historyRepo.findByUserGameIDAndGameID(x.game_id, userGameID))
-			// 		.getOrElse(Future.successful(None))
-			// }
-
 			// Oct 22, 2021:
 			// Due to failure of inserting the game into DB but initialized in smartcontract,
 			// its safer for checking directly on smartcontract tbl..
@@ -240,7 +234,6 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 		contract.transfer(userGameID)
 	def withdraw(id: UUID, username: String, userGameID: Int): Future[(Boolean, String)] = {
 		for {
-      hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- getUserData(userGameID)
       // get prize amount from smartcontract
       getPrize <- Future.successful(gameData.map(_.hi_lo_balance).getOrElse(BigDecimal(0)))
@@ -249,14 +242,12 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
       	if (getPrize > 0) contract.withdraw(userGameID)
       	else Future.successful(None)
       }
+      hasWallet <- userAccountService.getUserAccountWallet(id)
       // if successful, add new balance to account..
       updateBalance <- {
-      	hasWallet.map { _ =>
-      		processWithdraw
-      			.map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, getPrize))
-      			.getOrElse(Future.successful(0))
-      	}
-      	.getOrElse(Future.successful(0))
+      	processWithdraw
+	  			.map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, getPrize))
+	  			.getOrElse(Future.successful(0))
       }
       isSaveHistory <- {
       	if (updateBalance > 0) {
