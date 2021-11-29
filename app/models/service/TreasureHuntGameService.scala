@@ -74,15 +74,15 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 									          else (3)
 										      }
 											}
-											else Future(3)
+											else Future.successful(3)
 										}
 									} yield (onSaveHistory)
 								}
-								else Future(1) // return 1 if WIN
+								else Future.successful(1) // return 1 if WIN
 							}
-							.getOrElse(Future(3))
+							.getOrElse(Future.successful(3))
 					}
-					.getOrElse(Future(3))
+					.getOrElse(Future.successful(3))
 			}
 		} yield (onProcess, isOpenTiles.getOrElse(null), gameData)
 	}
@@ -139,17 +139,17 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 											          else (3)
 												      }
 													}
-													else Future(3)
+													else Future.successful(3)
 												}
 											} yield (onSaveHistory)
 										}
-										else Future(1) // return 1 if WIN
+										else Future.successful(1) // return 1 if WIN
 									}
-									.getOrElse(Future(3))
+									.getOrElse(Future.successful(3))
 							}
 						} yield ((isWinOrLost, updatedGameData))
 					}
-					.getOrElse((Future(3, None)))
+					.getOrElse((Future.successful(3, None)))
 			}
 		} yield (onProcess, isOpenTile.getOrElse(null), gameData)
 	}
@@ -169,35 +169,32 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
       // if has enough balance send tx on smartcontract, else do nothing
       initGame <- {
         if (hasEnoughBalance) contract.treasureHuntInitialize(gameID, quantity, destination, enemy)
-        else Future(None)
+        else Future.successful(None)
       }
       // deduct balance on the account
       updateBalance <- {
       	initGame
       		.map(_ => userAccountService.deductBalanceByCurrency(hasWallet.get, currency, currentValue))
-      		.getOrElse(Future(0))
+      		.getOrElse(Future.successful(0))
       }
-      isConfirmed <- Future { if (updateBalance > 0) initGame else None }
+      isConfirmed <- Future.successful { if (updateBalance > 0) initGame else None }
     } yield (isConfirmed)
 	}
 	def withdraw(id: UUID, username: String, gameID: Int): Future[(Boolean, String)] = {
 		for {
-      hasWallet <- userAccountService.getUserAccountWallet(id)
       gameData <- contract.treasureHuntGetUserData(gameID)
       // get prize amount from smartcontract
       getPrize <- Future.successful(gameData.map(_.prize).getOrElse(BigDecimal(0)))
       processWithdraw <- {
       	if (getPrize > 0) contract.treasureHuntWithdraw(gameID)
-      	else Future(None)
+      	else Future.successful(None)
       }
+      hasWallet <- userAccountService.getUserAccountWallet(id)
       // if successful, add new balance to account..
       updateBalance <- {
-      	hasWallet.map { _ =>
-      		processWithdraw
-      			.map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, getPrize))
-      			.getOrElse(Future(0))
-      	}
-      	.getOrElse(Future(0))
+      	processWithdraw
+    			.map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, getPrize))
+    			.getOrElse(Future.successful(0))
       }
       isSaveHistory <- {
       	if (updateBalance > 0) {
@@ -235,15 +232,15 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 										        true
 										      }
 											}
-											else Future(false)
+											else Future.successful(false)
 										}
 									} yield (processedHistory)
       					}
-      					.getOrElse(Future(false))
+      					.getOrElse(Future.successful(false))
       			}
-      			.getOrElse(Future(false))
+      			.getOrElse(Future.successful(false))
 				}
-				else Future(false)
+				else Future.successful(false)
       }
     } yield ((isSaveHistory, processWithdraw.getOrElse(null)))
 	}
