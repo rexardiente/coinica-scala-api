@@ -10,9 +10,6 @@ import play.api.libs.json._
 import models.domain.{ PaginatedResult, Challenge, ChallengeTracker, ChallengeHistory }
 import models.repo.{ ChallengeRepo, ChallengeTrackerRepo, ChallengeHistoryRepo, TaskRepo }
 
-// import java.time.{ Instant, ZoneId }
-// Instant.now().atZone(ZoneId.systemDefault)
-
 @Singleton
 class ChallengeService @Inject()(
   taskRepo: TaskRepo,

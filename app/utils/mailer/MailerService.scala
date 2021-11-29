@@ -2,7 +2,6 @@ package play.api.libs.mailer
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.Instant
 import scala.util.Random
 import scala.concurrent.Future
 import play.api.libs.mailer._

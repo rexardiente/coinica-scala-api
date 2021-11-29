@@ -2,7 +2,6 @@ package akka
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.{ concurrent, UUID }
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneOffset, ZoneId }
 import scala.util.{ Success, Failure }
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,6 +15,7 @@ import models.domain.eosio._
 import models.repo.TaskRepo
 import models.service._
 import utils.lib._
+import utils.SystemConfig._
 
 object GhostQuestSchedulerActor {
   // update based on the latest table changes
@@ -56,7 +56,6 @@ class GhostQuestSchedulerActor @Inject()(
     )(implicit system: ActorSystem ) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, concurrent.TimeUnit.SECONDS)
   private val defaultGameName: String = "ghostquest"
-  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
 
   override def preStart: Unit = {
     super.preStart
@@ -70,7 +69,7 @@ class GhostQuestSchedulerActor @Inject()(
           for {
             _ <- updateSchedulerConfig()
             _ <- Future.successful {
-              GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
+              GhostQuestSchedulerActor.nextBattle = instantNowUTC().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
               systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
             }
           } yield ()
@@ -196,7 +195,7 @@ class GhostQuestSchedulerActor @Inject()(
       val gameID = result.id
       val winner = result.characters.filter(_._2._2).head
       val loser = result.characters.filter(!_._2._2).head
-      val time = Instant.now.getEpochSecond
+      val time = instantNowUTC().getEpochSecond
 
       Await.ready(
         for {
@@ -255,10 +254,9 @@ class GhostQuestSchedulerActor @Inject()(
         GhostQuestSchedulerActor.noEnemy.addOne(player._1, player._2.value)
       }
       else {
-        val dateTime: LocalDateTime = LocalDateTime.ofInstant(Instant.now, defaultTimeZone)
         // set date range for characters that can battle again each other...
-        val start: Long = dateTime.plusDays(-7).toLocalDate().atStartOfDay().toInstant(defaultTimeZone).getEpochSecond
-        val end: Long = dateTime.toInstant(defaultTimeZone).getEpochSecond
+        val start: Long = dateNowPlusDaysUTC(-7).getEpochSecond
+        val end: Long = instantNowUTC().getEpochSecond
         // remove his other owned characters from the list
         // check chracters spicific history to avoid battling again as posible..
         Await.ready(for {
@@ -311,7 +309,7 @@ class GhostQuestSchedulerActor @Inject()(
   private def defaultSchedule(): Unit = {
     updateSchedulerConfig()
     // proceed on the next battle
-    GhostQuestSchedulerActor.nextBattle = Instant.now().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
+    GhostQuestSchedulerActor.nextBattle = instantNowUTC().getEpochSecond + (60 * GhostQuestSchedulerActor.defaultTimeSet)
     systemBattleScheduler(GhostQuestSchedulerActor.scheduledTime)
   }
 

@@ -1,7 +1,6 @@
 package akka
 
 import javax.inject.{ Singleton, Inject, Named }
-import java.time.Instant
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Await, Future }

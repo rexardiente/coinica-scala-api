@@ -2,7 +2,7 @@ package models.service
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneOffset }
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
@@ -10,10 +10,10 @@ import scala.util.{ Success, Failure }
 import play.api.libs.json.{ Json, JsValue }
 import models.domain.{ PaginatedResult, RankingHistory, RankProfit, RankPayout, RankWagered, RankMultiplier }
 import models.repo.RankingHistoryRepo
+import utils.SystemConfig._
 
 @Singleton
 class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
-  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
   def paginatedResult[T >: RankingHistory](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
 	  for {
       tasks <- rankingHistoryRepo.findAll(limit, offset)
@@ -32,9 +32,8 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
   //                     .map(_.headOption)
   // }
   def getRankingDaily(): Future[RankingHistory] = {
-    val dateTime: LocalDateTime = LocalDate.now(defaultTimeZone).atStartOfDay()
-    val start: Long = dateTime.plusDays(-1).toInstant(defaultTimeZone).getEpochSecond
-    val end: Long = dateTime.toInstant(defaultTimeZone).getEpochSecond
+    val start: Long = dateNowPlusDaysUTC(-1).getEpochSecond
+    val end: Long = instantNowUTC().getEpochSecond
 
     Await.ready(for {
       history <- rankingHistoryRepo.getHistoryByDateRange(start, end)
@@ -43,10 +42,9 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
   }
 
   def getRankingHistory(): Future[RankingHistory] = {
-    val dateTime: LocalDateTime = LocalDate.now(defaultTimeZone).atStartOfDay()
     val lengthOfMonth: Int = LocalDate.now(defaultTimeZone).lengthOfMonth
-    val start: Long = dateTime.plusDays(-lengthOfMonth).toInstant(defaultTimeZone).getEpochSecond
-    val end: Long = dateTime.toInstant(defaultTimeZone).getEpochSecond
+    val start: Long = dateNowPlusDaysUTC(-lengthOfMonth).getEpochSecond
+    val end: Long = instantNowUTC().getEpochSecond
 
     Await.ready(for {
       history <- rankingHistoryRepo.getHistoryByDateRange(start, end)
@@ -113,7 +111,7 @@ class RankingService @Inject()(rankingHistoryRepo: RankingHistoryRepo ) {
           case _: Throwable => Seq.empty
         }
       }
-    } yield (RankingHistory(v.headOption.map(_.id).getOrElse(UUID.randomUUID), profit, payout, wagered, multiplier, Instant.now.getEpochSecond))
+    } yield (RankingHistory(v.headOption.map(_.id).getOrElse(UUID.randomUUID), profit, payout, wagered, multiplier, instantNowUTC().getEpochSecond))
   }
   // def getRankingByDate(start: Instant, end: Option[Instant], limit: Int, offset: Int): Future[JsValue] = {
   // 	try {

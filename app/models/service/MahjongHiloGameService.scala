@@ -2,14 +2,13 @@ package models.service
 
 import javax.inject.{ Inject, Named, Singleton }
 import java.util.UUID
-import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
 import akka.actor.ActorRef
 import play.api.libs.json._
 import Ordering.Double.IeeeOrdering
-import utils.SystemConfig.SUPPORTED_CURRENCIES
+import utils.SystemConfig._
 import models.repo.TaskRepo
 import models.domain._
 import models.domain.eosio.{ MahjongHiloGameData, MahjongHiloHistory }
@@ -69,6 +68,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 											}
 											.getOrElse(Future.successful(0))
 									}
+									defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+									task <- taskRepo.getTaskWithOffset(0)
 									// process for overall history...
 									isAdded <- {
 										if (isUpdated > 0) {
@@ -77,8 +78,6 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 												for {
 													// check if tx_hash already exists to DB history..
 													isExists <- overAllHistory.gameIsExistsByTxHash(hash)
-													defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
-													task <- taskRepo.getTaskWithOffset(0)
 													// return true if successful adding to DB else false
 													onSaveHistory <- {
 														if (!isExists) {
@@ -90,7 +89,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
                                                   defaultGame.map(_.name).getOrElse("default_code"),
                                                   IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
                                                   true,
-                                                  Instant.now.getEpochSecond)
+                                                  instantNowUTC().getEpochSecond)
 
 															overAllHistory
 																.addHistory(gameHistory)
@@ -108,7 +107,11 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 													}
 												} yield (onSaveHistory)
 											}
-											else Future.successful(1)
+											else {
+												dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
+												dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, betAmount)
+												Future.successful(1)
+											}
 										}
 										else Future.successful(3)
 									}
@@ -163,7 +166,7 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	// 		}
 	// 	} yield (process)
 	// }
-	def end(userGameID: Int): Future[Int] = {
+	def end(userGameID: Int, username: String): Future[Int] = {
 		for {
 			// if has existing game and wants to reset the game..
 			// update the existing game to done...
@@ -185,24 +188,49 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					}
 					.getOrElse(Future.successful(0))
 			}
-			process <- {
+			updatedContract <- {
 				// if happens data is not inserted to DB but game is initialized
 				// still able to remove the game from smartcontract
-				// if (existingGameData != None && hasHistory == None)
-				// 	contract.end(userGameID).map(_.map(_ => 1).getOrElse(0))
-				// else if (existingGameData != None && hasHistory != None && isUpdated > 0)
-				if (isUpdated > 0) contract.end(userGameID).map(_.map(_ => 1).getOrElse(0))
-				else Future.successful(0)
+				if (isUpdated > 0) contract.end(userGameID)
+				else Future.successful(None)
 			}
-			// if smartcontract updated failed then redo the update..
-			_ <- Future.successful {
-				hasHistory
-					.map { history =>
-						val updatedHistory: MahjongHiloHistory = history.copy(status = false)
-						historyRepo.update(updatedHistory)
-					}
+			defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+			// after resetting contract, save mahjong game history into overall game history
+			// broadcast history to all users currently online after process
+			overallHistory <- {
+					hasHistory
+						.map { history =>
+							val txHash: String = updatedContract.getOrElse(null)
+							val data: MahjongHiloGameData = history.gameData.get
+							val gameID: String = data.game_id
+							val prediction: Int = data.prediction
+	            val result: Int = data.prediction
+	            val betAmount: Double = data.hi_lo_stake.toDouble
+	            val prize: Double = data.hi_lo_balance.toDouble
+	            val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
+	          																					"standard_tile" -> data.standard_tile)
+							val gameHistory: OverAllGameHistory =
+								OverAllGameHistory(UUID.randomUUID,
+			                            txHash,
+			                            history.gameID,
+			                            defaultGame.map(_.name).getOrElse("default_code"),
+			                            IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
+			                            true,
+			                            instantNowUTC().getEpochSecond)
+
+							overAllHistory
+								.addHistory(gameHistory)
+								.map { x =>
+					        if(x > 0) {
+					          dynamicBroadcast ! Array(gameHistory)
+										(1)
+					        }
+					      	else (0)
+				      	}
+						}
+						.getOrElse(Future.successful(0))
 			}
-		} yield (process)
+		} yield (overallHistory)
 	}
 	def addBet(id: UUID, userGameID: Int, currency: String, quantity: Int): Future[Int] = {
 		for {
@@ -249,54 +277,52 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	  			.map(_ => userAccountService.addBalanceByCurrency(hasWallet.get, COIN_USDC.symbol, getPrize))
 	  			.getOrElse(Future.successful(0))
       }
-      isSaveHistory <- {
-      	if (updateBalance > 0) {
-      		processWithdraw
-      			.map { txHash =>
-      				gameData
-	      				.map { data =>
-	      					val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
-									for {
-										isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
-										defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
-										task <- taskRepo.getTaskWithOffset(0)
-										processedHistory <- {
-											if (!isExists) {
-												val gameID: String = data.game_id
-												val prediction: Int = data.prediction
-					              val result: Int = data.prediction
-					              val betAmount: Double = data.hi_lo_stake.toDouble
-					              val prize: Double = data.hi_lo_balance.toDouble
-					              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
-				              																					"standard_tile" -> data.standard_tile)
-												// create OverAllGameHistory object..
-												val gameHistory: OverAllGameHistory =
-													OverAllGameHistory(UUID.randomUUID,
-                                            txHash,
-                                            gameID,
-                                            defaultGame.map(_.name).getOrElse("default_code"),
-                                            IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
-                                            true,
-                                            Instant.now.getEpochSecond)
+    //   isSaveHistory <- {
+    //   	if (updateBalance > 0) {
+    //   		processWithdraw
+    //   			.map { txHash =>
+    //   				gameData
+	   //    				.map { data =>
+	   //    					val id: UUID = hasWallet.map(_.id).getOrElse(UUID.randomUUID)
+				// 					for {
+				// 						isExists <- overAllHistory.gameIsExistsByTxHash(txHash)
+				// 						defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+				// 						task <- taskRepo.getTaskWithOffset(0)
+				// 						processedHistory <- {
+				// 							if (!isExists) {
+				// 								val gameID: String = data.game_id
+				// 								val prediction: Int = data.prediction
+				// 	              val result: Int = data.prediction
+				// 	              val betAmount: Double = data.hi_lo_stake.toDouble
+				// 	              val prize: Double = data.hi_lo_balance.toDouble
+				// 	              val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
+				//               																					"standard_tile" -> data.standard_tile)
+				// 								// create OverAllGameHistory object..
+				// 								val gameHistory: OverAllGameHistory =
+				// 									OverAllGameHistory(UUID.randomUUID,
+    //                                         txHash,
+    //                                         gameID,
+    //                                         defaultGame.map(_.name).getOrElse("default_code"),
+    //                                         IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
+    //                                         true,
+    //                                         instantNowUTC().getEpochSecond)
 
-												overAllHistory.addHistory(gameHistory)
-													.map { _ =>
-									          dynamicBroadcast ! Array(gameHistory)
-									          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, betAmount)
-										        true
-										      }
-											}
-											else Future.successful(false)
-										}
-									} yield (processedHistory)
-	      				}.getOrElse(Future.successful(false))
-      			}
-      			.getOrElse(Future.successful(false))
-				}
-				else Future.successful(false)
-      }
-    } yield ((isSaveHistory, processWithdraw.getOrElse(null)))
+				// 								overAllHistory.addHistory(gameHistory)
+				// 									.map { _ =>
+				// 					          dynamicBroadcast ! Array(gameHistory)
+				// 						        true
+				// 						      }
+				// 							}
+				// 							else Future.successful(false)
+				// 						}
+				// 					} yield (processedHistory)
+	   //    				}.getOrElse(Future.successful(false))
+    //   			}
+    //   			.getOrElse(Future.successful(false))
+				// }
+				// else Future.successful(false)
+    //   }
+    } yield ((if(updateBalance > 0) true else false, processWithdraw.getOrElse(null)))
 	}
 	def getUserData(userGameID: Int): Future[Option[MahjongHiloGameData]] =
 		contract.getUserData(userGameID)

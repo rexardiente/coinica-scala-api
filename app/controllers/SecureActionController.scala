@@ -2,7 +2,6 @@ package controllers
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api._

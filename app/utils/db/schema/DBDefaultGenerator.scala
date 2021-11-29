@@ -1,7 +1,6 @@
 package utils.db.schema
 
 import javax.inject.{ Inject, Singleton }
-import java.time.Instant
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -30,9 +29,9 @@ class DBDefaultGenerator @Inject()(
   // queries here...
   private def generateID(): UUID = UUID.randomUUID()
   private def vipBenefitQuery(): Future[Seq[Int]] = {
-    val querySet = Seq(new VIPBenefit(VIP.BRONZE, 1.0, .10, 0.12, false, false, VIPBenefitAmount.BRONZE, VIPBenefitPoints.BRONZE, Instant.now()),
-                      new VIPBenefit(VIP.SILVER, 3.0, .20, 0.14, false, false, VIPBenefitAmount.SILVER, VIPBenefitPoints.SILVER, Instant.now()),
-                      new VIPBenefit(VIP.GOLD, 5.0, .30, 0.16, false, true, VIPBenefitAmount.GOLD, VIPBenefitPoints.GOLD, Instant.now()))
+    val querySet = Seq(new VIPBenefit(VIP.BRONZE, 1.0, .10, 0.12, false, false, VIPBenefitAmount.BRONZE, VIPBenefitPoints.BRONZE, instantNowUTC()),
+                      new VIPBenefit(VIP.SILVER, 3.0, .20, 0.14, false, false, VIPBenefitAmount.SILVER, VIPBenefitPoints.SILVER, instantNowUTC()),
+                      new VIPBenefit(VIP.GOLD, 5.0, .30, 0.16, false, true, VIPBenefitAmount.GOLD, VIPBenefitPoints.GOLD, instantNowUTC()))
 
     Future.sequence(querySet.map(x => db.run(dao.Query += x)))
   }

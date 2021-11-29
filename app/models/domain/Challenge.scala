@@ -3,7 +3,7 @@ package models.domain
 import java.util.UUID
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import utils.CommonImplicits
+import utils.{ CommonImplicits, SystemConfig }
 
 object Challenge extends CommonImplicits {
 	val tupled = (apply: (UUID, UUID, String, Long, Long) => Challenge).tupled
@@ -36,7 +36,7 @@ object ChallengeHistory extends CommonImplicits {
 	def apply(id: UUID, rank_users: Seq[ChallengeTracker], created_at: Long): ChallengeHistory =
 			new ChallengeHistory(id, rank_users, created_at)
 	def apply(rank_users: Seq[ChallengeTracker]): ChallengeHistory =
-		new ChallengeHistory(UUID.randomUUID, rank_users, java.time.Instant.now.getEpochSecond)
+		new ChallengeHistory(UUID.randomUUID, rank_users, SystemConfig.instantNowUTC().getEpochSecond)
 }
 
 case class ChallengeTracker(user: UUID, bets: Double, wagered: Double, ratio: Double, points: Double) {

@@ -1,9 +1,5 @@
 package akka.common.objects
 
-import java.util.UUID
-import java.time.{ LocalTime, Instant }
-import scala.collection.mutable.{ ListBuffer, HashMap }
-import akka.actor.ActorRef
 import models.domain.eosio.TableRowsRequest
 
 case class Connect(username: String) extends AnyVal

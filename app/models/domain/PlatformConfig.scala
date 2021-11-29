@@ -4,7 +4,7 @@ import java.util.UUID
 import java.time.Instant
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import utils.CommonImplicits
+import utils.{ CommonImplicits, SystemConfig }
 import models.domain.wallet.support.Coin
 
 object PlatformGame extends CommonImplicits
@@ -79,7 +79,7 @@ case class PlatformConfig(
 					tokenExpiration: Int = 15,
 					mailerExpiration: Int = 15,
 					defaultscheduler: Int = 24,
-					updatedAt: Instant = Instant.now) {
+					updatedAt: Instant = SystemConfig.instantNowUTC()) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 

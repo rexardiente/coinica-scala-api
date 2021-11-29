@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.UUID
 import play.api.libs.json._
 import models.domain.wallet.support.Coin
-import utils.CommonImplicits
+import utils.{ CommonImplicits, SystemConfig }
 
 object UserAccount extends CommonImplicits {
 	val tupled = (apply: (UUID,
@@ -59,8 +59,8 @@ object UserAccount extends CommonImplicits {
 						models.domain.enum.VIP.BRONZE.id,
 						0,
 						false,
-						Instant.now,
-						Instant.now)
+						SystemConfig.instantNowUTC(),
+						SystemConfig.instantNowUTC())
 	def apply(username: String, password: String, referredBy: Option[String]): UserAccount = new UserAccount(
 						UUID.randomUUID,
 						0,
@@ -73,8 +73,8 @@ object UserAccount extends CommonImplicits {
 						models.domain.enum.VIP.BRONZE.id,
 						0,
 						false,
-						Instant.now,
-						Instant.now)
+						SystemConfig.instantNowUTC(),
+						SystemConfig.instantNowUTC())
 }
 // TODO: Win rate and referral system
 // 2.0 as defult referral rate
@@ -91,7 +91,7 @@ case class UserAccount(id: UUID,
 											winRate: Double = 0,
 											isVerified: Boolean,
 											lastSignIn: Instant,
-											createdAt: Instant = Instant.now()) {
+											createdAt: Instant = SystemConfig.instantNowUTC()) {
 	def toJson(): JsValue = Json.toJson(this)
 }
 

@@ -1,14 +1,13 @@
 package utils.auth
 
 import javax.inject.{ Inject, Singleton }
-import java.time.{ LocalDateTime, Instant }
 import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.collection.mutable
 import play.api.mvc._
 import models.domain.UserAccount
 import models.service.{ UserAccountService, PlatformConfigService }
 import AccountTokenSession.{ LOGIN => loginSession }
+import utils.SystemConfig.instantNowUTC
 
 @Singleton
 class SecureUserRequest[A](val account: Option[UserAccount], request: Request[A]) extends WrappedRequest[A](request)
@@ -31,7 +30,7 @@ class SecureUserAction @Inject()(
   private def getTokenExpiration(): Future[Long] = {
     configService
       .getTokenExpiration()
-      .map(DEFAULT_TOKEN_EXPIRATION => (Instant.now.getEpochSecond + (DEFAULT_TOKEN_EXPIRATION * 60)).toLong)
+      .map(DEFAULT_TOKEN_EXPIRATION => (instantNowUTC().getEpochSecond + (DEFAULT_TOKEN_EXPIRATION * 60)).toLong)
   }
   def transform[A](request: Request[A]): Future[SecureUserRequest[A]] = {
     val clientID: UUID = request.headers.get("CLIENT_ID").map(UUID.fromString(_)).getOrElse(UUID.randomUUID)
@@ -43,7 +42,7 @@ class SecureUserAction @Inject()(
         loginSession
           .find(x => x._1 == clientID && x._2._1 == clientToken)
           .map(session => {
-            val currentTime: Long = Instant.now.getEpochSecond
+            val currentTime: Long = instantNowUTC().getEpochSecond
             if (session._2._2 >= currentTime) {
               // update existing login session then proceed on the process..
               loginSession(session._1) = (session._2._1, TOKEN_EXPIRATION)

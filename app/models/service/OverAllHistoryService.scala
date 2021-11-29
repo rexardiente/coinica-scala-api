@@ -2,19 +2,18 @@ package models.service
 
 import javax.inject.{ Inject, Singleton }
 import java.util.UUID
-import java.time._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json.{ Json, JsValue }
 import models.domain._
 import models.repo._
+import utils.SystemConfig.{ instantNowUTC, dateNowPlusDaysUTC }
 
 @Singleton
 class OverAllHistoryService @Inject()(
     userAccountRepo: UserAccountRepo,
     gameRepo: GameRepo,
     overallGameHistory: OverAllGameHistoryRepo) {
-  private val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
   // def paginatedResult[T >: ReferralHistory](limit: Int, offset: Int): Future[PaginatedResult[T]] = {
   //    for {
   //     tasks <- referralRepo.findAll(limit, offset)
@@ -40,9 +39,8 @@ class OverAllHistoryService @Inject()(
       txs <- {
         hasGame
           .map { game =>
-            val dateTime: LocalDateTime = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
-            val start: Long = dateTime.plusDays(-7).toLocalDate().atStartOfDay().toInstant(defaultTimeZone).getEpochSecond
-            val end: Long = dateTime.toInstant(defaultTimeZone).getEpochSecond
+            val start: Long = dateNowPlusDaysUTC(-7).getEpochSecond
+            val end: Long = instantNowUTC().getEpochSecond
             // fetch only range of 1 week of txs
             overallGameHistory
               .getByDateRangeAndGame(game.name, start, end)
