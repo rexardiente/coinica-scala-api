@@ -22,7 +22,7 @@ import utils.SystemConfig
 @Singleton
 class SecureActionController @Inject()(
                           accountService: UserAccountService,
-                          vipRepo: VIPUserRepo,
+                          vipService: VIPUserService,
                           referralHistory:  ReferralHistoryService,
                           allGameHistoryService: OverAllHistoryService,
                           taskService: TaskService,
@@ -290,7 +290,7 @@ class SecureActionController @Inject()(
     request
       .account
       .map { account =>
-        vipRepo.findByID(account.id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+        vipService.realtimeVipPoints(account.id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def overAllHistory(limit: Int) = SecureUserAction.async { implicit request =>
