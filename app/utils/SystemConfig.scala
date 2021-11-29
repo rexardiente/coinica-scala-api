@@ -13,10 +13,6 @@ object SystemConfig {
 	val DEFAULT_HOST: String = "http://127.0.0.1:9000"
 	// auto generated form the DB..
 	var SUPPORTED_CURRENCIES: List[PlatformCurrency] = List()
-	def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
-	def COIN_ETH: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "ethereum").getOrElse(null)
-	def COIN_BTC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "bitcoin").getOrElse(null)
-
 	var DEFAULT_WEI_VALUE: BigDecimal = 0
 	var DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = 24
 	var DEFAULT_EXPIRATION: Int = 15

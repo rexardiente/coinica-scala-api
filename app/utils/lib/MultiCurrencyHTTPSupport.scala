@@ -8,7 +8,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import play.api.libs.ws._
 import play.api.libs.json._
-import utils.SystemConfig.{ NODE_SERVER_URI, SUPPORTED_CURRENCIES, COIN_USDC }
+import utils.SystemConfig.{ NODE_SERVER_URI, SUPPORTED_CURRENCIES }
 import models.service.PlatformConfigService
 import models.domain.wallet.support.{ ETHJsonRpc, CoinCapAsset }
 import models.domain.PlatformCurrency
@@ -16,6 +16,7 @@ import models.domain.PlatformCurrency
 @Singleton
 class MultiCurrencyHTTPSupport @Inject()(config: PlatformConfigService)(implicit ws: WSClient, ec: ExecutionContext) {
   private def nodeServerURI: String = NODE_SERVER_URI
+  private def COIN_USDC: PlatformCurrency = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
 
   def getCoinCapAssets(): Future[Seq[CoinCapAsset]] = {
     val request: WSRequest = ws.url(nodeServerURI + "/coincap/assets")
