@@ -73,53 +73,35 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 									// process for overall history...
 									isAdded <- {
 										if (isUpdated > 0) {
-											// if process succesful then proceed checking if win or lose
-											if (data.hi_lo_result == 3) {
-												for {
-													// check if tx_hash already exists to DB history..
-													isExists <- overAllHistory.gameIsExistsByTxHash(hash)
-													// return true if successful adding to DB else false
-													onSaveHistory <- {
-														if (!isExists) {
-															// create OverAllGameHistory object..
-															val gameHistory: OverAllGameHistory =
-																OverAllGameHistory(UUID.randomUUID,
-                                                  hash,
-                                                  gameID,
-                                                  defaultGame.map(_.name).getOrElse("default_code"),
-                                                  IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
-                                                  true,
-                                                  instantNowUTC().getEpochSecond)
+											// save overall history either lost or win..
+											val gameHistory: OverAllGameHistory =
+												OverAllGameHistory(UUID.randomUUID,
+                                          hash,
+                                          gameID,
+                                          defaultGame.map(_.name).getOrElse("default_code"),
+                                          IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
+                                          true,
+                                          instantNowUTC().getEpochSecond)
 
-															overAllHistory
-																.addHistory(gameHistory)
-																.map { x =>
-													        if(x > 0) {
-													          dynamicBroadcast ! Array(gameHistory)
-													          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-																		dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
-																		(2)
-													        }
-													      	else (3)
-												      	}
-														}
-														else Future.successful(3)
-													}
-												} yield (onSaveHistory)
-											}
-											else {
-												dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-												dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, betAmount)
-												Future.successful(1)
-											}
+											overAllHistory
+												.addHistory(gameHistory)
+												.map { x =>
+									        if(x > 0) {
+									          dynamicBroadcast ! Array(gameHistory)
+									          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
+														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, prize)
+														(1)
+									        }
+									      	else (0)
+								      	}
 										}
-										else Future.successful(3)
+										else Future.successful(0)
 									}
 								} yield (isAdded)
 							}
-							.getOrElse(Future.successful(3))
+							.getOrElse(Future.successful(0))
 					}
-					.getOrElse(Future.successful(3))
+					.getOrElse(Future.successful(0))
 			}
 		} yield ((onProcess, onPlay.getOrElse(null), updatedGamData))
 	}
@@ -194,46 +176,46 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 				if (isUpdated > 0) contract.end(userGameID)
 				else Future.successful(None)
 			}
-			defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
-			// after resetting contract, save mahjong game history into overall game history
-			// broadcast history to all users currently online after process
-			overallHistory <- {
-				updatedContract.map { txHash =>
-					val history: MahjongHiloHistory = hasHistory.get
+			// defaultGame <- platformConfigService.getGameInfoByName(defaultGameName)
+			// // after resetting contract, save mahjong game history into overall game history
+			// // broadcast history to all users currently online after process
+			// overallHistory <- {
+			// 	updatedContract.map { txHash =>
+			// 		val history: MahjongHiloHistory = hasHistory.get
 
-					if (history.predictions.isEmpty) Future.successful(1)
-					else {
-						val data: MahjongHiloGameData = history.gameData.get
-						val gameID: String = data.game_id
-						val prediction: Int = data.prediction
-	          val result: Int = data.prediction
-	          val betAmount: Double = data.hi_lo_stake.toDouble
-	          val prize: Double = data.hi_lo_balance.toDouble
-	          val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
-	        																					"standard_tile" -> data.standard_tile)
-						val gameHistory: OverAllGameHistory =
-							OverAllGameHistory(UUID.randomUUID,
-		                            txHash,
-		                            history.gameID,
-		                            defaultGame.map(_.name).getOrElse("default_code"),
-		                            IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
-		                            true,
-		                            instantNowUTC().getEpochSecond)
+			// 		if (history.predictions.isEmpty) Future.successful(1)
+			// 		else {
+			// 			val data: MahjongHiloGameData = history.gameData.get
+			// 			val gameID: String = data.game_id
+			// 			val prediction: Int = data.prediction
+	  //         val result: Int = data.prediction
+	  //         val betAmount: Double = data.hi_lo_stake.toDouble
+	  //         val prize: Double = data.hi_lo_balance.toDouble
+	  //         val predictionTiles: JsValue = Json.obj("current_tile" -> data.current_tile,
+	  //       																					"standard_tile" -> data.standard_tile)
+			// 			val gameHistory: OverAllGameHistory =
+			// 				OverAllGameHistory(UUID.randomUUID,
+		 //                            txHash,
+		 //                            history.gameID,
+		 //                            defaultGame.map(_.name).getOrElse("default_code"),
+		 //                            IntPredictions(username, prediction, result, betAmount, prize, Some(predictionTiles)),
+		 //                            true,
+		 //                            instantNowUTC().getEpochSecond)
 
-						overAllHistory
-							.addHistory(gameHistory)
-							.map { x =>
-				        if(x > 0) {
-				          dynamicBroadcast ! Array(gameHistory)
-									(1)
-				        }
-				      	else (0)
-			      	}
-					}
-				}
-				.getOrElse(Future.successful(0))
-			}
-		} yield (overallHistory)
+			// 			overAllHistory
+			// 				.addHistory(gameHistory)
+			// 				.map { x =>
+			// 	        if(x > 0) {
+			// 	          dynamicBroadcast ! Array(gameHistory)
+			// 						(1)
+			// 	        }
+			// 	      	else (0)
+			//       	}
+			// 		}
+			// 	}
+			// 	.getOrElse(Future.successful(0))
+			// }
+		} yield (updatedContract.map(_ => 1).getOrElse(0))
 	}
 	def addBet(id: UUID, userGameID: Int, currency: String, quantity: Int): Future[Int] = {
 		for {

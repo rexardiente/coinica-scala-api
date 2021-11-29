@@ -68,21 +68,21 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 									          if (isAdded > 0) {
 									          	dynamicBroadcast ! Array(gameHistory)
 										          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-															dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
-															(2)
+															dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, prize)
+															(1)
 									          }
-									          else (3)
+									          else (0)
 										      }
 											}
-											else Future.successful(3)
+											else Future.successful(0)
 										}
 									} yield (onSaveHistory)
 								}
 								else Future.successful(1) // return 1 if WIN
 							}
-							.getOrElse(Future.successful(3))
+							.getOrElse(Future.successful(0))
 					}
-					.getOrElse(Future.successful(3))
+					.getOrElse(Future.successful(0))
 			}
 		} yield (onProcess, isOpenTiles.getOrElse(null), gameData)
 	}
@@ -133,23 +133,23 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 											          if (isAdded > 0) {
 											          	dynamicBroadcast ! Array(gameHistory)
 												          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-																	dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, 0)
-																	(2)
+																	dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, prize)
+																	(1)
 											          }
-											          else (3)
+											          else (0)
 												      }
 													}
-													else Future.successful(3)
+													else Future.successful(0)
 												}
 											} yield (onSaveHistory)
 										}
 										else Future.successful(1) // return 1 if WIN
 									}
-									.getOrElse(Future.successful(3))
+									.getOrElse(Future.successful(0))
 							}
 						} yield ((isWinOrLost, updatedGameData))
 					}
-					.getOrElse((Future.successful(3, None)))
+					.getOrElse((Future.successful(0, None)))
 			}
 		} yield (onProcess, isOpenTile.getOrElse(null), gameData)
 	}
@@ -228,7 +228,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
 									          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, betAmount)
+														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, prize)
 										        true
 										      }
 											}
