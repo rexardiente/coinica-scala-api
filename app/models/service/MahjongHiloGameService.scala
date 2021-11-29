@@ -198,8 +198,10 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 			// after resetting contract, save mahjong game history into overall game history
 			// broadcast history to all users currently online after process
 			overallHistory <- {
-					hasHistory
-						.map { history =>
+				hasHistory
+					.map { history =>
+						if (history.predictions.isEmpty) Future.successful(1)
+						else {
 							val txHash: String = updatedContract.getOrElse(null)
 							val data: MahjongHiloGameData = history.gameData.get
 							val gameID: String = data.game_id
@@ -228,7 +230,8 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 					      	else (0)
 				      	}
 						}
-						.getOrElse(Future.successful(0))
+					}
+					.getOrElse(Future.successful(0))
 			}
 		} yield (overallHistory)
 	}
