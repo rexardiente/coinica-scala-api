@@ -39,16 +39,14 @@ class VIPUserService @Inject()(vipRepo: VIPUserRepo, chTkRepo: ChallengeTrackerR
                     else if ((VIPBenefitPoints.BRONZE.id + 1) to VIPBenefitPoints.SILVER.id contains pointsToInt)
                       VIPBenefitPoints.SILVER.id
                     else VIPBenefitPoints.GOLD.id }.toDouble
-
                   val prevLvlMax: Double = {
                     if (0 to VIPBenefitPoints.BRONZE.id contains pointsToInt) 0
                     else if ((VIPBenefitPoints.BRONZE.id + 1) to VIPBenefitPoints.SILVER.id contains pointsToInt)
                       VIPBenefitPoints.BRONZE.id
                     else VIPBenefitPoints.SILVER.id }.toDouble
-
                   val hasPrevLvl: Double = vip.points - prevLvlMax
                   val dividend: Double = hasPrevLvl / currentLvlMax
-                  vip.toJson((dividend * 100).toInt)
+                  vip.toJson(dividend * 100)
                 }
                 .getOrElse(JsNull)
             }

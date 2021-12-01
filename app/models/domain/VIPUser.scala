@@ -26,8 +26,8 @@ case class VIPUser(id: UUID,
 									points: Double,
 									updated_at: Instant) {
 	def toJson(): JsValue = Json.toJson(this)
-	def toJson(progress: Int): JsValue = {
-		Json.toJson(this).as[JsObject] + ("progress" -> JsNumber(progress))
+	def toJson(progress: Double): JsValue = {
+		Json.toJson(this).as[JsObject] + ("progress" -> JsString("%.2f".format(progress)))
 	}
 }
 // VIP Percentage calculations:
