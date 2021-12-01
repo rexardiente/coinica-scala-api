@@ -153,7 +153,7 @@ class HomeController @Inject()(
         for {
           isAccountAlreadyExists <- accountService.getAccountByName(username)
           processSignUp <- {
-            if (isAccountAlreadyExists == None) {
+            if (isAccountAlreadyExists == None && !SUPPORTED_CURRENCIES.isEmpty) {
               // if (hasCode.referralCode == code.getOrElse("")) {
                 try {
                   // encrypt account password into SHA256 algorithm...
@@ -163,12 +163,11 @@ class HomeController @Inject()(
                     _ <- accountService.newUserAcc(userAccount)
                     _ <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
                     _ <- {
-                      val usdc = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
                       accountService.addUserWallet(new UserAccountWallet(
                         userAccount.id,
                         SUPPORTED_CURRENCIES.map(x => {
                           // add free 30 USDC on all newly created accounts..
-                          if (x.name == usdc.name) x.toCoin(30)
+                          if (x.name == "USDC") x.toCoin(30)
                           else x.toCoin()
                         })))
                     }
