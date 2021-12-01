@@ -482,7 +482,10 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       tasks <- Future.successful {
         // generate random range from 1 - 5
         // to determine how many games need to play to get points
-        availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
+        if (availableGames.isEmpty)
+          initialGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
+        else
+          availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
       }
     } yield (tasks)
   }
