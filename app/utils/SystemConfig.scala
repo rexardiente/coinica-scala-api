@@ -46,10 +46,10 @@ object SystemConfig {
 	var DEFAULT_WEI_VALUE: BigDecimal = BigDecimal(config.getString("default.wei"))
 	var DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = config.getInt("default.system.scheduler")
 	var DEFAULT_EXPIRATION: Int = config.getInt("default.system.expiration")
-	var NODE_SERVER_URI: String = initialHosts(1).uri
-	var SCALA_SERVER_URI: String = initialHosts(0).uri
-	var COINICA_WEB_HOST: String = initialHosts(2).uri
-	var MAILER_HOST: String = initialHosts(3).uri
+	var NODE_SERVER_URI: String = initialHosts(1).getURL()
+	var SCALA_SERVER_URI: String = initialHosts(0).getURL()
+	var COINICA_WEB_HOST: String = initialHosts(2).getURL()
+	var MAILER_HOST: String = initialHosts(3).getURL()
 
 	// System Timezone
 	val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
