@@ -41,12 +41,12 @@ class LoadSystemConfig @Inject()(configService: PlatformConfigService)(implicit 
   }
   override def preStart(): Unit = {
     super.preStart
-    loadDefaultHostsConfigs()
-    loadDefaultStaticConfigs()
-    // add delay to make sure its all updated before exit
-    Thread.sleep(1000)
-    // after variables are updated..terminate akka actor gracefully
-    context.stop(self)
+    for {
+      _ <- loadDefaultHostsConfigs()
+      _ <- loadDefaultStaticConfigs()
+      // after variables are updated..terminate akka actor gracefully
+      _ <- Future.successful { context.stop(self) }
+    } yield ()
   }
   override def postStop(): Unit = log.info("System default configurations are written")
   def receive = { _ => }  // do nothing..

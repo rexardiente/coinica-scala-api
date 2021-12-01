@@ -95,11 +95,9 @@ class DBDefaultGenerator @Inject()(
       _ <- vipBenefitQuery()
       _ <- genreQuery()
       _ <- systemDefaultConfigQuery()
+      // after variables are updated..terminate akka actor gracefully
+      _ <- Future.successful { context.stop(self) }
     } yield ()
-    // add delay to make sure its all updated before exit
-    Thread.sleep(1000)
-    // after variables are updated..terminate akka actor gracefully
-    context.stop(self)
   }
   override def postStop(): Unit = log.info("Database default generator definitions are written")
   def receive = { _ => }  // do nothing..
