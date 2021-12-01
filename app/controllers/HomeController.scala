@@ -165,11 +165,11 @@ class HomeController @Inject()(
                     _ <- {
                       accountService.addUserWallet(new UserAccountWallet(
                         userAccount.id,
-                        SUPPORTED_CURRENCIES.map(x => {
+                        SUPPORTED_CURRENCIES.map { currency =>
                           // add free 30 USDC on all newly created accounts..
-                          if (x.name == "USDC") x.toCoin(30)
-                          else x.toCoin()
-                        })))
+                          if (currency.name == "USDC") currency.toCoin(BigDecimal(30))
+                          else currency.toCoin()
+                        }))
                     }
                     processCode <- {
                       if (code != None) {
