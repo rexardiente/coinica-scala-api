@@ -91,11 +91,11 @@ class DBDefaultGenerator @Inject()(
   override def preStart(): Unit = {
     super.preStart
     // run all queries..
-    // for {
-    //   _ <- vipBenefitQuery()
-    //   _ <- genreQuery()
-    //   _ <- systemDefaultConfigQuery()
-    // } yield ()
+    for {
+      _ <- vipBenefitQuery()
+      _ <- genreQuery()
+      _ <- systemDefaultConfigQuery()
+    } yield ()
     // add delay to make sure its all updated before exit
     Thread.sleep(1000)
     // after variables are updated..terminate akka actor gracefully
