@@ -17,8 +17,21 @@ import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects._
 import models.domain._
-import models.repo._
-import models.service.{ UserAccountService, PlatformConfigService }
+import models.repo. {
+  UserAccountWalletHistoryRepo,
+  GameRepo,
+  ChallengeRepo,
+  ChallengeHistoryRepo,
+  ChallengeTrackerRepo,
+  TaskRepo,
+  DailyTaskRepo,
+  TaskHistoryRepo,
+  OverAllGameHistoryRepo,
+  UserAccountRepo,
+  RankingHistoryRepo,
+  VIPUserRepo
+}
+import models.service.{ UserAccountService, PlatformConfigService, RankingService }
 import models.domain.enum._
 import models.domain.wallet.support._
 import utils.lib.MultiCurrencyHTTPSupport
@@ -45,6 +58,7 @@ object SystemSchedulerActor {
             overAllGameHistory: OverAllGameHistoryRepo,
             userAccountRepo: UserAccountRepo,
             rankingHistoryRepo: RankingHistoryRepo,
+            rankingService: RankingService,
             vipUserRepo: VIPUserRepo,
             httpSupport: MultiCurrencyHTTPSupport,
             )(implicit system: ActorSystem) =
@@ -62,6 +76,7 @@ object SystemSchedulerActor {
           overAllGameHistory,
           userAccountRepo,
           rankingHistoryRepo,
+          rankingService,
           vipUserRepo,
           httpSupport,
           system)
@@ -82,6 +97,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     overAllGameHistory: OverAllGameHistoryRepo,
                                     userAccountRepo: UserAccountRepo,
                                     rankingHistoryRepo: RankingHistoryRepo,
+                                    rankingService: RankingService,
                                     vipUserRepo: VIPUserRepo,
                                     httpSupport: MultiCurrencyHTTPSupport,
                                     @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
@@ -382,71 +398,16 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
 
     case RankingScheduler(data) =>
       for {
-        profit <- Future.sequence {
-          data.map { case ChallengeTracker(id, bets, wagered, ratio, points, payout, multiplier) => (id, bets, (payout - bets)) }
-              .filter(_._3 > 0) // remove use whos not having enough payout
-              .sortBy(-_._3) // sort result by payout
-              .take(10) // take only 10 result
-              .map { case (id, bets, profit) =>
-                userAccountRepo
-                  .getByID(id)
-                  .map(_.map(account => RankProfit(account.id, account.username, bets, profit)))
-              }
-        }
-        payout <- Future.sequence {
-          data.map { case ChallengeTracker(id, bets, wagered, ratio, points, payout, multiplier) => (id, bets, payout) }
-              .filter(_._3 > 0)
-              .sortBy(-_._3)
-              .take(10)
-              .map { case (id, bets, payout) =>
-                userAccountRepo
-                  .getByID(id)
-                  .map(_.map(account => RankPayout(account.id, account.username, bets, payout)))
-              }
-        }
-        wagered <- Future.sequence {
-          data.map { case ChallengeTracker(id, bets, wagered, ratio, points, payout, multiplier) => (id, bets, wagered) }
-              .filter(_._3 > 0)
-              .sortBy(-_._3)
-              .take(10)
-              .map { case (id, bets, wagered) =>
-                userAccountRepo
-                  .getByID(id)
-                  .map(_.map(account => RankWagered(account.id, account.username, bets, wagered)))
-              }
-        }
-        // total win size
-        multiplier <- Future.sequence {
-          data.map { case ChallengeTracker(id, bets, wagered, ratio, points, payout, multiplier) => (id, bets, multiplier) }
-              .filter(_._3 > 0)
-              .sortBy(-_._3)
-              .take(10)
-              .map { case (id, bets, multiplier) =>
-                userAccountRepo
-                  .getByID(id)
-                  .map(_.map(account => RankMultiplier(account.id, account.username, bets, multiplier)))
-              }
-        }
+        rankedData <- rankingService.calculateRank(data)
         // save ranking to history..
-        _ <- {
-          val start: Long = dateNowPlusDaysUTC(-1).getEpochSecond
-          //  remove null values from the list..
-          val aProfit: Seq[RankType] = removeNoneValue[RankType](profit)
-          val aPayout: Seq[RankType] = removeNoneValue[RankType](payout)
-          val aWagered: Seq[RankType] = removeNoneValue[RankType](wagered)
-          val aMultiplier: Seq[RankType] = removeNoneValue[RankType](multiplier)
-          val rank: RankingHistory = RankingHistory(aProfit, aPayout, aWagered, aMultiplier, start)
-          // insert into DB, if failed then re-insert
-          rankingHistoryRepo.add(rank)
-        }
+        added <- rankingHistoryRepo.add(rankedData)
         // update users VIP accounts with after rankAdded
-        _ <- claimPointsPerUser(data)
-      } yield ()
+        clean <- if (added > 0) claimPointsPerUser(data) else Future.successful(0)
+      } yield (clean)
 
     case _ => ()
   }
-  // remove null values from list[RankType]
-  private def removeNoneValue[T >: RankType](v: Seq[Option[T]]): Seq[T] = v.map(_.getOrElse(null))
+
   // process overall Game History in 24hrs
   private def claimPointsPerUser(data: Seq[ChallengeTracker]): Future[Seq[Int]] =
     Future.sequence {

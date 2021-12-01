@@ -10,14 +10,14 @@ import models.repo.{ ChallengeTrackerRepo, VIPUserRepo }
 import models.domain.enum.VIPBenefitPoints
 
 @Singleton
-class VIPUserService @Inject()(vipRepo: VIPUserRepo, chTkRepo: ChallengeTrackerRepo) {
+class VIPUserService @Inject()(vipRepo: VIPUserRepo, challengeTrackerRepo: ChallengeTrackerRepo) {
   // calculate real-time VIP points progress
   def realtimeVipPoints(id: UUID): Future[JsValue] = {
     for {
       // get current user VIP data
       current <- vipRepo.findByID(id)
       // get all points accumulated in daily challenge tracker
-      hasTracker <- chTkRepo.findUserByID(id)
+      hasTracker <- challengeTrackerRepo.findUserByID(id)
       // add the newly accumulated points into the existing one..
       updated <- Future.successful {
         hasTracker
