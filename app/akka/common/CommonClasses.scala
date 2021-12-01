@@ -13,4 +13,4 @@ object REQUEST_UPDATE_CHARACTERS_DB
 object ChallengeScheduler
 object DailyTaskScheduler
 object CreateNewDailyTask
-object RankingScheduler
+case class RankingScheduler(val data: Seq[models.domain.ChallengeTracker]) extends AnyVal

@@ -48,6 +48,7 @@ case class PlatformHost(name: String, uri: String, protocol: String = "https") {
 case class PlatformCurrency(name: String, symbol: String) {
 	def toJson(): JsValue = Json.toJson(this)
 	def toCoin(): Coin = Coin(symbol)
+	def toCoin(amount: BigDecimal): Coin = Coin(symbol, amount)
 }
 // platform {
 //   wei.value = "0.000000000000000001"

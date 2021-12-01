@@ -8,6 +8,7 @@ import akka.actor._
 import akka.event.{ Logging, LoggingAdapter }
 import play.api.libs.json._
 import models.domain._
+import models.domain.enum.VIP
 import models.repo._
 import akka.common.objects._
 
@@ -45,17 +46,37 @@ class DynamicSystemProcessActor@Inject()(
         for {
           vipAcc <- vipRepo.findByID(challenge.user)
           vipBenefit <- vipRepo.getBenefitByID(vipAcc.map(_.rank).getOrElse(null))
-          processed <- {
+          // process VIP points and VIP level..
+          updatedVIPAcc <- {
             vipBenefit
               .map { bnft =>
-                // new earned points * redemption rate
-                val newPoints = challenge.points * bnft.redemption_rate
-                // updated VIP User
-                dailyChallenge.addOrUpdate(challenge.copy(points = newPoints))
+                var vip: VIPUser = vipAcc.get
+                val newPoints: Double = vip.points + (challenge.points * bnft.redemption_rate)
+                // check if has enough points for nxt rank
+                if (newPoints >= bnft.points.id.toDouble) {
+                  // check if has next rank, update rank lvl and assume GOLD rank will be next lvl
+                  if (vip.rank != vip.next_rank)
+                    vip = vip.copy(points = newPoints, rank=vip.next_rank, next_rank=VIP.GOLD)
+                  else vip = vip.copy(points = newPoints, rank=vip.next_rank, next_rank=vip.next_rank)
+                }
+                // if no enough points for next rank, then update only points..
+                else vip = vip.copy(points = newPoints)
+                // update vip account
+                vipRepo.update(vip).map((_, newPoints))
               }
-              .getOrElse(Future.successful(0))
+              .getOrElse(Future.successful((0, 0D)))
           }
-        } yield (processed)
+          challengeUpdated <- {
+            updatedVIPAcc match {
+              // updated VIP User
+              case (result, pointEarned) =>
+                if (result > 0) dailyChallenge.addOrUpdate(challenge.copy(points = pointEarned))
+                else Future.successful(0)
+              // if error return 0
+              case _ => Future.successful(0)
+            }
+          }
+        } yield (challengeUpdated)
       } catch {
         case _: Throwable  => ()
       }

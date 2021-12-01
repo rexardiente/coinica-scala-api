@@ -318,11 +318,12 @@ trait CommonImplicits {
 		"referral_count" -> tx.referral_count,
 		"payout" -> tx.payout,
 		"points" -> tx.points,
-		"percentage" -> {
-			val hasPrevLvl: Double = tx.points - tx.prevLvlMax()
-			val dividend: Double = hasPrevLvl / tx.currentLvlMax()
-			(dividend * 100)
-		 },
+		// "percentage" ->
+		// {
+		// 	val hasPrevLvl: Double = tx.points - tx.prevLvlMax()
+		// 	val dividend: Double = hasPrevLvl / tx.currentLvlMax()
+		// 	(dividend * 100)
+		//  },
 		"updated_at" -> tx.updated_at)
 	}
 	implicit def implVIPBenefit = Json.format[VIPBenefit]

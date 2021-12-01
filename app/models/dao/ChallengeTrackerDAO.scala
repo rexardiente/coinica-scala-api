@@ -19,8 +19,10 @@ final class ChallengeTrackerDAO @Inject()(
     def wagered = column[Double] ("WAGERED")
     def ratio = column[Double] ("RATIO")
     def points = column[Double] ("VIP_POINTS")
+    def payout = column[Double] ("TOTAL_PAYOUT")
+    def multiplier = column[Int] ("MULTIPLIERS")
 
-    def * = (user, bets, wagered, ratio, points) <> (ChallengeTracker.tupled, ChallengeTracker.unapply)
+    def * = (user, bets, wagered, ratio, points, payout, multiplier) <> (ChallengeTracker.tupled, ChallengeTracker.unapply)
   }
 
   object Query extends TableQuery(new ChallengeTrackerTable(_)) {

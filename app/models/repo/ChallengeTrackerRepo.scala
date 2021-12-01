@@ -42,7 +42,9 @@ class ChallengeTrackerRepo @Inject()(
           val updatedChallenge: ChallengeTracker = v.copy(bets=(v.bets + challenge.bets),
                                                           wagered=(v.wagered + challenge.wagered),
                                                           ratio=(v.ratio + challenge.ratio),
-                                                          points=(v.points + challenge.points))
+                                                          points=(v.points + challenge.points),
+                                                          payout=(v.payout + challenge.payout),
+                                                          multiplier=(v.multiplier + challenge.multiplier))
 
           update(updatedChallenge)
         // else add to DB

@@ -162,9 +162,16 @@ class HomeController @Inject()(
                   for {
                     _ <- accountService.newUserAcc(userAccount)
                     _ <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
-                    _ <- accountService.addUserWallet(new UserAccountWallet(
-                            userAccount.id,
-                            SUPPORTED_CURRENCIES.map(_.toCoin)))
+                    _ <- {
+                      val usdc = SUPPORTED_CURRENCIES.find(_.name == "usd-coin").getOrElse(null)
+                      accountService.addUserWallet(new UserAccountWallet(
+                        userAccount.id,
+                        SUPPORTED_CURRENCIES.map(x => {
+                          // add free 30 USDC on all newly created accounts..
+                          if (x.name == usdc.name) x.toCoin(30)
+                          else x.toCoin()
+                        })))
+                    }
                     processCode <- {
                       if (code != None) {
                         for {
