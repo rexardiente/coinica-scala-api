@@ -166,7 +166,6 @@ class HomeController @Inject()(
                       accountService.addUserWallet(new UserAccountWallet(
                         userAccount.id,
                         SUPPORTED_CURRENCIES.map { currency =>
-                        val a : Int = currency
                           // add free 30 USDC on all newly created accounts..
                           if (currency.symbol == "USDC") currency.toCoin(BigDecimal(30))
                           else currency.toCoin()
