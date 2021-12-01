@@ -290,7 +290,7 @@ class SecureActionController @Inject()(
     request
       .account
       .map { account =>
-        vipService.realtimeVipPoints(account.id).map(x => Ok(x.map(Json.toJson(_)).getOrElse(JsNull)))
+        vipService.realtimeVipPoints(account.id).map(Ok(_))
       }.getOrElse(Future(Unauthorized(views.html.defaultpages.unauthorized())))
   }
   def overAllHistory(limit: Int) = SecureUserAction.async { implicit request =>

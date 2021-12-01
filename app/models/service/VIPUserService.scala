@@ -12,7 +12,7 @@ import models.domain.enum.VIPBenefitPoints
 @Singleton
 class VIPUserService @Inject()(vipRepo: VIPUserRepo, chTkRepo: ChallengeTrackerRepo) {
   // calculate real-time VIP points progress
-  def realtimeVipPoints(id: UUID): Future[Option[VIPUser]] = {
+  def realtimeVipPoints(id: UUID): Future[JsValue] = {
     for {
       // get current user VIP data
       current <- vipRepo.findByID(id)
@@ -25,7 +25,7 @@ class VIPUserService @Inject()(vipRepo: VIPUserRepo, chTkRepo: ChallengeTrackerR
             current.map(vip => vip.copy(points = (vip.points + tracker.points), payout = (vip.payout + tracker.payout)))
           }.getOrElse(current)
       }
-      _ <- Future.successful {
+      done <- {
         updated.map { vip =>
           val pointsToInt: Int = vip.points.round.toInt
           for {
@@ -50,12 +50,12 @@ class VIPUserService @Inject()(vipRepo: VIPUserRepo, chTkRepo: ChallengeTrackerR
                   val dividend: Double = hasPrevLvl / currentLvlMax
                   vip.toJson((dividend * 100).toInt)
                 }
-                .getOrElse(None)
+                .getOrElse(JsNull)
             }
           } yield (newJSON)
         }
-        .getOrElse(0)
+        .getOrElse(Future.successful(Json.toJson(updated)))
       }
-    } yield (updated)
+    } yield (done)
   }
 }
