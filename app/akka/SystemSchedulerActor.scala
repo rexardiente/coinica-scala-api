@@ -296,9 +296,9 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       for {
         challenges <- challengeTrackerRepo.all()
         topHighestWagered <- Future.successful(challenges.sortBy(-_.wagered).take(10))
+        // process Ranking on the other thread,,
+        _ <- Future.successful(self ! RankingScheduler(topHighestWagered))
         addToHistory <- {
-          // process Ranking on the other thread,,
-          self ! RankingScheduler(challenges)
           // get all top 10 challenge result
           for {
             isAdded <- challengeHistoryRepo.add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
