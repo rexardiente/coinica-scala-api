@@ -118,7 +118,7 @@ class GhostQuestSchedulerActor @Inject()(
           }
         }, Duration.Inf)
         _ <- Await.ready(Future {
-          if (battles.isEmpty || GhostQuestSchedulerActor.scUpdatedBattles.isEmpty)
+          if (GhostQuestSchedulerActor.scUpdatedBattles.isEmpty)
             dynamicBroadcast ! "BROADCAST_NO_CHARACTERS_AVAILABLE"
           Thread.sleep(5000)
         }, Duration.Inf)
@@ -189,7 +189,7 @@ class GhostQuestSchedulerActor @Inject()(
     } yield (updatedContract)
   }
 
-  private def saveToGameHistory(): Future[Seq[Any]] = Future.sequence {
+  private def saveToGameHistory(): Future[Seq[Unit]] = Future.sequence {
     println("saveToGameHistory", GhostQuestSchedulerActor.scUpdatedBattles.toSeq.size)
     // Aadd delay to make sure that past process are finished
     Thread.sleep(3000)
@@ -199,11 +199,11 @@ class GhostQuestSchedulerActor @Inject()(
       val loser = result.characters.filter(!_._2._2).head
       val time = instantNowUTC().getEpochSecond
 
-      Await.ready(
-        for {
-          winnerAcc <- userAccountService.getAccountByGameID(winner._2._1)
-          loserAcc <- userAccountService.getAccountByGameID(loser._2._1)
-        } yield ((new OverAllGameHistory(
+      for {
+        winnerAcc <- userAccountService.getAccountByGameID(winner._2._1)
+        loserAcc <- userAccountService.getAccountByGameID(loser._2._1)
+        data <- Future.successful {
+          ((new OverAllGameHistory(
                               UUID.randomUUID,
                               txHash,
                               gameID.toString,
@@ -227,17 +227,17 @@ class GhostQuestSchedulerActor @Inject()(
                         loser._2._1,
                         loser._1,
                         result.logs,
-                        time)), Duration.Inf)
-      .map {
+                        time))
+        }
+      } yield (data) match {
         case ((winner, loser), character) =>
-          println(winner.id, loser.id)
           // insert Tx and character contineously
           // broadcast game result to connected users
           // use live data to feed on history update..
           for {
-            _ <- Await.ready(characterService.insertGameHistory(character), Duration.Inf)
-            _ <- Await.ready(historyService.addOverAllHistory(winner), Duration.Inf)
-            _ <- Await.ready(historyService.addOverAllHistory(loser), Duration.Inf)
+            _ <- characterService.insertGameHistory(character)
+            _ <- historyService.addOverAllHistory(winner)
+            _ <- historyService.addOverAllHistory(loser)
           } yield ()
           // broadcast GQ game result
           // Thread.sleep(1000)

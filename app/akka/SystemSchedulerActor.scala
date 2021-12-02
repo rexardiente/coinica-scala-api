@@ -40,10 +40,6 @@ object SystemSchedulerActor {
   var currentChallengeGame: Option[UUID] = None
   var isIntialized: Boolean = false
   val walletTransactions = HashMap.empty[String, Event]
-  // game objects here..
-  var ghostquest: Option[PlatformGame] = None
-  var mahjonghilo: Option[PlatformGame] = None
-  var treasurehunt: Option[PlatformGame] = None
 
   def props(platformConfigService: PlatformConfigService,
             userAccountService: UserAccountService,
@@ -103,7 +99,6 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
-  private def defaultScheduler: Int = DEFAULT_SYSTEM_SCHEDULER_TIMER
   private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
 
   override def preStart: Unit = {
@@ -118,9 +113,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       case Success(actor) =>
         if (!SystemSchedulerActor.isIntialized) {
           // init notification actor for every games..
-          SystemSchedulerActor.ghostquest.map(game => WebSocketActor.subscribers.addOne(game.id, self))
-          SystemSchedulerActor.mahjonghilo.map(game => WebSocketActor.subscribers.addOne(game.id, self))
-          SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
+          platformConfigService.getGamesInfo().map(_.map(game => WebSocketActor.subscribers.addOne(game.id, self)))
           // if server has stop due to some updates or restart...
           // check if has existing tasks create for today based on UTC
           for {
@@ -134,11 +127,12 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
 
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = { defaultScheduler }.hours
+          val dailySchedInterval: FiniteDuration = { DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
           val dailySchedDelay   : FiniteDuration = {
-              val startTime = LocalTime.of(0, 0).toSecondOfDay
+              // val startTime = LocalTime.of(0, 0).toSecondOfDay
+              val startTime = 0
               val now = LocalTime.now(defaultTimeZone).toSecondOfDay
-              val fullDay = 60 * 60 * 24
+              val fullDay = 60 * 60 * DEFAULT_SYSTEM_SCHEDULER_TIMER
               val difference = startTime - now
               if (difference < 0) {
                 fullDay + difference
@@ -147,10 +141,6 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
               }
             }.seconds
           system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => {
-            // reload config with scheduler to apply changes in config table
-            loadDefaultObjects()
-            // block runners to make sure configs are laoded..
-            Thread.sleep(1000)
             self ! ChallengeScheduler
             self ! DailyTaskScheduler
             self ! CreateNewDailyTask
@@ -166,27 +156,6 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
     super.postStop
     println("Stop all threads on SystemSchedulerActor")
     system.stop(self)
-  }
-
-  private def loadDefaultObjects() = {
-    for {
-      // load ghostquest game defaults..
-      _ <- Future.successful {
-        platformConfigService
-          .getGameInfoByName("ghostquest")
-          .map(game => { SystemSchedulerActor.ghostquest = game })
-      }
-      _ <- Future.successful {
-        platformConfigService
-          .getGameInfoByName("mahjonghilo")
-          .map(game => { SystemSchedulerActor.mahjonghilo = game })
-      }
-      _ <- Future.successful {
-        platformConfigService
-          .getGameInfoByName("treasurehunt")
-          .map(game => { SystemSchedulerActor.treasurehunt = game })
-      }
-    } yield ()
   }
 
   def receive: Receive = {
