@@ -42,14 +42,14 @@ object SystemConfig {
 	val MAILER_ADDRESS: String = config.getString("play.mailer.user")
 	val DEFAULT_HOST: String = "http://127.0.0.1:9000"
 
-	var SUPPORTED_CURRENCIES: List[PlatformCurrency] = initialCurrencies
-	var DEFAULT_WEI_VALUE: BigDecimal = BigDecimal(config.getString("default.wei"))
-	var DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = config.getInt("default.system.scheduler")
-	var DEFAULT_EXPIRATION: Int = config.getInt("default.system.expiration")
-	var NODE_SERVER_URI: String = initialHosts(1).getURL()
-	var SCALA_SERVER_URI: String = initialHosts(0).getURL()
-	var COINICA_WEB_HOST: String = initialHosts(2).getURL()
-	var MAILER_HOST: String = initialHosts(3).getURL()
+	val SUPPORTED_CURRENCIES: List[PlatformCurrency] = initialCurrencies
+	val DEFAULT_WEI_VALUE: BigDecimal = BigDecimal(config.getString("default.wei"))
+	val DEFAULT_SYSTEM_SCHEDULER_TIMER: Int = config.getInt("default.system.scheduler")
+	val DEFAULT_EXPIRATION: Int = config.getInt("default.system.expiration")
+	val NODE_SERVER_URI: String = initialHosts(1).getURL()
+	val SCALA_SERVER_URI: String = initialHosts(0).getURL()
+	val COINICA_WEB_HOST: String = initialHosts(2).getURL()
+	val MAILER_HOST: String = initialHosts(3).getURL()
 
 	// System Timezone
 	val defaultTimeZone: ZoneOffset = ZoneOffset.UTC
