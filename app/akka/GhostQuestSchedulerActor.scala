@@ -148,7 +148,7 @@ class GhostQuestSchedulerActor @Inject()(
                     dynamicProcessor ! DailyTask(task.id, acc.id, GhostQuestSchedulerActor.gameInfo.id, 1)
 
                     if(v._2._2) dynamicProcessor ! ChallengeTracker(acc.id, 1, 1, 1, 1, 1, 1)
-                    else dynamicProcessor ! ChallengeTracker(acc.id, 1, 0, 1, 0, 0, 0)
+                    else dynamicProcessor ! ChallengeTracker(acc.id, 1, 1, 1, 0, 0, 0)
                   })
               }
             }
