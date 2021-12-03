@@ -270,8 +270,14 @@ class MahjongHiloGameService @Inject()(contract: utils.lib.MahjongHiloEOSIO,
 	}
 	def getUserData(userGameID: Int): Future[Option[MahjongHiloGameData]] =
 		contract.getUserData(userGameID)
-	def getUserGameHistory(userGameID: Int, limit: Int): Future[Seq[MahjongHiloHistory]] =
-		historyRepo.getByUserGameID(userGameID, limit)
+	def getUserGameHistory(userGameID: Int, limit: Int): Future[Seq[MahjongHiloHistory]] = {
+		for {
+			histories <- historyRepo.getByUserGameID(userGameID, limit)
+			reversePredictions <- Future.successful {
+				histories.map(history => history.copy(predictions = history.predictions.reverse))
+			}
+		} yield (reversePredictions)
+	}
 	def getMaxPayout(userGameID: Int): Future[Double] = {
 		for {
 			// get all history and extract game ID
