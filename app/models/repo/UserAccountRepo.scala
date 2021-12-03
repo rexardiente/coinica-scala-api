@@ -61,9 +61,10 @@ class UserAccountRepo @Inject()(
     db.run(dao.UserAccountQuery(username).exists.result)
   def exist(username: String, password: String): Future[Boolean] =
     db.run(dao.UserAccountQuery.filter(x => x.username === username && x.password === password).exists.result)
-
   def find(id: UUID, username: String): Future[Option[UserAccount]] =
     db.run(dao.UserAccountQuery.filter(r => r.id === id && r.username === username)
       .result
       .headOption)
+  def size(): Future[Int] =
+    db.run(dao.UserAccountQuery.size.result)
 }

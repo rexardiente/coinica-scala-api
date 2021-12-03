@@ -388,4 +388,7 @@ class HomeController @Inject()(
   def getCoinCapAsset() = Action.async { implicit request =>
     multiCurrencySupport.getCoinCapAssets().map(x => Ok(Json.toJson(x)))
   }
+  def getTotalRegisteredUsers() = Action.async { implicit request =>
+    accountService.getTotalRegisteredUsers().map(x => Ok(Json.toJson(x)))
+  }
 }
