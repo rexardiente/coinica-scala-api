@@ -11,15 +11,15 @@ object VIP extends Enumeration {
 object VIPBenefitAmount extends Enumeration {
   type value = Value
 
-  val BRONZE = Value(1000)
-  val SILVER = Value(10000)
-  val GOLD 	 = Value(100000)
+  var BRONZE = Value(1000)
+  var SILVER = Value(10000)
+  var GOLD 	 = Value(100000)
 }
 
 object VIPBenefitPoints extends Enumeration {
   type value = Value
 
-  val BRONZE = Value(100)
-  val SILVER = Value(1000)
-  val GOLD 	 = Value(5000)
+  var BRONZE = Value(50)
+  var SILVER = Value(200)
+  var GOLD 	 = Value(1000)
 }

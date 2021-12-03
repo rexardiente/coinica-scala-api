@@ -17,8 +17,21 @@ import play.api.libs.ws.WSClient
 import play.api.libs.json._
 import akka.common.objects._
 import models.domain._
-import models.repo._
-import models.service.{ UserAccountService, PlatformConfigService }
+import models.repo. {
+  UserAccountWalletHistoryRepo,
+  GameRepo,
+  ChallengeRepo,
+  ChallengeHistoryRepo,
+  ChallengeTrackerRepo,
+  TaskRepo,
+  DailyTaskRepo,
+  TaskHistoryRepo,
+  OverAllGameHistoryRepo,
+  UserAccountRepo,
+  RankingHistoryRepo,
+  VIPUserRepo
+}
+import models.service.{ UserAccountService, PlatformConfigService, RankingService }
 import models.domain.enum._
 import models.domain.wallet.support._
 import utils.lib.MultiCurrencyHTTPSupport
@@ -27,10 +40,6 @@ object SystemSchedulerActor {
   var currentChallengeGame: Option[UUID] = None
   var isIntialized: Boolean = false
   val walletTransactions = HashMap.empty[String, Event]
-  // game objects here..
-  var ghostquest: Option[PlatformGame] = None
-  var mahjonghilo: Option[PlatformGame] = None
-  var treasurehunt: Option[PlatformGame] = None
 
   def props(platformConfigService: PlatformConfigService,
             userAccountService: UserAccountService,
@@ -45,6 +54,7 @@ object SystemSchedulerActor {
             overAllGameHistory: OverAllGameHistoryRepo,
             userAccountRepo: UserAccountRepo,
             rankingHistoryRepo: RankingHistoryRepo,
+            rankingService: RankingService,
             vipUserRepo: VIPUserRepo,
             httpSupport: MultiCurrencyHTTPSupport,
             )(implicit system: ActorSystem) =
@@ -62,6 +72,7 @@ object SystemSchedulerActor {
           overAllGameHistory,
           userAccountRepo,
           rankingHistoryRepo,
+          rankingService,
           vipUserRepo,
           httpSupport,
           system)
@@ -82,12 +93,12 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                                     overAllGameHistory: OverAllGameHistoryRepo,
                                     userAccountRepo: UserAccountRepo,
                                     rankingHistoryRepo: RankingHistoryRepo,
+                                    rankingService: RankingService,
                                     vipUserRepo: VIPUserRepo,
                                     httpSupport: MultiCurrencyHTTPSupport,
                                     @Named("DynamicBroadcastActor") dynamicBroadcast: ActorRef
                                     )(implicit system: ActorSystem) extends Actor with ActorLogging {
   implicit private val timeout: Timeout = new Timeout(5, java.util.concurrent.TimeUnit.SECONDS)
-  private def defaultScheduler: Int = DEFAULT_SYSTEM_SCHEDULER_TIMER
   private def roundAt(p: Int)(n: Double): Double = { val s = math pow (10, p); (math round n * s) / s }
 
   override def preStart: Unit = {
@@ -102,27 +113,25 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       case Success(actor) =>
         if (!SystemSchedulerActor.isIntialized) {
           // init notification actor for every games..
-          SystemSchedulerActor.ghostquest.map(game => WebSocketActor.subscribers.addOne(game.id, self))
-          SystemSchedulerActor.mahjonghilo.map(game => WebSocketActor.subscribers.addOne(game.id, self))
-          SystemSchedulerActor.treasurehunt.map(game => WebSocketActor.subscribers.addOne(game.id, self))
+          platformConfigService.getGamesInfo().map(_.map(game => WebSocketActor.subscribers.addOne(game.id, self)))
           // if server has stop due to some updates or restart...
           // check if has existing tasks create for today based on UTC
           for {
             isExists <- taskRepo.existByDate(startOfDayUTC())
-            randomTasks <- createRandomTasks()
-            updateTask <- {
-              if (!isExists) taskRepo.add(new Task(UUID.randomUUID, randomTasks, startOfDayUTC().getEpochSecond))
-              else Future.successful(0) // do nothing..
+            updateTask <- Future.successful {
+              if (!isExists) self ! CreateNewDailyTask
+              else () // do nothing..
             }
           } yield (updateTask)
 
           // 24hrs Scheduler at 12:00 AM daily
           // any time the system started it will start at 12:AM
-          val dailySchedInterval: FiniteDuration = { defaultScheduler }.hours
+          val dailySchedInterval: FiniteDuration = { DEFAULT_SYSTEM_SCHEDULER_TIMER }.hours
           val dailySchedDelay   : FiniteDuration = {
-              val startTime = LocalTime.of(0, 0).toSecondOfDay
+              // val startTime = LocalTime.of(0, 0).toSecondOfDay
+              val startTime = 0
               val now = LocalTime.now(defaultTimeZone).toSecondOfDay
-              val fullDay = 60 * 60 * 24
+              val fullDay = 60 * 60 * DEFAULT_SYSTEM_SCHEDULER_TIMER
               val difference = startTime - now
               if (difference < 0) {
                 fullDay + difference
@@ -131,13 +140,9 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
               }
             }.seconds
           system.scheduler.scheduleAtFixedRate(dailySchedDelay, dailySchedInterval)(() => {
-            // reload config with scheduler to apply changes in config table
-            loadDefaultObjects()
-            // block runners to make sure configs are laoded..
-            Thread.sleep(1000)
             self ! ChallengeScheduler
             self ! DailyTaskScheduler
-            self ! RankingScheduler
+            self ! CreateNewDailyTask
           })
           // set true if actor already initialized
           SystemSchedulerActor.isIntialized = true
@@ -150,27 +155,6 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
     super.postStop
     println("Stop all threads on SystemSchedulerActor")
     system.stop(self)
-  }
-
-  private def loadDefaultObjects() = {
-    for {
-      // load ghostquest game defaults..
-      _ <- Future.successful {
-        platformConfigService
-          .getGameInfoByName("ghostquest")
-          .map(game => { SystemSchedulerActor.ghostquest = game })
-      }
-      _ <- Future.successful {
-        platformConfigService
-          .getGameInfoByName("mahjonghilo")
-          .map(game => { SystemSchedulerActor.mahjonghilo = game })
-      }
-      _ <- Future.successful {
-        platformConfigService
-          .getGameInfoByName("treasurehunt")
-          .map(game => { SystemSchedulerActor.treasurehunt = game })
-      }
-    } yield ()
   }
 
   def receive: Receive = {
@@ -306,181 +290,98 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
 
     // run scehduler every midnight of day..
     case ChallengeScheduler =>
-      val yesterday: Instant = dateNowPlusDaysUTC(-1)
+      val time: Instant = dateNowPlusDaysUTC(-1)
       // update all earned points into users Account
-      Await.ready(processChallengeTrackerAndEarnedVIPPoints(yesterday), Duration.Inf)
+      for {
+        challenges <- challengeTrackerRepo.all()
+        topHighestWagered <- Future.successful(challenges.sortBy(-_.wagered).take(10))
+        // process Ranking on the other thread,,
+        _ <- Future.successful(self ! RankingScheduler(topHighestWagered))
+        addToHistory <- {
+          // get all top 10 challenge result
+          for {
+            isAdded <- challengeHistoryRepo.add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
+            done <- if (isAdded > 0) challengeTrackerRepo.clearTable else Future.successful(0)
+          } yield (done)
+        }
+      } yield (addToHistory)
     // Daily tasks rewards are fixed amount based on time of tasks reward generation
     case DailyTaskScheduler =>
-      val yesterday: Instant = dateNowPlusDaysUTC(-1)
-      // process first all available task before creating new tasks
-      val trackedFailedInsertion = ListBuffer.empty[TaskHistory]
-      val aPromise = Promise[Future[Int]]()
-      val processedTasks: Future[Int] = taskRepo.getDailyTaskByDate(yesterday).map(_.map { v =>
+      taskRepo.getTaskWithOffset(0).map(_.map { v =>
         for {
           tracked <- dailyTaskRepo.all()
           // update users vip points from daily tasks
           processes <- Future.sequence {
             tracked.map { x =>
-                for {
-                  vipAcc <- vipUserRepo.findByID(x.user)
-                  updatedVIPAcc <- Future.successful {
-                    vipAcc.map { vip =>
-                      // points (fixed 1 VIP per day) * rank benefit
-                      vipUserRepo.getBenefitByID(vip.rank).map {
-                        case Some(b) =>
-                          val isTaskExists: Option[TaskGameInfo] = v.tasks.filter(_.game.id == x.game_id).headOption
-                          // user play count >= task play count
-                          isTaskExists.map { gameInfo =>
-                            // update User VIP points
-                            if (x.game_count >= gameInfo.count) {
-                              for {
-                                _ <- vipUserRepo.update(vip.copy(points = vip.points + gameInfo.points))
-                                _ <- isUpdateToNewVIPLvl(vip)
-                              } yield ()
-                            }
-                            else () // do nothing..
-                          }
+              for {
+                vipAcc <- vipUserRepo.findByID(x.user)
+                updatedVIPAcc <- {
+                  vipAcc
+                    .map { vip =>
+                      for {
+                        hasBnft <- vipUserRepo.getBenefitByID(vip.rank)
+                        updateAccount <- {
+                          hasBnft.map { bnft =>
+                            val isTaskExists: Option[TaskGameInfo] = v.tasks.find(_.game.id == x.game_id)
+                            // user play count >= task play count
+                            isTaskExists
+                              .map(task => vipUserRepo.update(vip.copy(points = vip.points + task.points)))
+                              .getOrElse(Future.successful(0))
 
-                        case None => ()
-                      }
+                          }
+                          .getOrElse(Future.successful(0))
+                        }
+                      } yield (updateAccount)
                     }
                     .getOrElse(Future.successful(0))
-                  }
-                } yield (updatedVIPAcc)
+                }
+              } yield (updatedVIPAcc)
             }
           }
           // insert all data into database history
           insertHistory <- {
-            val taskHistory = new TaskHistory(UUID.randomUUID,
+            val time: Instant = dateNowPlusDaysUTC(-1)
+            val taskHistory = new TaskHistory(v.id,
                                               tracked.toList,
-                                              yesterday,
-                                              Instant.ofEpochSecond(yesterday.getEpochSecond + ((60 * 60 * 24) - 1)))
+                                              time,
+                                              Instant.ofEpochSecond(time.getEpochSecond + ((60 * 60 * 24) - 1)))
             taskHistoryRepo.add(taskHistory)
           }
-          clean <- dailyTaskRepo.clearTable
-        } yield (clean)
-      }
-      .getOrElse(Future.successful(0)))
-      .flatten
-      // wait the process to be completed
-      aPromise.success(processedTasks)
-      // get the future result from promise action
-      // flatten to convert Future[Future[]] to Future[]
-      val completedTasks: Future[Int] = aPromise.future.flatten
-      // create new tasks for another day
-      completedTasks.map { _ => self ! (CreateNewDailyTask, yesterday) }
+          clean <- if (insertHistory > 0) dailyTaskRepo.clearTable else Future.successful(0)
+        } yield (insertHistory)
+      })
 
-    case (CreateNewDailyTask, yesterday: Instant) =>
-      val startOfDay: Long = yesterday.getEpochSecond + (60 * 60 * 24)
+
+    case CreateNewDailyTask =>
+      val time: Long = startOfDayUTC().getEpochSecond
       // val startOfDay: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant()
-      taskRepo.existByDate(Instant.ofEpochSecond(startOfDay)).map { isCreated =>
+      taskRepo.existByDate(Instant.ofEpochSecond(time)).map { isCreated =>
         if (!isCreated) {
           for {
-            availableGames <- gameRepo.all()
             tasks <- createRandomTasks()
-            updateTask <- taskRepo.add(new Task(UUID.randomUUID, tasks, startOfDay))
+            updateTask <- taskRepo.add(new Task(UUID.randomUUID, tasks, time))
           } yield (updateTask)
         }
       }
 
-    case RankingScheduler =>
-      // get date range to fecth from overall history...
-      val timeZone = LocalDate.now(defaultTimeZone).atStartOfDay().plusDays(-1)
-      val start: Long = timeZone.toInstant(defaultTimeZone).getEpochSecond
-      val end: Long = timeZone.plusDays(1).toInstant(defaultTimeZone).getEpochSecond
-      // fetch overAllGameHistory by date ranges
+    case RankingScheduler(data) =>
       for {
-        gameHistory <- overAllGameHistory.getByDateRange(start, (end - 1))
-        // grouped by user -> Map[String, Seq[OverAllGameHistory]]
-        grouped <- Future.successful(gameHistory.groupBy(_.info.user))
-        // grouped history by user..
-        processedHistory <- Future.successful {
-          grouped
-            .map { case (user, histories) =>
-              val amountHistories: List[(Double, Double)] = histories.map(x => (x.info.bet, x.info.amount)).toList
-              // calculate total bet, earn and multiplier
-              // amounts are converted into USD
-              val bets: Double = amountHistories.map(_._1).sum
-              val earnings: Double = amountHistories.map(_._2).sum
-              val multipliers: Int = amountHistories.map(_._2).filter(_ > 0).size
-              (user, bets, earnings, multipliers)
-            }.toSeq
-        }
-        profit <- Future.sequence {
-          processedHistory
-            .map { case (user, bets, earnings, multipliers) => (user, bets, earnings - bets) }
-            .filter(_._3 > 0)
-            .sortBy(-_._3)
-            .take(10)
-            .map { case (user, bets, profit) =>
-              userAccountRepo
-                .getByName(user)
-                .map(_.map(account => RankProfit(account.id, account.username, bets, profit)))
-            }
-        }
-        payout <- Future.sequence {
-          processedHistory
-              .map { case (user, bets, earnings, multipliers) => (user, bets, earnings) }
-              .filter(_._3 > 0)
-              .sortBy(-_._3)
-              .take(10)
-              .map { case (user, bets, payout) =>
-                userAccountRepo
-                  .getByName(user)
-                  .map(_.map(account => RankPayout(account.id, account.username, bets, payout)))
-              }
-        }
-        wagered <- Future.sequence {
-          processedHistory
-              .map { case (user, bets, earnings, multipliers) => (user, bets, bets) }
-              .filter(_._3 > 0)
-              .sortBy(-_._3)
-              .take(10)
-              .map { case (user, bets, wagered) =>
-                userAccountRepo
-                  .getByName(user)
-                  .map(_.map(account => RankWagered(account.id, account.username, bets, wagered)))
-              }
-        }
-        // total win size
-        multiplier <- Future.sequence {
-          processedHistory
-              .map { case (user, bets, earnings, multipliers) => (user, bets, multipliers) }
-              .filter(_._3 > 0)
-              .sortBy(-_._3)
-              .take(10)
-              .map { case (user, bets, multipliers) =>
-                userAccountRepo
-                  .getByName(user)
-                  .map(_.map(account => RankMultiplier(account.id, account.username, bets, multipliers)))
-              }
-        }
+        rankedData <- rankingService.calculateRank(data)
         // save ranking to history..
-        rankAdded <- {
-          //  remove null values from the list..
-          val aProfit: Seq[RankType] = removeNoneValue[RankType](profit)
-          val aPayout: Seq[RankType] = removeNoneValue[RankType](payout)
-          val aWagered: Seq[RankType] = removeNoneValue[RankType](wagered)
-          val aMultiplier: Seq[RankType] = removeNoneValue[RankType](multiplier)
-          val rank: RankingHistory = RankingHistory(aProfit, aPayout, aWagered, aMultiplier, start)
-          // insert into DB, if failed then re-insert
-          rankingHistoryRepo.add(rank)
-        }
+        added <- rankingHistoryRepo.add(rankedData)
         // update users VIP accounts with after rankAdded
-        claimPoints <- claimPointsPerUser(processedHistory)
-      } yield (claimPoints)
+        clean <- if (added > 0) claimPointsPerUser(data) else Future.successful(0)
+      } yield (clean)
 
     case _ => ()
   }
-  // remove null values from list[RankType]
-  private def removeNoneValue[T >: RankType](v: Seq[Option[T]]): Seq[T] = v.map(_.getOrElse(null))
+
   // process overall Game History in 24hrs
-  private def claimPointsPerUser(txs: Seq[(String, Double, Double, Int)]): Future[Seq[Int]] =
+  private def claimPointsPerUser(data: Seq[ChallengeTracker]): Future[Seq[Int]] =
     Future.sequence {
-      txs.map { case (user, bets, earnings, multipliers) =>
+      data.map { case ChallengeTracker(id, bets, wagered, ratio, points, payout, multiplier) =>
         for {
-          userAcc <- userAccountRepo.getByName(user)
-          vipAcc <- vipUserRepo.findByID(userAcc.get.id)
+          vipAcc <- vipUserRepo.findByID(id)
           updatePoints <- {
             vipAcc.map { vip =>
               // find VIP account
@@ -490,7 +391,7 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
                   hasBnft
                     .map { bnft =>
                       // multiply earnings with account vip multiplier + old point
-                      val newTotalPayout = vip.payout + (earnings * bnft.redemption_rate)
+                      val newTotalPayout = vip.payout + (payout * bnft.redemption_rate)
                       // update VIP User payout
                       vipUserRepo.update(vip.copy(payout = newTotalPayout))
                     }
@@ -504,56 +405,16 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
       }
     }
 
-  private def processChallengeTrackerAndEarnedVIPPoints(time: Instant): Future[Int] = {
-    for {
-      challenges <- challengeTrackerRepo.all()
-      // update all users vip account points earned..
-      _ <- Future.sequence {
-        challenges.map { case ChallengeTracker(user, bets, wagered, ratio, points) =>
-          for {
-            vipAcc <- vipUserRepo.findByID(user)
-            result <- {
-              vipAcc
-                .map { acc =>
-                  val newPoints = acc.points + points
-                  // create new updated VIP User
-                  vipUserRepo.update(acc.copy(points = newPoints))
-                }
-                .getOrElse(Future.successful(0))
-            }
-            updateLvl <- vipAcc.map(isUpdateToNewVIPLvl).getOrElse(Future.successful(0))
-          } yield (updateLvl)
-        }
-      }
-      topHighestWagered <- Future.successful(challenges.sortBy(-_.wagered).take(10))
-      addToHistory <- {
-        // get all top 10 challenge result
-        for {
-          isAdded <- challengeHistoryRepo.add(new ChallengeHistory(UUID.randomUUID, topHighestWagered, time.getEpochSecond))
-          done <- if (isAdded > 0) challengeTrackerRepo.clearTable else Future.successful(0)
-        } yield (done)
-      }
-    } yield (addToHistory)
-  }
-
-  private def isUpdateToNewVIPLvl(vip: VIPUser): Future[Boolean] = {
-    // check if account has enough points for next lvlup
-    if (vip.currentRank == vip.rank) Future.successful(false) // do nothing
-    // update VIP rank details
-    else {
-      vipUserRepo
-        .update(vip.copy(rank = vip.currentRank, next_rank = vip.nextRank()))
-        .map { isUpdated => if (isUpdated > 0) true else false }
-    }
-  }
-
   private def createRandomTasks(): Future[List[TaskGameInfo]] = {
     for {
       availableGames <- gameRepo.all()
       tasks <- Future.successful {
         // generate random range from 1 - 5
         // to determine how many games need to play to get points
-        availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
+        if (availableGames.isEmpty)
+          initialGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
+        else
+          availableGames.map(x => TaskGameInfo(x, Random.between(1, 6), roundAt(2)(Random.between(0, 2.0)), None))
       }
     } yield (tasks)
   }

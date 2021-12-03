@@ -68,7 +68,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 									          if (isAdded > 0) {
 									          	dynamicBroadcast ! Array(gameHistory)
 										          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-															dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, prize)
+															dynamicProcessor ! ChallengeTracker(id, betAmount, betAmount, 1, prize, prize, if(prize>0) 1 else 0)
 															(1)
 									          }
 									          else (0)
@@ -133,7 +133,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 											          if (isAdded > 0) {
 											          	dynamicBroadcast ! Array(gameHistory)
 												          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-																	dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, prize)
+																	dynamicProcessor ! ChallengeTracker(id, betAmount, betAmount, 1, prize, prize, if(prize>0) 1 else 0)
 																	(1)
 											          }
 											          else (0)
@@ -230,7 +230,7 @@ class TreasureHuntGameService @Inject()(contract: utils.lib.TreasureHuntEOSIO,
 													.map { _ =>
 									          dynamicBroadcast ! Array(gameHistory)
 									          dynamicProcessor ! DailyTask(task.get.id, id, defaultGame.map(_.id).getOrElse(UUID.randomUUID), 1)
-														dynamicProcessor ! ChallengeTracker(id, betAmount, prize, 1, prize)
+														dynamicProcessor ! ChallengeTracker(id, betAmount, betAmount, 1, prize, prize, if(prize>0) 1 else 0)
 										        true
 										      }
 											}

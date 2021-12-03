@@ -12,14 +12,14 @@ object RankingHistory extends CommonImplicits {
 						payouts: Seq[RankType],
 						wagered: Seq[RankType],
 						multipliers: Seq[RankType],
-						created_at: Long): RankingHistory =
-		new RankingHistory(id, profits, payouts, wagered, multipliers, created_at)
+						createdAt: Long): RankingHistory =
+		new RankingHistory(id, profits, payouts, wagered, multipliers, createdAt)
 	def apply(profits: Seq[RankType],
 						payouts: Seq[RankType],
 						wagered: Seq[RankType],
 						multipliers: Seq[RankType],
-						created_at: Long): RankingHistory =
-		new RankingHistory(UUID.randomUUID, profits, payouts, wagered, multipliers, created_at)
+						createdAt: Long): RankingHistory =
+		new RankingHistory(UUID.randomUUID, profits, payouts, wagered, multipliers, createdAt)
 }
 object RankProfit
 object RankPayout
@@ -48,6 +48,6 @@ case class RankingHistory(id: UUID,
 													payouts: Seq[RankType], // Seq[RankPayout]
 													wagered: Seq[RankType], // Seq[RankWagered]
 													multipliers: Seq[RankType], // Seq[RankMultiplier]
-													created_at: Long) {
+													createdAt: Long) {
 	def toJson(): JsValue = Json.toJson(this)
 }

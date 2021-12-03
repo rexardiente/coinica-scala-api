@@ -153,7 +153,7 @@ class HomeController @Inject()(
         for {
           isAccountAlreadyExists <- accountService.getAccountByName(username)
           processSignUp <- {
-            if (isAccountAlreadyExists == None) {
+            if (isAccountAlreadyExists == None && !SUPPORTED_CURRENCIES.isEmpty) {
               // if (hasCode.referralCode == code.getOrElse("")) {
                 try {
                   // encrypt account password into SHA256 algorithm...
@@ -162,9 +162,15 @@ class HomeController @Inject()(
                   for {
                     _ <- accountService.newUserAcc(userAccount)
                     _ <- accountService.newVIPAcc(VIPUser(userAccount.id, userAccount.createdAt))
-                    _ <- accountService.addUserWallet(new UserAccountWallet(
-                            userAccount.id,
-                            SUPPORTED_CURRENCIES.map(_.toCoin)))
+                    _ <- {
+                      accountService.addUserWallet(new UserAccountWallet(
+                        userAccount.id,
+                        SUPPORTED_CURRENCIES.map { currency =>
+                          // add free 30 USDC on all newly created accounts..
+                          if (currency.symbol == "USDC") currency.toCoin(BigDecimal(30))
+                          else currency.toCoin()
+                        }))
+                    }
                     processCode <- {
                       if (code != None) {
                         for {
@@ -381,5 +387,8 @@ class HomeController @Inject()(
 
   def getCoinCapAsset() = Action.async { implicit request =>
     multiCurrencySupport.getCoinCapAssets().map(x => Ok(Json.toJson(x)))
+  }
+  def getTotalRegisteredUsers() = Action.async { implicit request =>
+    accountService.getTotalRegisteredUsers().map(x => Ok(Json.toJson(x)))
   }
 }

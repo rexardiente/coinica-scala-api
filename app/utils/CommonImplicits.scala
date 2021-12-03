@@ -265,7 +265,33 @@ trait CommonImplicits {
 	    }
 	  }
 	}
-	implicit def implRankingHistory = Json.format[RankingHistory]
+	// implicit def implRankingHistory = Json.format[RankingHistory]
+	implicit val implicitRankingHistoryReads: Reads[RankingHistory] = new Reads[RankingHistory] {
+		override def reads(js: JsValue): JsResult[RankingHistory] = js match {
+			case json: JsValue => {
+				try {
+					JsSuccess(RankingHistory(
+						(json \ "id").as[UUID],
+						(json \ "profits").as[Seq[RankType]],
+						(json \ "payouts").as[Seq[RankType]],
+						(json \ "wagered").as[Seq[RankType]],
+						(json \ "multipliers").as[Seq[RankType]],
+						(json \ "created_at").as[Long]))
+				} catch {
+					case e: Throwable => JsError(Seq(JsPath() -> Seq(JsonValidationError(e.toString))))
+				}
+			}
+			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
+		}
+	}
+	implicit val implicitRankingHistoryWrites = new Writes[RankingHistory] {
+	  def writes(tx: RankingHistory): JsValue = Json.obj(
+		"profits" -> tx.profits,
+		"payouts" -> tx.payouts,
+		"wagered" -> tx.wagered,
+		"multipliers" -> tx.multipliers,
+		"created_at" -> tx.createdAt)
+	}
 
 	// https://gist.github.com/mikesname/5237809
 	implicit def enumReads[E <: Enumeration](enum: E): Reads[E#Value] = new Reads[E#Value] {
@@ -307,9 +333,6 @@ trait CommonImplicits {
 			case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.jsobject"))))
 		}
 	}
-	// 0 - 100 = Bronze
-	// 101 - 500 = Silver
-	// 501 and 1000up  = Gold
 	implicit val implicitVIPUserWrites = new Writes[VIPUser] {
 	  def writes(tx: VIPUser): JsValue = Json.obj(
 		"id" -> tx.id,
@@ -318,11 +341,6 @@ trait CommonImplicits {
 		"referral_count" -> tx.referral_count,
 		"payout" -> tx.payout,
 		"points" -> tx.points,
-		"percentage" -> {
-			val hasPrevLvl: Double = tx.points - tx.prevLvlMax()
-			val dividend: Double = hasPrevLvl / tx.currentLvlMax()
-			(dividend * 100)
-		 },
 		"updated_at" -> tx.updated_at)
 	}
 	implicit def implVIPBenefit = Json.format[VIPBenefit]
@@ -357,7 +375,6 @@ trait CommonImplicits {
 		"id" -> tx.id,
 		"user_game_id" -> tx.userGameID,
 		"username" -> tx.username,
-		// "password" -> tx.password,
 		"email" -> tx.email,
 		"referred_by" -> tx.referredBy,
 		"referral_code" -> tx.referralCode,
