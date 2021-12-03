@@ -118,10 +118,9 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           // check if has existing tasks create for today based on UTC
           for {
             isExists <- taskRepo.existByDate(startOfDayUTC())
-            randomTasks <- createRandomTasks()
-            updateTask <- {
-              if (!isExists) taskRepo.add(new Task(UUID.randomUUID, randomTasks, startOfDayUTC().getEpochSecond))
-              else Future.successful(0) // do nothing..
+            updateTask <- Future.successful {
+              if (!isExists) self ! CreateNewDailyTask
+              else () // do nothing..
             }
           } yield (updateTask)
 
@@ -316,24 +315,25 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
             tracked.map { x =>
               for {
                 vipAcc <- vipUserRepo.findByID(x.user)
-                updatedVIPAcc <- Future.successful {
-                  vipAcc.map { vip =>
-                    // points (fixed 1 VIP per day) * rank benefit
-                    vipUserRepo.getBenefitByID(vip.rank).map {
-                      case Some(b) =>
-                        val isTaskExists: Option[TaskGameInfo] = v.tasks.filter(_.game.id == x.game_id).headOption
-                        // user play count >= task play count
-                        isTaskExists.map { gameInfo =>
-                          // update User VIP points
-                          if (x.game_count >= gameInfo.count)
-                            vipUserRepo.update(vip.copy(points = vip.points + gameInfo.points))
-                          else () // do nothing..
-                        }
+                updatedVIPAcc <- {
+                  vipAcc
+                    .map { vip =>
+                      for {
+                        hasBnft <- vipUserRepo.getBenefitByID(vip.rank)
+                        updateAccount <- {
+                          hasBnft.map { bnft =>
+                            val isTaskExists: Option[TaskGameInfo] = v.tasks.find(_.game.id == x.game_id)
+                            // user play count >= task play count
+                            isTaskExists
+                              .map(task => vipUserRepo.update(vip.copy(points = vip.points + task.points)))
+                              .getOrElse(Future.successful(0))
 
-                      case None => ()
+                          }
+                          .getOrElse(Future.successful(0))
+                        }
+                      } yield (updateAccount)
                     }
-                  }
-                  .getOrElse(Future.successful(0))
+                    .getOrElse(Future.successful(0))
                 }
               } yield (updatedVIPAcc)
             }
@@ -341,24 +341,23 @@ class SystemSchedulerActor @Inject()(platformConfigService: PlatformConfigServic
           // insert all data into database history
           insertHistory <- {
             val time: Instant = dateNowPlusDaysUTC(-1)
-            val taskHistory = new TaskHistory(UUID.randomUUID,
+            val taskHistory = new TaskHistory(v.id,
                                               tracked.toList,
                                               time,
                                               Instant.ofEpochSecond(time.getEpochSecond + ((60 * 60 * 24) - 1)))
             taskHistoryRepo.add(taskHistory)
           }
-          clean <- dailyTaskRepo.clearTable
-        } yield (clean)
+          clean <- if (insertHistory > 0) dailyTaskRepo.clearTable else Future.successful(0)
+        } yield (insertHistory)
       })
 
 
     case CreateNewDailyTask =>
-      val time: Long = dateNowPlusDaysUTC(-1).getEpochSecond
+      val time: Long = startOfDayUTC().getEpochSecond
       // val startOfDay: Instant = LocalDate.now().atStartOfDay().atZone(defaultTimeZone).toInstant()
       taskRepo.existByDate(Instant.ofEpochSecond(time)).map { isCreated =>
         if (!isCreated) {
           for {
-            availableGames <- gameRepo.all()
             tasks <- createRandomTasks()
             updateTask <- taskRepo.add(new Task(UUID.randomUUID, tasks, time))
           } yield (updateTask)
