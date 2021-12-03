@@ -51,7 +51,8 @@ class DynamicSystemProcessActor@Inject()(
             vipBenefit
               .map { bnft =>
                 var vip: VIPUser = vipAcc.get
-                val newPoints: Double = vip.points + (challenge.points * bnft.redemption_rate)
+                val pointEarned: Double = (challenge.points * bnft.redemption_rate)
+                val newPoints: Double = vip.points + pointEarned
                 // check if has enough points for nxt rank
                 if (newPoints >= bnft.points.id.toDouble) {
                   // check if has next rank, update rank lvl and assume GOLD rank will be next lvl
@@ -62,7 +63,7 @@ class DynamicSystemProcessActor@Inject()(
                 // if no enough points for next rank, then update only points..
                 else vip = vip.copy(points = newPoints)
                 // update vip account
-                vipRepo.update(vip).map((_, newPoints))
+                vipRepo.update(vip).map((_, pointEarned))
               }
               .getOrElse(Future.successful((0, 0D)))
           }
