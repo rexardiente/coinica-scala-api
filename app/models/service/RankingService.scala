@@ -119,8 +119,7 @@ class RankingService @Inject()(
   def calculateRankHistory(v: Seq[RankingHistory]): Future[RankingHistory] = {
     for {
       profit <- Future.successful {
-        try {
-          v.map(_.profits).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
+        v.map(_.profits).flatten.groupBy(history => (history.id, history.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalprofit = seq.asInstanceOf[Seq[RankProfit]].map(_.profit).sum
             RankProfit(id, username, totalbet, totalprofit)
@@ -128,13 +127,9 @@ class RankingService @Inject()(
           .toSeq
           .filter(_.profit > 0)
           .take(10)
-        } catch {
-          case _: Throwable => Seq.empty
-        }
       }
       payout <- Future.successful {
-        try {
-          v.map(_.payouts).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
+        v.map(_.payouts).flatten.groupBy(history => (history.id, history.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalpayout = seq.asInstanceOf[Seq[RankPayout]].map(_.payout).sum
             RankPayout(id, username, totalbet, totalpayout)
@@ -142,13 +137,9 @@ class RankingService @Inject()(
           .toSeq
           .filter(_.payout > 0)
           .take(10)
-        } catch {
-          case e: Throwable => Seq.empty
-        }
       }
       wagered <- Future.successful {
-        try {
-          v.map(_.wagered).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
+        v.map(_.wagered).flatten.groupBy(history => (history.id, history.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalwagered = seq.asInstanceOf[Seq[RankWagered]].map(_.wagered).sum
             RankWagered(id, username, totalbet, totalwagered)
@@ -156,13 +147,9 @@ class RankingService @Inject()(
           .toSeq
           .filter(_.wagered > 0)
           .take(10)
-        } catch {
-          case _: Throwable => Seq.empty
-        }
       }
       multiplier <- Future.successful {
-        try {
-          v.map(_.multipliers).flatten.groupBy(x => (x.id, x.username)).map { case ((id, username), seq) =>
+        v.map(_.multipliers).flatten.groupBy(history => (history.id, history.username)).map { case ((id, username), seq) =>
             val totalbet = seq.map(_.bet).sum
             val totalwagered = seq.asInstanceOf[Seq[RankMultiplier]].map(_.multiplier).sum
             RankMultiplier(id, username, totalbet, totalwagered)
@@ -170,9 +157,6 @@ class RankingService @Inject()(
           .toSeq
           .filter(_.multiplier > 0)
           .take(10)
-        } catch {
-          case _: Throwable => Seq.empty
-        }
       }
     } yield (RankingHistory(v.headOption.map(_.id).getOrElse(UUID.randomUUID), profit, payout, wagered, multiplier, instantNowUTC().getEpochSecond))
   }
